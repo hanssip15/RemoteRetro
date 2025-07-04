@@ -1,7 +1,8 @@
-import { Controller, Get, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Req, UseGuards, Res } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { JwtService } from '@nestjs/jwt';
-import { UsersService } from '../users/users.service'; // Your user check service
+import { UsersService } from '../services/user.service';
+import { Request, Response } from 'express';
 
 @Controller('auth')
 export class AuthController {
@@ -15,15 +16,18 @@ export class AuthController {
 
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
-  async googleCallback(@Req() req, @Res() res) {
-    const email = req.user.email;
-    const user = await this.usersService.findByEmail(email);
+  async googleCallback(@Req() req: Request, @Res() res: Response) {
+    const { id, name, email, imageUrl } = req.user as { id: string; name: string; email: string; imageUrl: string };
+    let user = await this.usersService.findByEmail(email);
 
     if (!user) {
-      return res.status(401).json({ message: 'Unauthorized: User not found in database' });
+      // Create new user if not found
+      user = await this.usersService.create({ id, name, email, imageUrl });
     }
-
-    const payload = { sub: user.id, email: user.email };
+    if (!user) {
+      return res.status(500).json({ message: 'Failed to create or retrieve user.' });
+    }
+    const payload = { sub: user!.id, email: user!.email, name: user!.name, imageUrl: user!.imageUrl };
     const token = this.jwtService.sign(payload);
 
     // Send token to frontend
