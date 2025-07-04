@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS retros (
     title VARCHAR(255) NOT NULL,
     status VARCHAR(50) DEFAULT 'draft',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    created_by VARCHAR(255) REFERENCES users(id) ON DELETE SET NULL,
+    created_by VARCHAR(255) REFERENCES users(id) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS participants (

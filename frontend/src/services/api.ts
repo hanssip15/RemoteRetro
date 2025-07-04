@@ -11,6 +11,7 @@ export interface Retro {
   updatedAt: string;
 }
 
+
 export interface RetroItem {
   id: number;
   retroId: number;
@@ -190,5 +191,17 @@ class ApiService {
     return this.request('/dashboard/stats');
   }
 }
+// api.ts
+export const fetchProtectedData = async () => {
+  const token = localStorage.getItem('token');
+  const res = await fetch('http://localhost:3000/protected-route', {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok) throw new Error('Not authorized');
+  return await res.json();
+};
 
 export const apiService = new ApiService(); 
