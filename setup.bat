@@ -28,7 +28,7 @@ echo To start development servers:
 echo   npm run dev
 echo.
 echo Frontend will run on: http://localhost:5173
-echo Backend will run on: http://localhost:3001
+echo Backend will run on: http://localhost:3000
 echo.
 echo Don't forget to:
 echo 1. Set up your DATABASE_URL in backend/.env

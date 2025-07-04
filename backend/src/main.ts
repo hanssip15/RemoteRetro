@@ -18,7 +18,7 @@ async function bootstrap() {
     transform: true,
   }));
 
-  const port = process.env.PORT || 3001; // Use 3001 for backend to avoid conflict with frontend
+  const port = process.env.PORT || 3000; // Use 3001 for backend to avoid conflict with frontend
   await app.listen(port);
   console.log(`Application is running on: http://localhost:${port}`);
 }

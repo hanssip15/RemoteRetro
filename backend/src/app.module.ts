@@ -8,7 +8,8 @@ import { DashboardController } from './controllers/dashboard.controller';
 import { Retro } from './entities/retro.entity';
 import { RetroItem } from './entities/retro-item.entity';
 import { Participant } from './entities/participant.entity';
-
+import { AuthModule } from './auth/auth.module';
+import { UsersModule } from './module/user.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -24,6 +25,8 @@ import { Participant } from './entities/participant.entity';
       } : false,
     }),
     RetroModule,
+    AuthModule,
+    UsersModule,
   ],
   controllers: [AppController, DashboardController],
   providers: [AppService],

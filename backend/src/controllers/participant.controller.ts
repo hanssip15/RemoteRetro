@@ -7,19 +7,19 @@ export class ParticipantController {
   constructor(private readonly participantService: ParticipantService) {}
 
   @Get()
-  async findByRetroId(@Param('retroId', ParseIntPipe) retroId: number) {
+  async findByRetroId(@Param('retroId') retroId: string) {
     return this.participantService.findByRetroId(retroId);
   }
-
-  @Post('join')
-  @HttpCode(HttpStatus.CREATED)
-  async join(@Param('retroId', ParseIntPipe) retroId: number, @Body() joinRetroDto: JoinRetroDto) {
-    return this.participantService.join(retroId, joinRetroDto);
-  }
+  
+  // @Post('join')
+  // @HttpCode(HttpStatus.CREATED)
+  // async join(@Param('retroId') retroId: string, @Body() joinRetroDto: JoinRetroDto) {
+  //   return this.participantService.join(retroId, joinRetroDto);
+  // }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async remove(@Param('id', ParseIntPipe) id: number) {
+  async remove(@Param('id') id: string) {
     await this.participantService.remove(id);
   }
 } 

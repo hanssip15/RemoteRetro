@@ -1,5 +1,14 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+// src/entities/participant.entity.ts
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+  CreateDateColumn,
+} from 'typeorm';
 import { Retro } from './retro.entity';
+import { User } from './user.entity';
 
 @Entity('participants')
 export class Participant {
@@ -7,18 +16,22 @@ export class Participant {
   id: number;
 
   @Column({ name: 'retro_id' })
-  retroId: number;
+  retroId: string;
 
-  @Column({ type: 'varchar', length: 100 })
-  name: string;
-
-  @Column({ type: 'varchar', length: 50, default: 'participant' })
-  role: string;
-
-  @CreateDateColumn({ name: 'joined_at' })
-  joinedAt: Date;
-
-  @ManyToOne(() => Retro, retro => retro.participants)
+  @ManyToOne(() => Retro, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'retro_id' })
   retro: Retro;
-} 
+
+  @Column({ name: 'user_id' })
+  userId: string;
+
+  @ManyToOne(() => User, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'user_id' })
+  user: User;
+
+  @Column({ type: 'boolean', default: false })
+  role: boolean; // true = facilitator
+
+  @CreateDateColumn({ name: 'joined_at', type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  joinedAt: Date;
+}
