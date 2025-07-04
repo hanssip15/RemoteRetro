@@ -1,22 +1,17 @@
 -- Create retros table
 CREATE TABLE IF NOT EXISTS retros (
-    id SERIAL PRIMARY KEY,
+    id VARCHAR(255) PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
-    description TEXT,
-    team_size INTEGER,
-    duration INTEGER DEFAULT 60,
     status VARCHAR(50) DEFAULT 'draft',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create retro_items table for feedback items
 CREATE TABLE IF NOT EXISTS retro_items (
     id SERIAL PRIMARY KEY,
-    retro_id INTEGER REFERENCES retros(id) ON DELETE CASCADE,
-    type VARCHAR(50) NOT NULL, -- 'went_well', 'improve', 'action_item'
+    retro_id VARCHAR(255) REFERENCES retros(id) ON DELETE CASCADE,
+    type VARCHAR(50) CHECK (type IN ('went_well', 'improve', 'action_item')) NOT NULL,
     content TEXT NOT NULL,
-    author VARCHAR(255),
+    author_id VARCHAR(255) REFERENCES users(id) ON DELETE SET NULL,
     votes INTEGER DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -24,23 +19,35 @@ CREATE TABLE IF NOT EXISTS retro_items (
 -- Create participants table
 CREATE TABLE IF NOT EXISTS participants (
     id SERIAL PRIMARY KEY,
-    retro_id INTEGER REFERENCES retros(id) ON DELETE CASCADE,
+    retro_id VARCHAR(255) REFERENCES retros(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
+    role boolean DEFAULT false, -- true for facilitator
     joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE users (
+    id VARCHAR(255) PRIMARY KEY,
+    email VARCHAR(255),
+    name VARCHAR(255),
+    image_url TEXT
+);
+
+
+
+
+
 -- Insert sample data
-INSERT INTO retros (title, description, team_size, duration, status) VALUES
-('Sprint 23 Retrospective', 'End of sprint retrospective for development team', 6, 60, 'completed'),
-('Q4 Team Retrospective', 'Quarterly team retrospective session', 8, 90, 'completed'),
-('Project Alpha Retro', 'Project completion retrospective', 5, 45, 'completed');
+INSERT INTO retros (title, status) VALUES
+('Sprint 23 Retrospective', 'completed'),
+('Q4 Team Retrospective', 'completed'),
+('Project Alpha Retro', 'completed');
 
 -- Update sample data dengan status active
 UPDATE retros SET status = 'active' WHERE status = 'completed';
 
 -- Atau insert data baru dengan status active
-INSERT INTO retros (title, description, team_size, duration, status, created_at, updated_at) VALUES
-('Test Retro Board', 'Test retrospective for debugging', 5, 60, 'active', NOW(), NOW())
+INSERT INTO retros (title, status) VALUES
+('Test Retro Board', 'active')
 ON CONFLICT DO NOTHING;
 
 -- Insert sample retro items
