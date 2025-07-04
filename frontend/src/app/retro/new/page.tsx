@@ -7,8 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { ArrowLeft, Users, Calendar } from "lucide-react"
+import { ArrowLeft } from "lucide-react"
 import { Link, useNavigate } from "react-router-dom"
 import { apiService } from "@/services/api"
 
@@ -17,9 +16,6 @@ export default function NewRetroPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState({
     title: "",
-    description: "",
-    teamSize: "",
-    duration: "60",
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -38,9 +34,6 @@ export default function NewRetroPage() {
 
       const retro = await apiService.createRetro({
         title: formData.title.trim(),
-        description: formData.description.trim() || undefined,
-        teamSize: formData.teamSize ? Number.parseInt(formData.teamSize) : undefined,
-        duration: Number.parseInt(formData.duration) || 60,
       })
 
       console.log("=== RETRO CREATED ===", retro)
@@ -107,58 +100,6 @@ export default function NewRetroPage() {
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="description">Description (Optional)</Label>
-                  <Textarea
-                    id="description"
-                    name="description"
-                    placeholder="Brief description of what this retrospective will cover..."
-                    value={formData.description}
-                    onChange={handleChange}
-                    rows={3}
-                    disabled={isSubmitting}
-                  />
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="teamSize">Expected Team Size</Label>
-                    <div className="relative">
-                      <Users className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                      <Input
-                        id="teamSize"
-                        name="teamSize"
-                        type="number"
-                        placeholder="8"
-                        className="pl-10"
-                        value={formData.teamSize}
-                        onChange={handleChange}
-                        min="1"
-                        max="50"
-                        disabled={isSubmitting}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="duration">Duration (minutes)</Label>
-                    <div className="relative">
-                      <Calendar className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                      <Input
-                        id="duration"
-                        name="duration"
-                        type="number"
-                        className="pl-10"
-                        value={formData.duration}
-                        onChange={handleChange}
-                        min="15"
-                        max="180"
-                        disabled={isSubmitting}
-                      />
-                    </div>
-                  </div>
-                </div>
-
                 <div className="flex justify-end space-x-4 pt-6">
                   <Link to="/dashboard">
                     <Button variant="outline" disabled={isSubmitting}>
@@ -170,14 +111,6 @@ export default function NewRetroPage() {
                   </Button>
                 </div>
               </form>
-
-              {process.env.NODE_ENV === "development" && (
-                <div className="mt-8 p-4 bg-gray-100 rounded text-sm">
-                  <h4 className="font-bold mb-2">Debug Info:</h4>
-                  <pre>{JSON.stringify(formData, null, 2)}</pre>
-                  <p>Submitting: {isSubmitting ? "Yes" : "No"}</p>
-                </div>
-              )}
             </CardContent>
           </Card>
         </div>

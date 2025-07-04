@@ -84,7 +84,6 @@ export default function DashboardPage() {
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
-      case "active":
       case "in_progress":
         return "bg-green-100 text-green-800"
       case "completed":
@@ -100,8 +99,6 @@ export default function DashboardPage() {
     switch (status.toLowerCase()) {
       case "in_progress":
         return "In Progress"
-      case "active":
-        return "Active"
       case "completed":
         return "Completed"
       case "draft":
