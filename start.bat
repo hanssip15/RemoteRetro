@@ -1,0 +1,17 @@
+@echo off
+echo Starting RemoteRetro Project...
+echo.
+
+echo Starting Backend...
+start "Backend" cmd /k "cd backend && npm run start:dev"
+
+echo Starting Frontend...
+start "Frontend" cmd /k "cd frontend && npm run dev"
+
+echo.
+echo Project is starting...
+echo Backend will be available at: http://localhost:3000
+echo Frontend will be available at: http://localhost:5173
+echo.
+echo Press any key to exit this script...
+pause > nul 
