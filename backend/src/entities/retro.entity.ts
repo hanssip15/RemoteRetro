@@ -1,36 +1,36 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
-import { RetroItem } from './retro-item.entity';
-import { Participant } from './participant.entity';
+// src/entities/retro.entity.ts
+import {
+  Entity,
+  PrimaryColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
+import { User } from './user.entity';
 
 @Entity('retros')
 export class Retro {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryColumn()
+  id: string;
 
   @Column({ type: 'varchar', length: 255 })
   title: string;
 
-  @Column({ type: 'text', nullable: true })
-  description: string;
-
-  @Column({ name: 'team_size', type: 'int', nullable: true })
-  teamSize: number;
-
-  @Column({ type: 'int', default: 60 })
-  duration: number;
-
-  @Column({ type: 'varchar', length: 50, default: 'active' })
+  @Column({ type: 'varchar', length: 50, default: 'draft' })
   status: string;
 
-  @CreateDateColumn({ name: 'created_at' })
+  @CreateDateColumn({ name: 'created_at', type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;
 
-  @UpdateDateColumn({ name: 'updated_at' })
+  @UpdateDateColumn({ name: 'updated_at', type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   updatedAt: Date;
 
-  @OneToMany(() => RetroItem, item => item.retro)
-  items: RetroItem[];
+  @Column({ name: 'created_by', type: 'varchar', length: 255 })
+  createdBy: string;
 
-  @OneToMany(() => Participant, participant => participant.retro)
-  participants: Participant[];
-} 
+  @ManyToOne(() => User, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+  @JoinColumn({ name: 'created_by' })
+  creator: User;
+}
