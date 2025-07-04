@@ -4,6 +4,7 @@ import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/ca
 import { Users, MessageSquare, BarChart3, Zap } from "lucide-react"
 
 export default function HomePage() {
+  const apiUrl = import.meta.env.VITE_API_URL;
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Header */}

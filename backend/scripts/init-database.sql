@@ -1,36 +1,39 @@
--- Create retros table
-CREATE TABLE IF NOT EXISTS retros (
-    id VARCHAR(255) PRIMARY KEY,
-    title VARCHAR(255) NOT NULL,
-    status VARCHAR(50) DEFAULT 'draft',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-);
-
-CREATE TABLE IF NOT EXISTS retro_items (
-    id SERIAL PRIMARY KEY,
-    retro_id VARCHAR(255) REFERENCES retros(id) ON DELETE CASCADE,
-    type VARCHAR(50) CHECK (type IN ('went_well', 'improve', 'action_item')) NOT NULL,
-    content TEXT NOT NULL,
-    author_id VARCHAR(255) REFERENCES users(id) ON DELETE SET NULL,
-    votes INTEGER DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Create participants table
-CREATE TABLE IF NOT EXISTS participants (
-    id SERIAL PRIMARY KEY,
-    retro_id VARCHAR(255) REFERENCES retros(id) ON DELETE CASCADE,
-    name VARCHAR(255) NOT NULL,
-    role boolean DEFAULT false, -- true for facilitator
-    joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
 CREATE TABLE users (
     id VARCHAR(255) PRIMARY KEY,
     email VARCHAR(255),
     name VARCHAR(255),
     image_url TEXT
 );
+
+CREATE TABLE IF NOT EXISTS retros (
+    id VARCHAR(255) PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    status VARCHAR(50) DEFAULT 'draft',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(255) REFERENCES users(id) ON DELETE SET NULL,
+);
+
+CREATE TABLE IF NOT EXISTS participants (
+    id SERIAL PRIMARY KEY,
+    retro_id VARCHAR(255) REFERENCES retros(id) ON DELETE CASCADE,
+    user_id VARCHAR(255) REFERENCES users(id) ON DELETE CASCADE,
+    role boolean DEFAULT false, -- true for facilitator
+    joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+CREATE TABLE IF NOT EXISTS retro_items (
+    id SERIAL PRIMARY KEY,
+    retro_id VARCHAR(255) REFERENCES retros(id) ON DELETE CASCADE,
+    type VARCHAR(50) CHECK (type IN ('went_well', 'improve', 'action_item')) NOT NULL,
+    content TEXT NOT NULL,
+    created_by VARCHAR(255) REFERENCES users(id) ON DELETE SET NULL,
+    votes INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create participants table
+
 
 
 
