@@ -8,7 +8,7 @@ export class ItemController {
   constructor(private readonly itemService: ItemService) {}
 
   @Get()
-  async findByRetroId(@Param('retroId', ParseIntPipe) retroId: number) {
+  async findByRetroId(@Param('retroId', ParseIntPipe) retroId: string) {
     return this.itemService.findByRetroId(retroId);
   }
 
@@ -17,14 +17,14 @@ export class ItemController {
     return this.itemService.findOne(id);
   }
 
-  @Post()
-  @HttpCode(HttpStatus.CREATED)
-  async create(
-    @Param('retroId', ParseIntPipe) retroId: number,
-    @Body() createItemDto: CreateItemDto,
-  ) {
-    return this.itemService.create(retroId, createItemDto);
-  }
+  // @Post()
+  // @HttpCode(HttpStatus.CREATED)
+  // async create(
+  //   @Param('retroId', ParseIntPipe) retroId: string,
+  //   @Body() createItemDto: CreateItemDto,
+  // ) {
+  //   return this.itemService.create(retroId, createItemDto);
+  // }
 
   @Put(':id')
   async update(

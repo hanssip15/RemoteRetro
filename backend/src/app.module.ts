@@ -20,14 +20,15 @@ import { UsersModule } from './module/user.module';
       url: process.env.DATABASE_URL,
       entities: [Retro, RetroItem, Participant],
       synchronize: false, // Set to false in production
+      autoLoadEntities: true,
       ssl: process.env.NODE_ENV === 'production' ? {
         rejectUnauthorized: false,
       } : false,
     }),
-    RetroModule,
+    RetroModule, // ← TAMBAHKAN INI!
     AuthModule,
     UsersModule,
-  ],
+],
   controllers: [AppController, DashboardController],
   providers: [AppService],
 })
