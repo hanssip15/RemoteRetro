@@ -33,9 +33,6 @@ export interface Participant {
 
 export interface CreateRetroData {
   title: string;
-  description?: string;
-  teamSize?: number;
-  duration?: number;
 }
 
 export interface UpdateRetroData {
@@ -108,6 +105,7 @@ class ApiService {
   }
 
   async createRetro(data: CreateRetroData): Promise<Retro> {
+    console.log('Creating retro with data:', data);
     return this.request<Retro>('/retros', {
       method: 'POST',
       body: JSON.stringify(data),

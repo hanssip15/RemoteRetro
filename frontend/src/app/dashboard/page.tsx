@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -45,7 +46,14 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null)
 
   // Auto-refresh every 15 seconds
+  const navigate = useNavigate();
+  
+    
   useEffect(() => {
+    if (!api.isAuthenticated()) {
+        navigate('/login');
+      }
+      
     fetchDashboardData()
 
     const interval = setInterval(() => {

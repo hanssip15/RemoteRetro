@@ -53,8 +53,9 @@ export class RetroService {
 
   async create(createRetroDto: CreateRetroDto): Promise<Retro> {
     const retro = this.retroRepository.create({
+      id: crypto.randomUUID(), // Generate UUID for ID
       ...createRetroDto,
-      status: 'active',
+      status: 'active'
     });
     return this.retroRepository.save(retro);
   }

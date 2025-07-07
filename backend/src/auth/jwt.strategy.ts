@@ -6,8 +6,9 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor() {
     const secret = process.env.JWT_SECRET || 'default_secret';
-    console.log('JWT Strategy - Secret length:', secret.length);
-    console.log('JWT Strategy - Secret preview:', secret.substring(0, 10) + '...');
+    console.log('=== JWT STRATEGY DEBUG ===');
+    console.log('JWT_SECRET set:', !!process.env.JWT_SECRET);
+    console.log('Using secret:', secret.substring(0, 10) + '...');
     
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -17,11 +18,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: any) {
-    console.log('JWT Strategy validate called with payload:', payload);
-    return {
-      id: payload.sub,
-      email: payload.email,
-      name: payload.name,
-    };
+    console.log('=== JWT VALIDATION DEBUG ===');
+    console.log('JWT payload received:', payload);
+    console.log('User ID from payload:', payload.sub);
+    return { userId: payload.sub, email: payload.email };
   }
 }

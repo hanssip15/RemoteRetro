@@ -2,25 +2,42 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ArrowLeft } from "lucide-react"
 import { Link, useNavigate } from "react-router-dom"
-import { apiService } from "@/services/api"
+import { api, apiService } from "@/services/api"
 
 export default function NewRetroPage() {
   const navigate = useNavigate()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState({
-    title: "",
+    title: ""
   })
+  
+
+   useEffect(() => {
+      if (!api.isAuthenticated()) {
+          navigate('/login');
+        }
+    }, [navigate])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     console.log("=== FORM SUBMIT TRIGGERED ===")
+
+    // Check if user is authenticated
+    const isAuth = api.isAuthenticated();
+    const token = localStorage.getItem('auth_token');
+    const userData = localStorage.getItem('user_data');
+    
+    console.log('Is authenticated:', isAuth);
+    console.log('Token present:', !!token);
+    console.log('User data present:', !!userData);
+    console.log('Token preview:', token ? token.substring(0, 50) + '...' : 'No token');
 
     if (!formData.title.trim()) {
       alert("Please enter a title")
@@ -31,6 +48,7 @@ export default function NewRetroPage() {
 
     try {
       console.log("=== CREATING RETRO ===")
+      const userJson = JSON.parse(localStorage.getItem("user_data") || "{}")
 
       const retro = await apiService.createRetro({
         title: formData.title.trim(),
@@ -48,6 +66,7 @@ export default function NewRetroPage() {
       // Set creator as facilitator in localStorage
       localStorage.setItem(`retro_${retro.id}_user`, facilitatorName)
       localStorage.setItem(`retro_${retro.id}_role`, "facilitator")
+
 
       console.log("=== REDIRECTING TO LOBBY ===")
       navigate(`/retro/${retro.id}/lobby`)
