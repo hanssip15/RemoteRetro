@@ -520,6 +520,11 @@ export default function DashboardPage() {
                   >
                     <div className="flex-1">
                       <h3 className="font-semibold">{retro.title}</h3>
+                      {retro.format && (
+                        <span className="inline-block text-xs bg-blue-100 text-blue-800 rounded px-2 py-0.5 mt-1 mb-1 mr-2">
+                          Format: {retro.format.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                        </span>
+                      )}
                       <p className="text-sm text-gray-600">
                         {formatDate(retro.createdAt)} • {retro.teamSize || 0} participants • {retro.duration} min
                       </p>
