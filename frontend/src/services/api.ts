@@ -1,4 +1,5 @@
 const API_BASE_URL = '/api';
+// const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 export interface Retro {
   id: number;
@@ -59,24 +60,38 @@ export interface JoinRetroData {
 }
 
 class ApiService {
-  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`;
+    const token = localStorage.getItem('auth_token');
+    
+    console.log('API request to:', url);
+    console.log('Token present:', !!token);
+    
     const config: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` }),
         ...options.headers,
       },
       ...options,
     };
 
     try {
+      console.log('Making request with config:', config);
       const response = await fetch(url, config);
       
+      console.log('Response status:', response.status);
+      console.log('Response ok:', response.ok);
+      
       if (!response.ok) {
+        const errorText = await response.text();
+        console.log('Error response:', errorText);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
-      return await response.json();
+      const data = await response.json();
+      console.log('Response data:', data);
+      return data;
     } catch (error) {
       console.error('API request failed:', error);
       throw error;
@@ -194,7 +209,7 @@ class ApiService {
 // api.ts
 export const fetchProtectedData = async () => {
   const token = localStorage.getItem('token');
-  const res = await fetch('http://localhost:3000/protected-route', {
+  const res = await fetch('http://localhost:3001/protected-route', {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -204,4 +219,44 @@ export const fetchProtectedData = async () => {
   return await res.json();
 };
 
-export const apiService = new ApiService(); 
+export const apiService = new ApiService();
+
+export const api = {
+  // Get current user info from session
+  getCurrentUser: async (): Promise<any> => {
+    const userData = localStorage.getItem('user_data');
+    if (!userData) {
+      throw new Error('No user data found in session');
+    }
+    return JSON.parse(userData);
+  },
+
+  // Set auth token and user data
+  setAuthToken: (token: string, userData?: any) => {
+    console.log('Setting auth token:', token.substring(0, 50) + '...');
+    localStorage.setItem('auth_token', token);
+    console.log('Auth token stored in localStorage');
+    
+    if (userData) {
+      console.log('Setting user data in session:', userData);
+      localStorage.setItem('user_data', JSON.stringify(userData));
+    }
+  },
+
+  // Remove auth token and user data (logout)
+  removeAuthToken: () => {
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('user_data');
+  },
+
+  // Check if user is authenticated
+  isAuthenticated: (): boolean => {
+    return !!(localStorage.getItem('auth_token') && localStorage.getItem('user_data'));
+  },
+
+  // Set user data in session
+  setUserData: (userData: any) => {
+    console.log('Setting user data in session:', userData);
+    localStorage.setItem('user_data', JSON.stringify(userData));
+  }
+}; 

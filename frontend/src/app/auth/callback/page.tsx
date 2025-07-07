@@ -1,26 +1,46 @@
-'use client';
-
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { api } from '../../../services/api'; // pastikan path ini benar
 
 const AuthCallbackPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(location.search);
     const token = params.get('token');
+    const userData = params.get('userData');
 
     if (token) {
-      localStorage.setItem('auth_token', token);
+      let userInfo = null;
+      if (userData) {
+        try {
+          userInfo = JSON.parse(decodeURIComponent(userData));
+        } catch (error) {
+          console.error('Error parsing user data:', error);
+        }
+      }
+      
+      api.setAuthToken(token, userInfo);
+      console.log('Token and user data saved, redirecting to dashboard...');
       navigate('/dashboard');
     } else {
+      console.error('No token found in URL');
       navigate('/login');
     }
-  }, [navigate]);
+  }, [location, navigate]);
 
-  return <div>Processing login...</div>;
+  return (
+    <div style={{ 
+      display: 'flex', 
+      justifyContent: 'center', 
+      alignItems: 'center', 
+      height: '100vh',
+      fontSize: '18px'
+    }}>
+      Processing login...
+    </div>
+  );
 };
 
 export default AuthCallbackPage;

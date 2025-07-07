@@ -1,9 +1,9 @@
 // src/users/user.entity.ts
-import { Entity, Column, PrimaryColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity('users')
 export class User {
-  @PrimaryColumn()
+  @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column()
@@ -12,6 +12,6 @@ export class User {
   @Column()
   name: string;
 
-  @Column({ name: 'image_url', type: 'text' })
-  imageUrl: string;
+  @Column({ name: 'image_url', type: 'text', nullable: true })
+  imageUrl: string | null;
 }

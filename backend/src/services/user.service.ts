@@ -20,7 +20,11 @@ export class UsersService {
   }
 
   async create(user: Partial<User>): Promise<User> {
+    console.log('UsersService.create called with:', user);
     const newUser = this.usersRepository.create(user);
-    return await this.usersRepository.save(newUser);
+    console.log('Created user entity:', newUser);
+    const savedUser = await this.usersRepository.save(newUser);
+    console.log('Saved user to database:', savedUser);
+    return savedUser;
   }
 }

@@ -60,7 +60,8 @@ export class ParticipantService {
   async countUniqueMembers(): Promise<number> {
     const result = await this.participantRepository
       .createQueryBuilder('participant')
-      .select('COUNT(DISTINCT participant.name)', 'count')
+      .leftJoin('participant.user', 'user')
+      .select('COUNT(DISTINCT user.name)', 'count')
       .getRawOne();
     
     return parseInt(result.count) || 0;
