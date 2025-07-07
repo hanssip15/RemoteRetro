@@ -8,6 +8,7 @@ import { DashboardController } from './controllers/dashboard.controller';
 import { Retro } from './entities/retro.entity';
 import { RetroItem } from './entities/retro-item.entity';
 import { Participant } from './entities/participant.entity';
+import { User } from './entities/user.entity';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './module/user.module';
 @Module({
@@ -18,12 +19,13 @@ import { UsersModule } from './module/user.module';
     TypeOrmModule.forRoot({
       type: 'postgres',
       url: process.env.DATABASE_URL,
-      entities: [Retro, RetroItem, Participant],
-      synchronize: false, // Set to false in production
+      entities: [User, Retro, RetroItem, Participant],
+      synchronize: true, // Temporarily enable for schema update
       autoLoadEntities: true,
       ssl: process.env.NODE_ENV === 'production' ? {
         rejectUnauthorized: false,
       } : false,
+      logging: false, // Disable SQL logging
     }),
     RetroModule, // ← TAMBAHKAN INI!
     AuthModule,
@@ -32,4 +34,9 @@ import { UsersModule } from './module/user.module';
   controllers: [AppController, DashboardController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule {
+  constructor() {
+    console.log('AppModule initialized');
+    console.log('Controllers registered:', [AppController, DashboardController].map(c => c.name));
+  }
+}
