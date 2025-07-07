@@ -14,4 +14,66 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String
+  imageUrl  String?  @map("image_url")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  retros     Retro[]     @relation("RetroCreator")
+  items      RetroItem[] @relation("ItemCreator")
+  participants Participant[]
+
+  @@map("users")
+}
+
+model Retro {
+  id        String   @id @default(uuid())
+  title     String
+  status    String   @default("draft")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  createdBy String   @map("created_by")
+
+  // Relations
+  creator      User          @relation("RetroCreator", fields: [createdBy], references: [id])
+  participants Participant[]
+  items        RetroItem[]
+
+  @@map("retros")
+}
+
+model Participant {
+  id      Int      @id @default(autoincrement())
+  retroId String   @map("retro_id")
+  userId  String   @map("user_id")
+  role    Boolean  @default(false)
+  joinedAt DateTime @default(now()) @map("joined_at")
+
+  // Relations
+  retro Retro @relation(fields: [retroId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("participants")
+}
+
+model RetroItem {
+  id        Int         @id @default(autoincrement())
+  retroId   String      @map("retro_id")
+  type      String      // 'went_well' | 'improve' | 'action_item'
+  content   String
+  votes     Int         @default(0)
+  createdAt DateTime    @default(now()) @map("created_at")
+  createdBy String?     @map("created_by")
+
+  // Relations
+  retro   Retro @relation(fields: [retroId], references: [id], onDelete: Cascade)
+  creator User? @relation("ItemCreator", fields: [createdBy], references: [id], onDelete: SetNull)
+
+  @@map("retro_items")
+}
+
 

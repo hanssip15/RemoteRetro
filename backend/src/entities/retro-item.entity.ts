@@ -30,9 +30,6 @@ export class RetroItem {
   @Column({ type: 'text' })
   content: string;
 
-  @Column({ name: 'created_by', type: 'varchar', nullable: true })
-  createdBy: string | null;
-
   @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'created_by' })
   creator: User;

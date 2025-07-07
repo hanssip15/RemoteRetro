@@ -40,7 +40,7 @@ export class DashboardController {
     const uniqueMembers = await this.participantService.countUniqueMembers();
     const actionItems = await this.itemService.getActionItemsStats();
 
-    return {
+    const response = {
       totalRetros,
       uniqueMembers,
       actionItems: {
@@ -48,5 +48,7 @@ export class DashboardController {
         completed: Math.floor(actionItems.total * 0.75), // Hardcoded 75% completion rate
       },
     };
+    console.log('Dashboard /stats response:', response);
+    return response;
   }
 } 

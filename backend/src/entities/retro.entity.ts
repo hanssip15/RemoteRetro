@@ -27,9 +27,6 @@ export class Retro {
   @UpdateDateColumn({ name: 'updated_at', type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   updatedAt: Date;
 
-  @Column({ name: 'created_by', type: 'varchar', length: 255 })
-  createdBy: string;
-
   @ManyToOne(() => User, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
   @JoinColumn({ name: 'created_by' })
   creator: User;

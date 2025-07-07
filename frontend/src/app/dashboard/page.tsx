@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Plus, Calendar, Users, TrendingUp, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react"
 import { Link } from "react-router-dom"
 import { apiService, Retro } from "@/services/api"
+import { api } from '../../services/api'
 
 interface DashboardStats {
   totalRetros: number
@@ -26,6 +27,13 @@ interface PaginationInfo {
   hasPrev: boolean
 }
 
+interface User {
+  id: string
+  email: string
+  name: string
+  imageUrl: string 
+}
+
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [retros, setRetros] = useState<Retro[]>([])
@@ -33,6 +41,8 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
+  const [user, setUser] = useState<User | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   // Auto-refresh every 15 seconds
   useEffect(() => {
@@ -44,6 +54,25 @@ export default function DashboardPage() {
 
     return () => clearInterval(interval)
   }, [currentPage])
+
+  useEffect(() => {
+    const fetchUserInfo = async () => {
+      try {
+        setLoading(true)
+        console.log('Fetching user info from session...');
+        const userData = await api.getCurrentUser() 
+        setUser(userData)
+        console.log('User data loaded from session:', userData)
+      } catch (err) {
+        console.error('Failed to fetch user info:', err)
+        setError('Failed to load user information')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchUserInfo()
+  }, [])
 
   const fetchDashboardData = async (silent = false) => {
     if (!silent) {
@@ -108,6 +137,11 @@ export default function DashboardPage() {
     }
   }
 
+  const handleLogout = () => {
+    api.removeAuthToken()
+    window.location.href = '/login'
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -148,6 +182,20 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh',
+        color: 'red'
+      }}>
+        {error}
       </div>
     )
   }
@@ -344,6 +392,46 @@ export default function DashboardPage() {
             )}
           </CardContent>
         </Card>
+
+        {user && (
+          <div style={{ 
+            backgroundColor: '#f8f9fa', 
+            padding: '20px', 
+            borderRadius: '10px',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+            marginTop: '20px'
+          }}>
+            <h2>Welcome, {user.name}!</h2>
+            
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '20px',
+              marginTop: '20px'
+            }}>
+              {user.imageUrl && (
+                <img 
+                  src={user.imageUrl} 
+                  alt="Profile" 
+                  style={{ 
+                    width: '80px', 
+                    height: '80px', 
+                    borderRadius: '50%',
+                    objectFit: 'cover'
+                  }} 
+                />
+              )}
+              
+              <div>
+                <p><strong>Email:</strong> {user.email}</p>
+                <p><strong>User ID:</strong> {user.id}</p>
+                {!user.imageUrl && (
+                  <p style={{ color: '#666' }}>No profile image available</p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

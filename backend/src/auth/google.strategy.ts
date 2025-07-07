@@ -8,7 +8,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     super({
       clientID: process.env.GOOGLE_CLIENT_ID as string,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
-      callbackURL: 'http://localhost:3000/auth/google/callback',
+      callbackURL: 'http://localhost:3001/auth/google/callback',
       scope: ['email', 'profile'],
     });
   }
@@ -19,12 +19,16 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     profile: any,
     done: VerifyCallback,
   ): Promise<any> {
-    const email = profile?.emails?.[0]?.value;
+    const { id, displayName, emails, photos } = profile;
+    const email = emails?.[0]?.value;
+    const name = displayName || 'Unknown User';
+    const imageUrl = photos?.[0]?.value || null;
 
     if (!email) {
       return done(new UnauthorizedException('Email not found'), false);
     }
 
-    done(null, { email }); // pass only necessary info
+    // Pass all user info to controller
+    done(null, { id, name, email, imageUrl });
   }
 }
