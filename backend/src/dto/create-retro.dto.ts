@@ -6,6 +6,6 @@ export class CreateRetroDto {
 
   @IsOptional()
   @IsString()
-  description?: string;
+  format?: string;
 
 } 

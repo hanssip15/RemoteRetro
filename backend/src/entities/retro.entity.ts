@@ -21,11 +21,15 @@ export class Retro {
   @Column({ type: 'varchar', length: 50, default: 'draft' })
   status: string;
 
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  format: string;
+
   @CreateDateColumn({ name: 'created_at', type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;
 
-  @UpdateDateColumn({ name: 'updated_at', type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
-  updatedAt: Date;
+
+  @Column({ name: 'created_by' })
+  createdBy: string;
 
   @ManyToOne(() => User, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
   @JoinColumn({ name: 'created_by' })

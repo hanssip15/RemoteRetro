@@ -8,11 +8,12 @@ CREATE TABLE users (
 CREATE TABLE IF NOT EXISTS retros (
     id VARCHAR(255) PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
-    status VARCHAR(50) DEFAULT 'draft',
+    status ENUM('ongoing', 'active', 'completed') DEFAULT 'ongoing',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    format ENUM('happy_sad_confused', 'start_stop_continue') DEFAULT 'happy_sad_confused',
     created_by VARCHAR(255) REFERENCES users(id) ON DELETE SET NULL
 );
-
+ 
 CREATE TABLE IF NOT EXISTS participants (
     id SERIAL PRIMARY KEY,
     retro_id VARCHAR(255) REFERENCES retros(id) ON DELETE CASCADE,

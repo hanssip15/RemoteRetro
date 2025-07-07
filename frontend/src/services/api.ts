@@ -1,12 +1,11 @@
+
 const API_BASE_URL = '/api';
 // const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 export interface Retro {
-  id: number;
+  id: string;
   title: string;
-  description?: string;
-  teamSize?: number;
-  duration: number;
+  format: string;
   status: string;
   createdAt: string;
   updatedAt: string;
@@ -16,7 +15,7 @@ export interface Retro {
 
 export interface RetroItem {
   id: number;
-  retroId: number;
+  retroId: string;
   category: string;
   content: string;
   author?: string;
@@ -34,9 +33,7 @@ export interface Participant {
 
 export interface CreateRetroData {
   title: string;
-  description?: string;
-  teamSize?: number;
-  duration?: number;
+  format: string;
 }
 
 export interface UpdateRetroData {
@@ -123,15 +120,23 @@ class ApiService {
     return this.request<Retro[]>('/retros');
   }
 
-  async getRetro(id: number): Promise<{ retro: Retro; items: RetroItem[]; participants: Participant[] }> {
+  async getRetro(id: string): Promise<{ retro: Retro; items: RetroItem[]; participants: Participant[] }> {
     return this.request<{ retro: Retro; items: RetroItem[]; participants: Participant[] }>(`/retros/${id}`);
   }
 
   async createRetro(data: CreateRetroData): Promise<Retro> {
-    return this.request<Retro>('/retros', {
+    console.log('🎯 === FRONTEND CREATE RETRO DEBUG ===');
+    console.log('📝 Creating retro with data:', JSON.stringify(data, null, 2));
+    console.log('🔗 Endpoint: /retros');
+    console.log('📤 Method: POST');
+    
+    const result = await this.request<Retro>('/retros', {
       method: 'POST',
       body: JSON.stringify(data),
     });
+    
+    console.log('✅ Retro created successfully:', JSON.stringify(result, null, 2));
+    return result;
   }
 
   async updateRetro(id: number, data: UpdateRetroData): Promise<Retro> {
@@ -177,8 +182,8 @@ class ApiService {
     return this.request<Participant[]>(`/retros/${retroId}/participants`);
   }
 
-  async joinRetro(retroId: number, data: JoinRetroData): Promise<Participant> {
-    return this.request<Participant>(`/retros/${retroId}/participants`, {
+  async joinRetro(retroId: string, data: JoinRetroData): Promise<Participant> {
+    return this.request<Participant>(`/retros/${retroId}/participants/join`, {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -189,6 +194,44 @@ class ApiService {
       method: 'DELETE',
     });
   }
+
+  // Dashboard endpoints
+  async getDashboardRetros(page = 1, limit = 3): Promise<{
+    retros: Retro[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+      hasNext: boolean;
+      hasPrev: boolean;
+    };
+  }> {
+    return this.request(`/dashboard/retros?page=${page}&limit=${limit}`);
+  }
+
+  async getDashboardStats(): Promise<{
+    totalRetros: number;
+    uniqueMembers: number;
+    actionItems: {
+      total: number;
+      completed: number;
+    };
+  }> {
+    return this.request('/dashboard/stats');
+  }
 }
+// api.ts
+export const fetchProtectedData = async () => {
+  const token = localStorage.getItem('auth_token');
+  const res = await fetch('http://localhost:3001/protected-route', {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok) throw new Error('Not authorized');
+  return await res.json();
+};
 
 export const apiService = new ApiService();

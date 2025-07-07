@@ -34,12 +34,6 @@ export default function RetroLobbyPage() {
       return
     }
 
-    const numericRetroId = Number.parseInt(retroId, 10)
-    if (isNaN(numericRetroId)) {
-      setError("Invalid retro ID")
-      setLoading(false)
-      return
-    }
 
     // Check if user already joined
     const storedUserName = localStorage.getItem(`retro_${retroId}_user`)
@@ -57,7 +51,7 @@ export default function RetroLobbyPage() {
 
   const fetchLobbyData = async () => {
     try {
-      const data = await apiService.getRetro(Number.parseInt(retroId, 10))
+      const data = await apiService.getRetro(retroId)
       setRetro(data.retro)
       setParticipants(data.participants)
 
@@ -79,7 +73,7 @@ export default function RetroLobbyPage() {
     setJoinError(null)
 
     try {
-      const participant = await apiService.joinRetro(Number.parseInt(retroId, 10), { name })
+      const participant = await apiService.joinRetro(retroId, { name })
 
       // Store user info in localStorage
       localStorage.setItem(`retro_${retroId}_user`, name)

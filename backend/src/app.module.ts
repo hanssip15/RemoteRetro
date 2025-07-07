@@ -20,7 +20,7 @@ import { UsersModule } from './module/user.module';
       type: 'postgres',
       url: process.env.DATABASE_URL,
       entities: [User, Retro, RetroItem, Participant],
-      synchronize: true, // Temporarily enable for schema update
+      synchronize: false, // Disable synchronize to avoid schema conflicts
       autoLoadEntities: true,
       ssl: process.env.NODE_ENV === 'production' ? {
         rejectUnauthorized: false,
