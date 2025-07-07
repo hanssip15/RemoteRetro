@@ -5,9 +5,7 @@ const API_BASE_URL = '/api';
 export interface Retro {
   id: string;
   title: string;
-  description?: string;
-  teamSize?: number;
-  duration: number;
+  format: string;
   status: string;
   createdAt: string;
   updatedAt: string;
@@ -34,6 +32,7 @@ export interface Participant {
 
 export interface CreateRetroData {
   title: string;
+  format: string;
 }
 
 export interface UpdateRetroData {

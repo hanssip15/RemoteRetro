@@ -60,7 +60,8 @@ export class RetroService {
       id: crypto.randomUUID(), // Generate UUID for ID
       ...createRetroDto,
       createdBy: userId,
-      status: 'active'
+      status: 'active',
+      format: createRetroDto.format || 'happy_sad_confused' // Default format
     };
     
     console.log('📦 Retro data to save:', JSON.stringify(retroData, null, 2));
