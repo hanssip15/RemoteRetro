@@ -2,14 +2,14 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ArrowLeft } from "lucide-react"
 import { Link, useNavigate } from "react-router-dom"
-import { apiService } from "@/services/api"
+import { api, apiService } from "@/services/api"
 
 const RETRO_FORMATS = [
   {
@@ -19,6 +19,7 @@ const RETRO_FORMATS = [
       "Standard retro, corresponding for teams new to retrospectives. Ideal for sharing wins, emotions, and pain points to build a growth mindset within the team and drive improvement. Suggested time allotment: 1 hour.",
     icon: "😊",
     suggestedTime: "1 hour",
+    value: "happy_sad_confused",
   },
   {
     key: "start_stop_continue",
@@ -27,6 +28,7 @@ const RETRO_FORMATS = [
       "A format focused on the positive brainstorming of possible action items, and honing in on the most key plans to drive change in the team. Suggested time allotment: 45 - 60 minutes.",
     icon: "🚦",
     suggestedTime: "45 - 60 minutes",
+    value: "start_stop_continue",
   },
 ]
 
@@ -63,10 +65,10 @@ export default function NewRetroPage() {
 
       // Generate a facilitator name (could be improved with actual user input)
       const facilitatorName = "Facilitator"
-
       // Set creator as facilitator in localStorage
       localStorage.setItem(`retro_${retro.id}_user`, facilitatorName)
       localStorage.setItem(`retro_${retro.id}_role`, "facilitator")
+
 
       console.log("=== REDIRECTING TO LOBBY ===")
       navigate(`/retro/${retro.id}/lobby`)
@@ -81,6 +83,7 @@ export default function NewRetroPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setTitle(e.target.value)
+    setSelectedFormat(e.target.value)
   }
 
   return (
