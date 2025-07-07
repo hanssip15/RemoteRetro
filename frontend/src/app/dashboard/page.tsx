@@ -428,12 +428,18 @@ export default function DashboardPage() {
             <p className="text-gray-600 mt-2">Manage your retrospectives and track team progress</p>
           </div>
           <div className="flex items-center space-x-2">
-            <Button variant="outline" size="sm" onClick={() => fetchDashboardData()} disabled={refreshing}>
+            <Button
+              variant="outline"
+              size="default"
+              className="flex items-center space-x-2 h-10 px-4"
+              onClick={() => fetchDashboardData()}
+              disabled={refreshing}
+            >
               <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
               Refresh
             </Button>
             <Link to="/retro/new">
-              <Button className="flex items-center space-x-2">
+              <Button className="flex items-center space-x-2 h-10 px-4" size="default">
                 <Plus className="h-4 w-4" />
                 <span>New Retro</span>
               </Button>
