@@ -86,6 +86,25 @@ class ApiService {
       if (!response.ok) {
         const errorText = await response.text();
         console.log('Error response:', errorText);
+        
+        // Handle authentication errors
+        if (response.status === 401 || response.status === 403) {
+          // Clear invalid session data
+          localStorage.removeItem('auth_token');
+          localStorage.removeItem('user_data');
+          throw new Error('Authentication failed. Please login again.');
+        }
+        
+        // Handle server errors
+        if (response.status >= 500) {
+          throw new Error(`Server error: ${response.status}`);
+        }
+        
+        // Handle client errors
+        if (response.status >= 400) {
+          throw new Error(`Request failed: ${response.status}`);
+        }
+        
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
