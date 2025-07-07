@@ -8,7 +8,8 @@ import { DashboardController } from './controllers/dashboard.controller';
 import { Retro } from './entities/retro.entity';
 import { RetroItem } from './entities/retro-item.entity';
 import { Participant } from './entities/participant.entity';
-
+import { AuthModule } from './auth/auth.module';
+import { UsersModule } from './module/user.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -19,12 +20,15 @@ import { Participant } from './entities/participant.entity';
       url: process.env.DATABASE_URL,
       entities: [Retro, RetroItem, Participant],
       synchronize: false, // Set to false in production
+      autoLoadEntities: true,
       ssl: process.env.NODE_ENV === 'production' ? {
         rejectUnauthorized: false,
       } : false,
     }),
-    RetroModule,
-  ],
+    RetroModule, // ← TAMBAHKAN INI!
+    AuthModule,
+    UsersModule,
+],
   controllers: [AppController, DashboardController],
   providers: [AppService],
 })

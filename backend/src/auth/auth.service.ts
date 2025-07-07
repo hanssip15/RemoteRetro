@@ -20,11 +20,13 @@ export class AuthService {
   }
 
   generateJwt(user: User): string {
+    console.log('JWT_SECRET:', process.env.JWT_SECRET); 
     const payload = {
       sub: user.id,
       email: user.email,
       name: user.name,
     };
-    return this.jwtService.sign(payload);
+    const token = this.jwtService.sign(payload);
+    return token;
   }
 }
