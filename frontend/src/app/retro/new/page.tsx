@@ -48,7 +48,6 @@ export default function NewRetroPage() {
 
     try {
       console.log("=== CREATING RETRO ===")
-      const userJson = JSON.parse(localStorage.getItem("user_data") || "{}")
 
       const retro = await apiService.createRetro({
         title: formData.title.trim(),

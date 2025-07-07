@@ -51,13 +51,25 @@ export class RetroService {
     return { retro, items, participants };
   }
 
-  async create(createRetroDto: CreateRetroDto): Promise<Retro> {
-    const retro = this.retroRepository.create({
+  async create(createRetroDto: CreateRetroDto, userId?: string): Promise<Retro> {
+    console.log('🏗️ === RETRO SERVICE DEBUG ===');
+    console.log('📝 CreateRetroDto:', JSON.stringify(createRetroDto, null, 2));
+    console.log('🆔 User ID:', userId);
+    
+    const retroData = {
       id: crypto.randomUUID(), // Generate UUID for ID
       ...createRetroDto,
+      createdBy: userId,
       status: 'active'
-    });
-    return this.retroRepository.save(retro);
+    };
+    
+    console.log('📦 Retro data to save:', JSON.stringify(retroData, null, 2));
+    
+    const retro = this.retroRepository.create(retroData);
+    const savedRetro = await this.retroRepository.save(retro);
+    
+    console.log('✅ Retro created successfully:', JSON.stringify(savedRetro, null, 2));
+    return savedRetro;
   }
 
   async update(id: string, updateRetroDto: UpdateRetroDto): Promise<Retro> {
