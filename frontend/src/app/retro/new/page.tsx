@@ -11,19 +11,37 @@ import { ArrowLeft } from "lucide-react"
 import { Link, useNavigate } from "react-router-dom"
 import { apiService } from "@/services/api"
 
+const RETRO_FORMATS = [
+  {
+    key: "happy_sad_confused",
+    label: "Happy/Sad/Confused",
+    description:
+      "Standard retro, corresponding for teams new to retrospectives. Ideal for sharing wins, emotions, and pain points to build a growth mindset within the team and drive improvement. Suggested time allotment: 1 hour.",
+    icon: "😊",
+    suggestedTime: "1 hour",
+  },
+  {
+    key: "start_stop_continue",
+    label: "Start/Stop/Continue",
+    description:
+      "A format focused on the positive brainstorming of possible action items, and honing in on the most key plans to drive change in the team. Suggested time allotment: 45 - 60 minutes.",
+    icon: "🚦",
+    suggestedTime: "45 - 60 minutes",
+  },
+]
+
 export default function NewRetroPage() {
   const navigate = useNavigate()
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [formData, setFormData] = useState({
-    title: "",
-  })
+  const [title, setTitle] = useState("")
+  const [selectedFormat, setSelectedFormat] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     console.log("=== FORM SUBMIT TRIGGERED ===")
 
-    if (!formData.title.trim()) {
-      alert("Please enter a title")
+    if (!title.trim() || !selectedFormat) {
+      alert("Please enter a title and select a format")
       return
     }
 
@@ -33,7 +51,8 @@ export default function NewRetroPage() {
       console.log("=== CREATING RETRO ===")
 
       const retro = await apiService.createRetro({
-        title: formData.title.trim(),
+        title: title.trim(),
+        format: selectedFormat,
       })
 
       console.log("=== RETRO CREATED ===", retro)
@@ -61,10 +80,7 @@ export default function NewRetroPage() {
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData((prev) => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }))
+    setTitle(e.target.value)
   }
 
   return (
@@ -93,11 +109,37 @@ export default function NewRetroPage() {
                     id="title"
                     name="title"
                     placeholder="e.g., Sprint 24 Retrospective"
-                    value={formData.title}
+                    value={title}
                     onChange={handleChange}
                     required
                     disabled={isSubmitting}
                   />
+                </div>
+
+                <div className="mb-6">
+                  <Label htmlFor="format">Select Format *</Label>
+                  <div className="space-y-4">
+                    {RETRO_FORMATS.map((format) => (
+                      <div
+                        key={format.key}
+                        className={`flex items-center p-4 rounded-lg border cursor-pointer transition-all duration-150 ${
+                          selectedFormat === format.key
+                            ? "border-blue-500 bg-blue-50 shadow"
+                            : "border-gray-200 hover:border-blue-300"
+                        }`}
+                        onClick={() => setSelectedFormat(format.key)}
+                      >
+                        <span className="text-3xl mr-4">{format.icon}</span>
+                        <div>
+                          <div className="font-semibold">{format.label}</div>
+                          <div className="text-gray-500 text-sm">{format.description}</div>
+                          <div className="text-xs text-gray-400 mt-1">
+                            Suggested time: {format.suggestedTime}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="flex justify-end space-x-4 pt-6">
