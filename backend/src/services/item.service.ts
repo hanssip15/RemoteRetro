@@ -12,7 +12,7 @@ export class ItemService {
     private itemRepository: Repository<RetroItem>,
   ) {}
 
-  async findByRetroId(retroId: number): Promise<RetroItem[]> {
+  async findByRetroId(retroId: string): Promise<RetroItem[]> {
     return this.itemRepository.find({
       where: { retroId },
       order: { createdAt: 'ASC' },
@@ -27,14 +27,14 @@ export class ItemService {
     return item;
   }
 
-  async create(retroId: number, createItemDto: CreateItemDto): Promise<RetroItem> {
-    const item = this.itemRepository.create({
-      ...createItemDto,
-      retroId,
-      votes: 0,
-    });
-    return this.itemRepository.save(item);
-  }
+  // async create(retroId: number, createItemDto: CreateItemDto): Promise<RetroItem> {
+  //   const item = this.itemRepository.create({
+  //     ...createItemDto,
+  //     retroId,
+  //     votes: 0,
+  //   });
+  //   return this.itemRepository.save(item);
+  // }
 
   async update(id: number, updateItemDto: UpdateItemDto): Promise<RetroItem> {
     const item = await this.findOne(id);
@@ -57,7 +57,7 @@ export class ItemService {
 
   async getActionItemsStats(): Promise<{ total: number }> {
     const total = await this.itemRepository.count({
-      where: { category: 'action_item' },
+      where: { type: 'action_item' },
     });
     
     return { total };

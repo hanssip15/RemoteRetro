@@ -1,5 +1,16 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+// src/entities/retro-item.entity.ts
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+  CreateDateColumn,
+} from 'typeorm';
 import { Retro } from './retro.entity';
+import { User } from './user.entity';
+
+export type RetroItemType = 'went_well' | 'improve' | 'action_item';
 
 @Entity('retro_items')
 export class RetroItem {
@@ -7,24 +18,28 @@ export class RetroItem {
   id: number;
 
   @Column({ name: 'retro_id' })
-  retroId: number;
+  retroId: string;
+
+  @ManyToOne(() => Retro, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'retro_id' })
+  retro: Retro;
 
   @Column({ type: 'varchar', length: 50 })
-  category: string;
+  type: RetroItemType;
 
   @Column({ type: 'text' })
   content: string;
 
-  @Column({ type: 'varchar', length: 100, nullable: true })
-  author: string;
+  @Column({ name: 'created_by', type: 'varchar', nullable: true })
+  createdBy: string | null;
+
+  @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'created_by' })
+  creator: User;
 
   @Column({ type: 'int', default: 0 })
   votes: number;
 
-  @CreateDateColumn({ name: 'created_at' })
+  @CreateDateColumn({ name: 'created_at', type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;
-
-  @ManyToOne(() => Retro, retro => retro.items)
-  @JoinColumn({ name: 'retro_id' })
-  retro: Retro;
-} 
+}

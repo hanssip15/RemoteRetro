@@ -32,7 +32,7 @@ export class RetroService {
     });
   }
 
-  async findOne(id: number): Promise<{ retro: Retro; items: RetroItem[]; participants: Participant[] }> {
+  async findOne(id: string): Promise<{ retro: Retro; items: RetroItem[]; participants: Participant[] }> {
     const retro = await this.retroRepository.findOne({ where: { id } });
     if (!retro) {
       throw new NotFoundException(`Retro with ID ${id} not found`);
@@ -59,7 +59,7 @@ export class RetroService {
     return this.retroRepository.save(retro);
   }
 
-  async update(id: number, updateRetroDto: UpdateRetroDto): Promise<Retro> {
+  async update(id: string, updateRetroDto: UpdateRetroDto): Promise<Retro> {
     const retro = await this.retroRepository.findOne({ where: { id } });
     if (!retro) {
       throw new NotFoundException(`Retro with ID ${id} not found`);
@@ -69,7 +69,7 @@ export class RetroService {
     return this.retroRepository.save(retro);
   }
 
-  async remove(id: number): Promise<void> {
+  async remove(id: string): Promise<void> {
     const result = await this.retroRepository.delete(id);
     if (result.affected === 0) {
       throw new NotFoundException(`Retro with ID ${id} not found`);

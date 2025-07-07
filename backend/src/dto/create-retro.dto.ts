@@ -8,13 +8,4 @@ export class CreateRetroDto {
   @IsString()
   description?: string;
 
-  @IsOptional()
-  @IsNumber()
-  teamSize?: number;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(1)
-  @Max(480)
-  duration?: number;
 } 

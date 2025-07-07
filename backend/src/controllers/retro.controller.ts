@@ -18,19 +18,8 @@ export class RetroController {
   @Get(':id')
   async findOne(@Param('id') id: string) {
     console.log(`=== GET /retros/${id} ===`);
-    
-    // Handle the case where id is "new" - this should not be processed here
-    if (id === 'new') {
-      return { error: 'Invalid route' };
-    }
 
-    // Validate that id is a number
-    const numericId = Number.parseInt(id, 10);
-    if (isNaN(numericId)) {
-      return { error: 'Invalid retro ID' };
-    }
-
-    const result = await this.retroService.findOne(numericId);
+    const result = await this.retroService.findOne(id);
     return result;
   }
 
@@ -49,8 +38,6 @@ export class RetroController {
     const cleanData = {
       title: createRetroDto.title.trim(),
       description: createRetroDto.description || undefined,
-      teamSize: createRetroDto.teamSize || undefined,
-      duration: createRetroDto.duration || 60,
     };
 
     console.log('Clean data for insert:', cleanData);
@@ -70,25 +57,14 @@ export class RetroController {
   @Put(':id')
   async update(@Param('id') id: string, @Body() updateRetroDto: UpdateRetroDto) {
     console.log(`=== PUT /retros/${id} ===`);
-    
-    // Handle the case where id is "new"
-    if (id === 'new') {
-      return { error: 'Invalid route' };
-    }
 
-    // Validate that id is a number
-    const numericId = Number.parseInt(id, 10);
-    if (isNaN(numericId)) {
-      return { error: 'Invalid retro ID' };
-    }
-
-    const retro = await this.retroService.update(numericId, updateRetroDto);
+    const retro = await this.retroService.update(id, updateRetroDto);
     return retro;
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async remove(@Param('id', ParseIntPipe) id: number) {
+  async remove(@Param('id') id: string) {
     await this.retroService.remove(id);
   }
 } 
