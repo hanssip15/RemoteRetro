@@ -34,10 +34,18 @@ const RETRO_FORMATS = [
 ]
 
 export default function NewRetroPage() {
+  
   const navigate = useNavigate()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [title, setTitle] = useState("")
   const [selectedFormat, setSelectedFormat] = useState<string>("happy_sad_confused")
+  
+  useEffect(() => {
+    const authStatus = api.isAuthenticated()
+    if (!authStatus) {
+      navigate('/login')
+    }
+  }, [navigate])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

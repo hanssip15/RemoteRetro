@@ -23,7 +23,15 @@ export default function RetroPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [format, setFormat] = useState<string[]>([])
-
+  const [newFeedback, setNewFeedback] = useState('');
+  const [feedbackItems, setFeedbackItems] = useState<FeedbackItem[]>([]);
+  
+  interface FeedbackItem {
+    id: string;
+    content: string;
+    format: string;
+    retro_id: string;
+  }
   useEffect(() => {
     // If the ID is "new", redirect to the new retro page
     if (retroId === "new") {
@@ -60,22 +68,20 @@ export default function RetroPage() {
     }
   }
 
-  const handleAddLocalItem = () => {
-    if (!newWentWell.trim()) return;
+  const handleAddFeedback = () => {
+    if (!newFeedback.trim()) return;
   
-    const newItem: RetroItem = {
-      id: Date.now(), // temporary ID
-      content: newWentWell.trim(),
-      type: "went_well",
-      author: currentUser?.name || "Anonymous",
-      votes: 0,
-      category: null, // jika ada kategori
-      createdAt: new Date().toISOString(),
+    const newItem: FeedbackItem = {
+      id: crypto.randomUUID(), // generate unique id for React key
+      content: newFeedback.trim(),
+      format: "format_1",
+      retro_id: retroId,
     };
   
-    setRetroItems((prev) => [...prev, newItem]);
-    setNewWentWell('');
+    setFeedbackItems((prev) => [...prev, newItem]);
+    setNewFeedback('');
   };
+  
   
 
   const handleAddItem = async (type: string, content: string, author: string) => {
@@ -190,7 +196,7 @@ export default function RetroPage() {
       {/* Retro Board */}
       <div className="container mx-auto px-4 py-8">
         <div className="grid lg:grid-cols-3 gap-6">
-          {/* What Went Well */}
+          {/* Format 1 */}
           <Card className="h-fit">
             <CardHeader className="bg-green-50">
               <CardTitle className="text-green-800 flex items-center justify-between">
@@ -215,24 +221,40 @@ export default function RetroPage() {
                 />
               ))}
                <div className="flex items-center space-x-2 pt-2">
+               <input type="hidden" name="format" value="format_1" />
+               <input type="hidden" name="retro_id" value={retroId} />
                   <Input
                     placeholder="Add feedback..."
                     className="flex-1"
-                    // value={newWentWell}
-                    // onChange={(e) => setNewWentWell(e.target.value)}
-                    // disabled={isSubmitting}
+                    value={newFeedback}
+                    onChange={(e) => setNewFeedback(e.target.value)}
                   />
                   <Button
-                    // onClick={handleAddWentWell}
-                    // disabled={isSubmitting || !newWentWell.trim()}
+                    onClick={handleAddFeedback}
+                    disabled={!newFeedback.trim()}
                   >
                     Add
                   </Button>
                 </div>
+                <div className="space-y-2 mt-4">
+                  {feedbackItems.map((item) => (
+                    <div
+                      key={item.id}
+                      className="p-3 bg-white border rounded shadow-sm flex justify-between"
+                    >
+                      <div>
+                        <p className="text-sm font-medium">{item.content}</p>
+                        <p className="text-xs text-gray-500">
+                          Format: {item.format} | Retro ID: {item.retro_id}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
             </CardContent>
           </Card>
 
-          {/* What Could Improve */}
+          {/* Format 2 */}
           <Card className="h-fit">
             <CardHeader className="bg-yellow-50">
               <CardTitle className="text-yellow-800 flex items-center justify-between">
@@ -259,7 +281,7 @@ export default function RetroPage() {
             </CardContent>
           </Card>
 
-          {/* Action Items */}
+          {/* Format 3 */}
           <Card className="h-fit">
             <CardHeader className="bg-blue-50">
               <CardTitle className="text-blue-800 flex items-center justify-between">
