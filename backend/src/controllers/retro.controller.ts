@@ -97,8 +97,7 @@ export class RetroController {
   @Put(':id')
   async update(@Param('id') id: string, @Body() updateRetroDto: UpdateRetroDto) {
     console.log(`=== PUT /retros/${id} ===`);
-
-    const retro = await this.retroService.update(id, updateRetroDto);
+    const retro = await this.retroService.updateStatus(id, updateRetroDto);
     return retro;
   }
 

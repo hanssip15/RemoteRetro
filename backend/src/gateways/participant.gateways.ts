@@ -27,5 +27,8 @@ import {
     broadcastParticipantUpdate(retroId: string) {
       this.server.emit(`participants-update:${retroId}`);
     }
+    broadcastRetroStarted(retroId: string) {
+      this.server.emit(`retro-started:${retroId}`);
+    }
   }
   

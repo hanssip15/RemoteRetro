@@ -17,6 +17,10 @@ export interface Retro {
   createdAt: string;
 }
 
+export interface RetroFormat {
+  name: string;
+}
+
 
 export interface RetroItem {
   id: number;
@@ -184,8 +188,6 @@ class ApiService {
     return this.request<Participant[]>(`/retros/${retroId}/participants`);
   }
   async addParticipant(retroId: string, data: addParticipantData): Promise<Participant> {
-    console.log("=== ADD PARTICIPANT ===", data)
-    console.log("=== RETRO ID ===", retroId)
     return this.request<Participant>(`/participant/${retroId}/join`, {
       method: 'POST',
       body: JSON.stringify(data),
@@ -199,6 +201,8 @@ class ApiService {
   }
 
   async updateRetro(retroId: string, data: UpdateRetroData): Promise<Retro> {
+    console.log("=== UPDATE RETRO ===", data)
+    console.log("=== RETRO ID ===", retroId)
     return this.request<Retro>(`/retros/${retroId}`, {
       method: 'PUT',
       body: JSON.stringify(data),

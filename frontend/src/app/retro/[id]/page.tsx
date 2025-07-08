@@ -8,30 +8,26 @@ import { AddFeedbackForm } from "@/components/add-feedback-form"
 import { ArrowLeft, Users, Clock, Share2 } from "lucide-react"
 import { Link } from "react-router-dom"
 import { apiService, Retro, RetroItem, Participant } from "@/services/api"
+import { Input } from "@/components/ui/input"
 
 export default function RetroPage() {
   const params = useParams()
   const navigate = useNavigate()
   const retroId = params.id as string
+  const [newWentWell, setNewWentWell] = useState('');
+  const [retroItems, setRetroItems] = useState<RetroItem[]>([])
 
   const [retro, setRetro] = useState<Retro | null>(null)
   const [items, setItems] = useState<RetroItem[]>([])
   const [participants, setParticipants] = useState<Participant[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [format, setFormat] = useState<string[]>([])
 
   useEffect(() => {
     // If the ID is "new", redirect to the new retro page
     if (retroId === "new") {
       navigate("/retro/new")
-      return
-    }
-
-    // Validate that retroId is a number
-    const numericRetroId = Number.parseInt(retroId, 10)
-    if (isNaN(numericRetroId)) {
-      setError("Invalid retro ID")
-      setLoading(false)
       return
     }
 
@@ -42,13 +38,16 @@ export default function RetroPage() {
     try {
       console.log("Fetching retro data for ID:", retroId)
 
-      const data = await apiService.getRetro(Number.parseInt(retroId, 10))
+      const data = await apiService.getRetro(retroId)
       console.log("Retro data received:", data)
-
+      if (data.retro.format === "happy_sad_confused") {
+        setFormat(["Happy", "Sad", "Confused"])
+      } else {
+        setFormat(["Start", "Stop", "Continue"])
+      }
       if (!data.retro) {
         throw new Error("No retro data in response")
       }
-
       setRetro(data.retro)
       setItems(data.items || [])
       setParticipants(data.participants || [])
@@ -60,6 +59,24 @@ export default function RetroPage() {
       setLoading(false)
     }
   }
+
+  const handleAddLocalItem = () => {
+    if (!newWentWell.trim()) return;
+  
+    const newItem: RetroItem = {
+      id: Date.now(), // temporary ID
+      content: newWentWell.trim(),
+      type: "went_well",
+      author: currentUser?.name || "Anonymous",
+      votes: 0,
+      category: null, // jika ada kategori
+      createdAt: new Date().toISOString(),
+    };
+  
+    setRetroItems((prev) => [...prev, newItem]);
+    setNewWentWell('');
+  };
+  
 
   const handleAddItem = async (type: string, content: string, author: string) => {
     try {
@@ -177,7 +194,7 @@ export default function RetroPage() {
           <Card className="h-fit">
             <CardHeader className="bg-green-50">
               <CardTitle className="text-green-800 flex items-center justify-between">
-                What Went Well
+                {format[0]}
                 <Badge variant="secondary">{getItemsByType("went_well").length}</Badge>
               </CardTitle>
             </CardHeader>
@@ -197,10 +214,21 @@ export default function RetroPage() {
                   onVote={handleVoteItem}
                 />
               ))}
-              <AddFeedbackForm
-                type="went_well"
-                onAdd={(content, author) => handleAddItem("went_well", content, author)}
-              />
+               <div className="flex items-center space-x-2 pt-2">
+                  <Input
+                    placeholder="Add feedback..."
+                    className="flex-1"
+                    // value={newWentWell}
+                    // onChange={(e) => setNewWentWell(e.target.value)}
+                    // disabled={isSubmitting}
+                  />
+                  <Button
+                    // onClick={handleAddWentWell}
+                    // disabled={isSubmitting || !newWentWell.trim()}
+                  >
+                    Add
+                  </Button>
+                </div>
             </CardContent>
           </Card>
 
@@ -208,7 +236,7 @@ export default function RetroPage() {
           <Card className="h-fit">
             <CardHeader className="bg-yellow-50">
               <CardTitle className="text-yellow-800 flex items-center justify-between">
-                What Could Improve
+                {format[1]}
                 <Badge variant="secondary">{getItemsByType("improve").length}</Badge>
               </CardTitle>
             </CardHeader>
@@ -228,7 +256,6 @@ export default function RetroPage() {
                   onVote={handleVoteItem}
                 />
               ))}
-              <AddFeedbackForm type="improve" onAdd={(content, author) => handleAddItem("improve", content, author)} />
             </CardContent>
           </Card>
 
@@ -236,7 +263,7 @@ export default function RetroPage() {
           <Card className="h-fit">
             <CardHeader className="bg-blue-50">
               <CardTitle className="text-blue-800 flex items-center justify-between">
-                Action Items
+                {format[2]}
                 <Badge variant="secondary">{getItemsByType("action_item").length}</Badge>
               </CardTitle>
             </CardHeader>
@@ -256,10 +283,7 @@ export default function RetroPage() {
                   onVote={handleVoteItem}
                 />
               ))}
-              <AddFeedbackForm
-                type="action_item"
-                onAdd={(content, author) => handleAddItem("action_item", content, author)}
-              />
+              
             </CardContent>
           </Card>
         </div>

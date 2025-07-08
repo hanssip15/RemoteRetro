@@ -30,21 +30,24 @@ export default function RetroLobbyPage() {
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [showJoinModal, setShowJoinModal] = useState(false)
   const [socket, setSocket] = useState<any>(null)
+  const [isOngoing, setIsOngoing] = useState(false)
 
   // Get current user from localStorage
   const userData = localStorage.getItem('user_data');
   const currentUser = userData ? JSON.parse(userData) : null;
 
-  // Memoized fetch function
+
   const fetchLobbyData = useCallback(async () => {
     if (!retroId) return;
     
     try {
       console.log('🔄 Fetching lobby data for retro:', retroId);
       const data = await apiService.getRetro(retroId);
+      if (data.retro.status === "ongoing") {
+        handleChangeView()
+      }
       setRetro(data.retro);
       setParticipants(data.participants);
-      console.log('✅ Lobby data fetched successfully:', data);
     } catch (error) {
       console.error("Error fetching lobby data:", error);
       setError("Failed to fetch lobby data");
@@ -53,27 +56,25 @@ export default function RetroLobbyPage() {
     }
   }, [retroId]);
 
+  useEffect(() => {
+    if (!retroId) return;    
+    fetchLobbyData();
+  }, [retroId, fetchLobbyData]);
+
   // Auto-join participant function
   const checkAndJoinParticipant = useCallback(async () => {
     if (!currentUser || !retroId) return;
-
-    const alreadyJoined = participants.some(
-      (p) => p.user && p.user.id === currentUser.id
-    );
-
-    if (!alreadyJoined) {
+    const participant = participants.find((p) => p.user.id === currentUser.id);
+    if (!participant) {
       try {
         setIsJoining(true);
-        console.log('👤 Auto-joining as participant...');
         await apiService.addParticipant(retroId, {
           userId: currentUser.id,
           role: false,
         });
-        console.log('✅ Successfully joined as participant');
         await fetchLobbyData();
       } catch (error) {
         console.error("Failed to join as participant:", error);
-        setJoinError("Failed to join as participant");
       } finally {
         setIsJoining(false);
       }
@@ -110,48 +111,57 @@ export default function RetroLobbyPage() {
     };
   }, [retroId]);
 
-  // Initial data fetch
-  useEffect(() => {
-    if (!retroId) return;
-    
-    console.log('🚀 Initial data fetch for retro:', retroId);
-    fetchLobbyData();
-  }, [retroId, fetchLobbyData]);
-
-  // Socket event listeners
   useEffect(() => {
     if (!socket || !retroId) return;
-
     const updateHandler = () => {
       console.log('🔁 Participants update received, refreshing data...');
       fetchLobbyData();
     };
 
     socket.on(`participants-update:${retroId}`, updateHandler);
-
-    return () => {
+      return () => {
       socket.off(`participants-update:${retroId}`, updateHandler);
     };
-  }, [socket, retroId, fetchLobbyData]);
+  }, [socket, retroId]);
 
-  // Auto-join when data is loaded
   useEffect(() => {
     if (!loading && retro && participants.length > 0) {
       checkAndJoinParticipant();
     }
   }, [loading, retro, participants, checkAndJoinParticipant]);
 
-  const handleStartRetro = async () => {
+  const handleChangeView = async () => {
+    navigate(`/retro/${retroId}`)
+  }
+
+  const handleStartRetro = useCallback(async () => {
     try {
-      await apiService.updateRetro(retroId, { status: "in_progress" })
-      navigate(`/retro/${retroId}`)
+      if (socket) {
+        socket.emit('retro-started', { retroId });
+      }
+      setIsOngoing(true)
+      await apiService.updateRetro(retroId, { status: "ongoing" })
+      handleChangeView()
     } catch (error) {
       console.error("Error starting retro:", error)
       const errorMessage = error instanceof Error ? error.message : 'Failed to start retro'
       alert(`Failed to start retro: ${errorMessage}`)
     }
-  }
+  }, [retroId, navigate, socket, isOngoing])
 
+  useEffect(() => {
+    if (!socket || !retroId) return;
+  
+    const handleRetroStarted = () => {
+      handleChangeView()
+    };
+    socket.on(`retro-started:${retroId}`, handleRetroStarted);
+    console.log('🔁 Retro started received, refreshing data...');
+    return () => {
+      socket.off(`retro-started:${retroId}`, handleRetroStarted);
+    };
+  }, [socket, retroId, navigate]);
+  
   const shareUrl = typeof window !== "undefined" ? window.location.href : ""
   const facilitator = participants.find((p) => p.role === true)
   const isFacilitator = currentUser?.id === facilitator?.user.id
@@ -396,7 +406,7 @@ export default function RetroLobbyPage() {
               <Button variant="outline" onClick={() => setShowStartConfirm(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleStartRetro}>
+              <Button onClick={() => handleStartRetro()}>
                 Start Retrospective
               </Button>
             </div>
