@@ -2,13 +2,19 @@
 const API_BASE_URL = '/api';
 // const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+}
+
 export interface Retro {
   id: string;
   title: string;
   format: string;
   status: string;
   createdAt: string;
-  updatedAt: string;
 }
 
 
@@ -18,27 +24,28 @@ export interface RetroItem {
   category: string;
   content: string;
   author?: string;
-  votes: number;
   createdAt: string;
+}
+
+export interface UpdateRetroData {
+  status: string;
+}
+
+export interface UpdateParticipantRoleData {
+  role: boolean;
 }
 
 export interface Participant {
   id: number;
-  retroId: number;
-  name: string;
-  role: string;
-  joinedAt: string;
+  retroId: string;
+  role: boolean;
+  joinedAt: Date;
+  user: User;
 }
 
 export interface CreateRetroData {
   title: string;
   format: string;
-}
-
-export interface UpdateRetroData {
-  title?: string;
-  description?: string;
-  status?: string;
 }
 
 export interface CreateItemData {
@@ -52,8 +59,9 @@ export interface UpdateItemData {
   author?: string;
 }
 
-export interface JoinRetroData {
-  name: string;
+export interface addParticipantData {
+  role: boolean;
+  userId: string;
 }
 
 class ApiService {
@@ -119,39 +127,24 @@ class ApiService {
     return this.request<Retro[]>('/retros');
   }
 
-  async getRetro(id: string): Promise<{ retro: Retro; items: RetroItem[]; participants: Participant[] }> {
-    return this.request<{ retro: Retro; items: RetroItem[]; participants: Participant[] }>(`/retros/${id}`);
+  // async getRetro(id: string): Promise<{ retro: Retro; items: RetroItem[]; participants: Participant[] }> {
+  //   return this.request<{ retro: Retro; items: RetroItem[]; participants: Participant[] }>(`/retros/${id}`);
+  // }
+
+  async getRetro(id: string): Promise<{ retro: Retro; participants: Participant[] }> {
+    return this.request<{ retro: Retro; participants: Participant[] }>(`/retros/${id}`);
   }
 
+  
+
   async createRetro(data: CreateRetroData): Promise<Retro> {
-    console.log('🎯 === FRONTEND CREATE RETRO DEBUG ===');
-    console.log('📝 Creating retro with data:', JSON.stringify(data, null, 2));
-    console.log('🔗 Endpoint: /retros');
-    console.log('📤 Method: POST');
-    
     const result = await this.request<Retro>('/retros', {
       method: 'POST',
       body: JSON.stringify(data),
     });
-    
-    console.log('✅ Retro created successfully:', JSON.stringify(result, null, 2));
     return result;
   }
 
-  async updateRetro(id: number, data: UpdateRetroData): Promise<Retro> {
-    return this.request<Retro>(`/retros/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    });
-  }
-
-  async deleteRetro(id: number): Promise<void> {
-    return this.request<void>(`/retros/${id}`, {
-      method: 'DELETE',
-    });
-  }
-
-  // Item endpoints
   async getItems(retroId: number): Promise<RetroItem[]> {
     return this.request<RetroItem[]>(`/retros/${retroId}/items`);
   }
@@ -190,14 +183,27 @@ class ApiService {
   async getParticipants(retroId: number): Promise<Participant[]> {
     return this.request<Participant[]>(`/retros/${retroId}/participants`);
   }
-
-  async joinRetro(retroId: string, data: JoinRetroData): Promise<Participant> {
-    return this.request<Participant>(`/retros/${retroId}/participants/join`, {
+  async addParticipant(retroId: string, data: addParticipantData): Promise<Participant> {
+    console.log("=== ADD PARTICIPANT ===", data)
+    console.log("=== RETRO ID ===", retroId)
+    return this.request<Participant>(`/participant/${retroId}/join`, {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
+  async updateParticipantRole(retroId: string, participantId: number): Promise<Participant> {
+    return this.request<Participant>(`/participant/${retroId}/update-role/${participantId}`, {
+      method: 'PUT'
+    });
+  }
+
+  async updateRetro(retroId: string, data: UpdateRetroData): Promise<Retro> {
+    return this.request<Retro>(`/retros/${retroId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
   async removeParticipant(retroId: number, participantId: number): Promise<void> {
     return this.request<void>(`/retros/${retroId}/participants/${participantId}`, {
       method: 'DELETE',

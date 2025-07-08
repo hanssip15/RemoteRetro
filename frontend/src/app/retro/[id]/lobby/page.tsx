@@ -1,102 +1,149 @@
 "use client"
+import { io } from 'socket.io-client';
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { JoinNameModal } from "@/components/join-name-modal"
 import { ShareLinkModal } from "@/components/share-link-modal"
 import { ArrowLeft, Users, Clock, Share2, Play, RefreshCw, Crown } from "lucide-react"
 import { Link } from "react-router-dom"
 import { apiService, Retro, Participant } from "@/services/api"
 
+
 export default function RetroLobbyPage() {
   const params = useParams()
   const navigate = useNavigate()
   const retroId = params.id as string
-
-  const [retro, setRetro] = useState<Retro | null>(null)
-  const [participants, setParticipants] = useState<Participant[]>([])
+  const [selectedParticipant, setSelectedParticipant] = useState<Participant | null>(null);
+  const [showRoleModal, setShowRoleModal] = useState(false);
+  
+  const [retro, setRetro] = useState<Retro>()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [userRole, setUserRole] = useState<string | null>(null)
-  const [userName, setUserName] = useState<string | null>(null)
-  const [showJoinModal, setShowJoinModal] = useState(false)
+  const [userRole, setUserRole] = useState<boolean>(false)
   const [showShareModal, setShowShareModal] = useState(false)
   const [showStartConfirm, setShowStartConfirm] = useState(false)
   const [isJoining, setIsJoining] = useState(false)
   const [joinError, setJoinError] = useState<string | null>(null)
+  const [participants, setParticipants] = useState<Participant[]>([]);
+  const [showJoinModal, setShowJoinModal] = useState(false)
+  const [socket, setSocket] = useState<any>(null)
 
-  useEffect(() => {
-    if (retroId === "new") {
-      navigate("/retro/new")
-      return
-    }
+  // Get current user from localStorage
+  const userData = localStorage.getItem('user_data');
+  const currentUser = userData ? JSON.parse(userData) : null;
 
-
-    // Check if user already joined
-    const storedUserName = localStorage.getItem(`retro_${retroId}_user`)
-    const storedUserRole = localStorage.getItem(`retro_${retroId}_role`)
-
-    if (storedUserName && storedUserRole) {
-      setUserName(storedUserName)
-      setUserRole(storedUserRole)
-    } else {
-      setShowJoinModal(true)
-    }
-
-    fetchLobbyData()
-  }, [retroId, navigate])
-
-  const fetchLobbyData = async () => {
+  // Memoized fetch function
+  const fetchLobbyData = useCallback(async () => {
+    if (!retroId) return;
+    
     try {
-      const data = await apiService.getRetro(retroId)
-      setRetro(data.retro)
-      setParticipants(data.participants)
+      console.log('🔄 Fetching lobby data for retro:', retroId);
+      const data = await apiService.getRetro(retroId);
+      setRetro(data.retro);
+      setParticipants(data.participants);
+      console.log('✅ Lobby data fetched successfully:', data);
+    } catch (error) {
+      console.error("Error fetching lobby data:", error);
+      setError("Failed to fetch lobby data");
+    } finally {
+      setLoading(false);
+    }
+  }, [retroId]);
 
-      // Check if retro has started
-      if (data.retro.status === "in_progress") {
-        navigate(`/retro/${retroId}`)
-        return
+  // Auto-join participant function
+  const checkAndJoinParticipant = useCallback(async () => {
+    if (!currentUser || !retroId) return;
+
+    const alreadyJoined = participants.some(
+      (p) => p.user && p.user.id === currentUser.id
+    );
+
+    if (!alreadyJoined) {
+      try {
+        setIsJoining(true);
+        console.log('👤 Auto-joining as participant...');
+        await apiService.addParticipant(retroId, {
+          userId: currentUser.id,
+          role: false,
+        });
+        console.log('✅ Successfully joined as participant');
+        await fetchLobbyData();
+      } catch (error) {
+        console.error("Failed to join as participant:", error);
+        setJoinError("Failed to join as participant");
+      } finally {
+        setIsJoining(false);
       }
-    } catch (error) {
-      console.error("Error fetching lobby data:", error)
-      setError("Failed to fetch lobby data")
-    } finally {
-      setLoading(false)
     }
-  }
+  }, [currentUser, retroId, participants, fetchLobbyData]);
 
-  const handleJoin = async (name: string) => {
-    setIsJoining(true)
-    setJoinError(null)
+  // Initialize socket connection
+  useEffect(() => {
+    if (!retroId) return;
 
-    try {
-      const participant = await apiService.joinRetro(retroId, { name })
+    console.log('🔌 Initializing socket connection...');
+    const newSocket = io('http://localhost:3001', {
+      transports: ['websocket', 'polling'],
+      timeout: 10000,
+    });
 
-      // Store user info in localStorage
-      localStorage.setItem(`retro_${retroId}_user`, name)
-      localStorage.setItem(`retro_${retroId}_role`, participant.role)
+    newSocket.on('connect', () => {
+      console.log('✅ Socket connected:', newSocket.id);
+    });
 
-      setUserName(name)
-      setUserRole(participant.role)
-      setShowJoinModal(false)
+    newSocket.on('connect_error', (error) => {
+      console.error('❌ Socket connection error:', error);
+    });
 
-      // Refresh lobby data
-      fetchLobbyData()
-    } catch (error) {
-      console.error("Error joining retro:", error)
-      const errorMessage = error instanceof Error ? error.message : 'Failed to join retro'
-      setJoinError(errorMessage)
-    } finally {
-      setIsJoining(false)
+    newSocket.on('disconnect', (reason) => {
+      console.log('🔌 Socket disconnected:', reason);
+    });
+
+    setSocket(newSocket);
+
+    return () => {
+      console.log('🔌 Cleaning up socket connection...');
+      newSocket.disconnect();
+    };
+  }, [retroId]);
+
+  // Initial data fetch
+  useEffect(() => {
+    if (!retroId) return;
+    
+    console.log('🚀 Initial data fetch for retro:', retroId);
+    fetchLobbyData();
+  }, [retroId, fetchLobbyData]);
+
+  // Socket event listeners
+  useEffect(() => {
+    if (!socket || !retroId) return;
+
+    const updateHandler = () => {
+      console.log('🔁 Participants update received, refreshing data...');
+      fetchLobbyData();
+    };
+
+    socket.on(`participants-update:${retroId}`, updateHandler);
+
+    return () => {
+      socket.off(`participants-update:${retroId}`, updateHandler);
+    };
+  }, [socket, retroId, fetchLobbyData]);
+
+  // Auto-join when data is loaded
+  useEffect(() => {
+    if (!loading && retro && participants.length > 0) {
+      checkAndJoinParticipant();
     }
-  }
+  }, [loading, retro, participants, checkAndJoinParticipant]);
 
   const handleStartRetro = async () => {
     try {
-      await apiService.updateRetro(Number.parseInt(retroId, 10), { status: "in_progress" })
+      await apiService.updateRetro(retroId, { status: "in_progress" })
       navigate(`/retro/${retroId}`)
     } catch (error) {
       console.error("Error starting retro:", error)
@@ -106,8 +153,11 @@ export default function RetroLobbyPage() {
   }
 
   const shareUrl = typeof window !== "undefined" ? window.location.href : ""
-  const facilitator = participants.find((p) => p.role === "facilitator")
-  const isFacilitator = userRole === "facilitator"
+  const facilitator = participants.find((p) => p.role === true)
+  const isFacilitator = currentUser?.id === facilitator?.user.id
+
+  
+  
 
   if (loading) {
     return (
@@ -115,12 +165,15 @@ export default function RetroLobbyPage() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading lobby...</p>
+          {isJoining && (
+            <p className="text-sm text-indigo-600 mt-2">Joining as participant...</p>
+          )}
         </div>
       </div>
     )
   }
 
-  if (error || !retro) {
+  if (error && !retro) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -128,6 +181,18 @@ export default function RetroLobbyPage() {
           <Link to="/dashboard">
             <Button>Back to Dashboard</Button>
           </Link>
+        </div>
+      </div>
+    )
+  }
+
+  if (joinError) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-red-600 mb-4">Join Error</h1>
+          <p className="text-gray-600 mb-4">{joinError}</p>
+          <Button onClick={() => setJoinError(null)}>Try Again</Button>
         </div>
       </div>
     )
@@ -147,17 +212,13 @@ export default function RetroLobbyPage() {
                 </Button>
               </Link>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">{retro.title}</h1>
+                <h1 className="text-2xl font-bold text-gray-900">{retro?.title}</h1>
                 <div className="flex items-center space-x-4 mt-1">
                   <Badge variant="secondary" className="flex items-center space-x-1">
                     <Users className="h-3 w-3" />
                     <span>{participants.length} participants</span>
                   </Badge>
-                  <Badge variant="secondary" className="flex items-center space-x-1">
-                    <Clock className="h-3 w-3" />
-                    <span>{retro.duration} min</span>
-                  </Badge>
-                  <Badge variant={retro.status === "active" ? "default" : "secondary"}>{retro.status}</Badge>
+                  <Badge variant={retro?.status === "active" ? "default" : "secondary"}>{retro?.status}</Badge>
                 </div>
               </div>
             </div>
@@ -191,21 +252,30 @@ export default function RetroLobbyPage() {
             <CardContent>
               <div className="space-y-3">
                 {participants.map((participant) => (
-                  <div key={participant.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div key={participant.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg" 
+                  onClick={() => {
+                    if (!participant.role && isFacilitator) {
+                      setSelectedParticipant(participant)
+                      setShowRoleModal(true)
+                    }
+                  }}>
                     <div className="flex items-center space-x-3">
                       <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
                         <span className="text-sm font-medium text-indigo-600">
-                          {participant.name.charAt(0).toUpperCase()}
+                          {participant.user.name.charAt(0).toUpperCase()}
                         </span>
                       </div>
                       <div>
-                        <p className="font-medium">{participant.name}</p>
+                        <p className="font-medium">{participant.user.name}</p>
                         <p className="text-sm text-gray-500">
-                          {participant.role === "facilitator" ? "Facilitator" : "Participant"}
+                          {participant.role === true ? "Facilitator" : "Participant"}
                         </p>
+                        {!participant.role && isFacilitator && (
+                          <p className="text-xs text-blue-500">Click to promote to facilitator</p>
+                        )}
                       </div>
                     </div>
-                    {participant.role === "facilitator" && (
+                    {participant.role === true && (
                       <Crown className="h-4 w-4 text-yellow-500" />
                     )}
                   </div>
@@ -213,6 +283,7 @@ export default function RetroLobbyPage() {
                 {participants.length === 0 && (
                   <p className="text-gray-500 text-center py-8">No participants yet</p>
                 )}
+                
               </div>
             </CardContent>
           </Card>
@@ -225,30 +296,21 @@ export default function RetroLobbyPage() {
             <CardContent className="space-y-4">
               <div>
                 <h3 className="font-medium text-gray-900">Title</h3>
-                <p className="text-gray-600">{retro.title}</p>
+                <p className="text-gray-600">{retro?.title}</p>
               </div>
-              {retro.description && (
-                <div>
-                  <h3 className="font-medium text-gray-900">Description</h3>
-                  <p className="text-gray-600">{retro.description}</p>
-                </div>
-              )}
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <h3 className="font-medium text-gray-900">Duration</h3>
-                  <p className="text-gray-600">{retro.duration} minutes</p>
-                </div>
+                
                 <div>
                   <h3 className="font-medium text-gray-900">Status</h3>
-                  <Badge variant={retro.status === "active" ? "default" : "secondary"}>
-                    {retro.status}
+                  <Badge variant={retro?.status === "active" ? "default" : "secondary"}>
+                    {retro?.status}
                   </Badge>
                 </div>
               </div>
               {facilitator && (
                 <div>
                   <h3 className="font-medium text-gray-900">Facilitator</h3>
-                  <p className="text-gray-600">{facilitator.name}</p>
+                  <p className="text-gray-600">{facilitator.user.name}</p>
                 </div>
               )}
             </CardContent>
@@ -273,15 +335,46 @@ export default function RetroLobbyPage() {
       </div>
 
       {/* Modals */}
-      {showJoinModal && (
-        <JoinNameModal
-          isOpen={showJoinModal}
-          onClose={() => setShowJoinModal(false)}
-          onJoin={handleJoin}
-          error={joinError}
-          isJoining={isJoining}
-        />
-      )}
+
+      {showRoleModal && selectedParticipant && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full">
+      <h2 className="text-lg font-semibold mb-4">Change Role</h2>
+      <p>
+        Make <strong>{selectedParticipant.user.name}</strong> a facilitator?
+      </p>
+      <div className="mt-6 flex justify-end space-x-2">
+        <button
+          className="px-4 py-2 rounded bg-gray-200"
+          onClick={() => {
+            setShowRoleModal(false);
+            setSelectedParticipant(null);
+          }}
+        >
+          Cancel
+        </button>
+        <button
+          className="px-4 py-2 rounded bg-blue-600 text-white"
+          onClick={async () => {
+            try {
+              await apiService.updateParticipantRole(retroId, selectedParticipant.id);
+              fetchLobbyData();
+            } catch (err) {
+              console.error("Failed to update role", err);
+            } finally {
+              setShowRoleModal(false);
+              setSelectedParticipant(null);
+            }
+          }}
+        >
+          Yes, Promote
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+
 
       {showShareModal && shareUrl && (
         <ShareLinkModal

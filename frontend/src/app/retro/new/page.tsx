@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { ArrowLeft } from "lucide-react"
 import { Link, useNavigate } from "react-router-dom"
 import { api, apiService } from "@/services/api"
+import { userInfo } from "node:os"
 
 const RETRO_FORMATS = [
   {
@@ -36,13 +37,13 @@ export default function NewRetroPage() {
   const navigate = useNavigate()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [title, setTitle] = useState("")
-  const [selectedFormat, setSelectedFormat] = useState<string | null>(null)
+  const [selectedFormat, setSelectedFormat] = useState<string>("happy_sad_confused")
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     console.log("=== FORM SUBMIT TRIGGERED ===")
 
-    if (!title.trim() || !selectedFormat) {
+    if (!title.trim() && !selectedFormat) {
       alert("Please enter a title and select a format")
       return
     }
@@ -62,14 +63,18 @@ export default function NewRetroPage() {
       if (!retro || !retro.id) {
         throw new Error("No retro ID returned from API")
       }
+      let user;
+      const userData = localStorage.getItem('user_data');
+      if (userData) {
+        user = JSON.parse(userData)
+      } else {
+        console.log("=== NO USER DATA FOUND ===")
+      }
 
-      // Generate a facilitator name (could be improved with actual user input)
-      const facilitatorName = "Facilitator"
-      // Set creator as facilitator in localStorage
-      localStorage.setItem(`retro_${retro.id}_user`, facilitatorName)
-      localStorage.setItem(`retro_${retro.id}_role`, "facilitator")
-
-
+      await apiService.addParticipant(retro.id, { 
+        userId: user.id,
+        role: true
+      });
       console.log("=== REDIRECTING TO LOBBY ===")
       navigate(`/retro/${retro.id}/lobby`)
     } catch (error) {
@@ -81,10 +86,16 @@ export default function NewRetroPage() {
     }
   }
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setTitle(e.target.value)
-    setSelectedFormat(e.target.value)
-  }
+  
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setTitle(e.target.value);
+  };
+  
+
+  const handleFormatSelect = (key: string) => {
+    setSelectedFormat(key);
+  };
+
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -113,7 +124,7 @@ export default function NewRetroPage() {
                     name="title"
                     placeholder="e.g., Sprint 24 Retrospective"
                     value={title}
-                    onChange={handleChange}
+                    onChange={handleTitleChange}
                     required
                     disabled={isSubmitting}
                   />
@@ -130,7 +141,7 @@ export default function NewRetroPage() {
                             ? "border-blue-500 bg-blue-50 shadow"
                             : "border-gray-200 hover:border-blue-300"
                         }`}
-                        onClick={() => setSelectedFormat(format.key)}
+                        onClick={() => handleFormatSelect(format.key)}
                       >
                         <span className="text-3xl mr-4">{format.icon}</span>
                         <div>

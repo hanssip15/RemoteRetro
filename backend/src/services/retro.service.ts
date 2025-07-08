@@ -32,23 +32,20 @@ export class RetroService {
     });
   }
 
-  async findOne(id: string): Promise<{ retro: Retro; items: RetroItem[]; participants: Participant[] }> {
+  async findOne(id: string): Promise<{ retro: Retro; participants: Participant[] }> {
     const retro = await this.retroRepository.findOne({ where: { id } });
+
     if (!retro) {
       throw new NotFoundException(`Retro with ID ${id} not found`);
     }
 
-    const items = await this.retroItemRepository.find({
-      where: { retroId: id },
-      order: { createdAt: 'ASC' },
-    });
-
     const participants = await this.participantRepository.find({
       where: { retroId: id },
+      relations: ['user'],
       order: { joinedAt: 'ASC' },
     });
 
-    return { retro, items, participants };
+    return { retro, participants };
   }
 
   async create(createRetroDto: CreateRetroDto, userId?: string): Promise<Retro> {
