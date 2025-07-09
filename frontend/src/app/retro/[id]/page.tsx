@@ -48,7 +48,7 @@ export default function RetroPage() {
   };
 
   const handleItemDeleted = (itemId: string) => {
-    setItems(prev => prev.filter(item => item.id !== parseInt(itemId)));
+    setItems(prev => prev.filter(item => item.id !== itemId));
   };
 
   const handleItemsUpdate = (newItems: RetroItem[]) => {
@@ -146,7 +146,7 @@ export default function RetroPage() {
     }
   };
 
-  const handleUpdateItem = async (itemId: number, content: string) => {
+  const handleUpdateItem = async (itemId: string, content: string) => {
     if (!currentUser) return;
 
     setIsUpdatingItem(true)
@@ -164,13 +164,12 @@ export default function RetroPage() {
     }
   };
 
-  const handleDeleteItem = async (itemId: number) => {
+  const handleDeleteItem = async (itemId: string) => {
     if (!currentUser) return;
 
     setIsDeletingItem(true)
     try {
-      const result = await apiService.deleteItem(retroId, itemId)
-      console.log("Delete result:", result)
+       await apiService.deleteItem(retroId, itemId)
       // Note: Item will be deleted via WebSocket broadcast
     } catch (error) {
       console.error("Error deleting item:", error)
@@ -180,15 +179,6 @@ export default function RetroPage() {
     }
   };
 
-  const handleVoteItem = async (itemId: number) => {
-    try {
-      await apiService.voteItem(retroId, itemId)
-      // Refresh items to get updated vote count
-      fetchItems()
-    } catch (error) {
-      console.error("Error voting for item:", error)
-    }
-  };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && !isAddingItem) {
@@ -197,7 +187,7 @@ export default function RetroPage() {
   };
 
   const getItemsByCategory = (category: string) => {
-    return items.filter((item) => item.category === category).sort((a, b) => (b.id || 0) - (a.id || 0))
+    return items.filter((item) => item.category === category)
   }
 
   const getCategoryDisplayName = (category: string) => {
@@ -311,7 +301,6 @@ export default function RetroPage() {
                   userRole={currentUserRole}
                   onUpdate={handleUpdateItem}
                   onDelete={handleDeleteItem}
-                  onVote={handleVoteItem}
                 />
               ))}
             </CardContent>
@@ -332,7 +321,6 @@ export default function RetroPage() {
                   userRole={currentUserRole}
                   onUpdate={handleUpdateItem}
                   onDelete={handleDeleteItem}
-                  onVote={handleVoteItem}
                 />
               ))}
             </CardContent>
@@ -353,7 +341,6 @@ export default function RetroPage() {
                   userRole={currentUserRole}
                   onUpdate={handleUpdateItem}
                   onDelete={handleDeleteItem}
-                  onVote={handleVoteItem}
                 />
               ))}
             </CardContent>
