@@ -56,9 +56,8 @@ export class RetroController {
   @Get(':id')
   async findOne(@Param('id') id: string) {
     console.log(`=== GET /retros/${id} ===`);
-
-    const result = await this.retroService.findOne(id);
-    return result;
+    const { retro, participants } = await this.retroService.findOne(id);
+    return { retro, participants };
   }
 
   @Post()
@@ -70,7 +69,6 @@ export class RetroController {
     console.log('👤 Request user:', req.user);
     console.log('📋 Request headers:', JSON.stringify(req.headers, null, 2));
 
-    // Extract user ID from JWT token
     const authHeader = req.headers.authorization;
     let userId = null;
     
@@ -99,8 +97,7 @@ export class RetroController {
   @Put(':id')
   async update(@Param('id') id: string, @Body() updateRetroDto: UpdateRetroDto) {
     console.log(`=== PUT /retros/${id} ===`);
-
-    const retro = await this.retroService.update(id, updateRetroDto);
+    const retro = await this.retroService.updateStatus(id, updateRetroDto);
     return retro;
   }
 

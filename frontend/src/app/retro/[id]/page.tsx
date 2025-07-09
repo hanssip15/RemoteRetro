@@ -8,11 +8,14 @@ import { AddFeedbackForm } from "@/components/add-feedback-form"
 import { ArrowLeft, Users, Clock, Share2 } from "lucide-react"
 import { Link } from "react-router-dom"
 import { apiService, Retro, RetroItem, Participant } from "@/services/api"
+import { Input } from "@/components/ui/input"
 
 export default function RetroPage() {
   const params = useParams()
   const navigate = useNavigate()
   const retroId = params.id as string
+  const [newWentWell, setNewWentWell] = useState('');
+  const [retroItems, setRetroItems] = useState<RetroItem[]>([])
 
   const [retro, setRetro] = useState<Retro | null>(null)
   const [items, setItems] = useState<RetroItem[]>([])
@@ -48,11 +51,14 @@ export default function RetroPage() {
 
       const data = await apiService.getRetro(Number.parseInt(String(retroId), 10))
       console.log("Retro data received:", data)
-
+      if (data.retro.format === "happy_sad_confused") {
+        setFormat(["Happy", "Sad", "Confused"])
+      } else {
+        setFormat(["Start", "Stop", "Continue"])
+      }
       if (!data.retro) {
         throw new Error("No retro data in response")
       }
-
       setRetro(data.retro)
       setItems(data.items || [])
       setParticipants(data.participants || [])
@@ -64,6 +70,22 @@ export default function RetroPage() {
       setLoading(false)
     }
   }
+
+  const handleAddFeedback = () => {
+    if (!newFeedback.trim()) return;
+  
+    const newItem: FeedbackItem = {
+      id: crypto.randomUUID(), // generate unique id for React key
+      content: newFeedback.trim(),
+      format: "format_1",
+      retro_id: retroId,
+    };
+  
+    setFeedbackItems((prev) => [...prev, newItem]);
+    setNewFeedback('');
+  };
+  
+  
 
   const handleAddItem = async (type: string, content: string, author: string) => {
     try {

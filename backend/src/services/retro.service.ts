@@ -6,6 +6,7 @@ import { RetroItem } from '../entities/retro-item.entity';
 import { Participant } from '../entities/participant.entity';
 import { CreateRetroDto } from '../dto/create-retro.dto';
 import { UpdateRetroDto } from '../dto/update-retro.dto';
+import { ParticipantGateway } from 'src/gateways/participant.gateways';
 
 @Injectable()
 export class RetroService {
@@ -16,6 +17,7 @@ export class RetroService {
     private retroItemRepository: Repository<RetroItem>,
     @InjectRepository(Participant)
     private participantRepository: Repository<Participant>,
+    private readonly participantGateway: ParticipantGateway,
   ) {}
 
   async findAll(): Promise<Retro[]> {
@@ -32,23 +34,20 @@ export class RetroService {
     });
   }
 
-  async findOne(id: string): Promise<{ retro: Retro; items: RetroItem[]; participants: Participant[] }> {
+  async findOne(id: string): Promise<{ retro: Retro; participants: Participant[] }> {
     const retro = await this.retroRepository.findOne({ where: { id } });
+
     if (!retro) {
       throw new NotFoundException(`Retro with ID ${id} not found`);
     }
 
-    const items = await this.retroItemRepository.find({
-      where: { retroId: id },
-      order: { createdAt: 'ASC' },
-    });
-
     const participants = await this.participantRepository.find({
       where: { retroId: id },
+      relations: ['user'],
       order: { joinedAt: 'ASC' },
     });
 
-    return { retro, items, participants };
+    return { retro, participants };
   }
 
   async create(createRetroDto: CreateRetroDto, userId?: string): Promise<Retro> {
@@ -73,13 +72,16 @@ export class RetroService {
     return savedRetro;
   }
 
-  async update(id: string, updateRetroDto: UpdateRetroDto): Promise<Retro> {
+  async updateStatus(id: string, updateRetroDto: UpdateRetroDto): Promise<Retro> {
     const retro = await this.retroRepository.findOne({ where: { id } });
     if (!retro) {
       throw new NotFoundException(`Retro with ID ${id} not found`);
     }
-
     Object.assign(retro, updateRetroDto);
+
+    console.log('🔁 Retro status updated:', JSON.stringify(retro, null, 2));
+
+    this.participantGateway.broadcastRetroStarted(id);
     return this.retroRepository.save(retro);
   }
 
