@@ -57,7 +57,7 @@ export default function RetroPage() {
     } catch (error) {
       console.error("Error fetching retro data:", error)
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
-      setError(`Failed to fetch retro data: ${errorMessage}`)
+      setError(Failed to fetch retro data: ${errorMessage})
     } finally {
       setLoading(false)
     }
