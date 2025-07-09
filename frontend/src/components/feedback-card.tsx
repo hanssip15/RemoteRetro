@@ -8,7 +8,7 @@ import { Heart, Edit2, Trash2, Check, X } from "lucide-react"
 
 interface FeedbackCardProps {
   item: {
-    id: number
+    id: string
     content: string
     author: string
     category: string
@@ -20,9 +20,8 @@ interface FeedbackCardProps {
     email: string
   } | null
   userRole: boolean // true for facilitator, false for regular participant
-  onUpdate: (id: number, content: string) => void
-  onDelete: (id: number) => void
-  onVote: (id: number) => void
+  onUpdate: (id: string, content: string) => void
+  onDelete: (id: string) => void
 }
 
 export function FeedbackCard({ 
@@ -31,7 +30,6 @@ export function FeedbackCard({
   userRole, 
   onUpdate, 
   onDelete, 
-  onVote 
 }: FeedbackCardProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editContent, setEditContent] = useState(item.content)
@@ -44,7 +42,7 @@ export function FeedbackCard({
 
   const handleSave = () => {
     if (editContent.trim()) {
-      onUpdate(item.id, editContent.trim())
+      onUpdate(item.id.toString(), editContent.trim())
       setIsEditing(false)
     }
   }
@@ -82,14 +80,6 @@ export function FeedbackCard({
           <>
             <p className="text-sm mb-3 leading-relaxed">{item.content}</p>
             <div className="flex items-center justify-between">
-              {/* <div className="flex items-center space-x-2"> */}
-                {/* <span className="text-xs text-gray-500">by {item.author}</span> */}
-                {/* {userRole && (
-                  <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                    Facilitator
-                  </span>
-                )} */}
-              {/* </div> */}
               <div className="flex items-center space-x-1">
                 {canEdit && (
                   <Button 
