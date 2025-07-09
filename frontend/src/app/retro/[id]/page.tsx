@@ -4,41 +4,34 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { FeedbackCard } from "@/components/feedback-card"
-import { AddFeedbackForm } from "@/components/add-feedback-form"
 import { ArrowLeft, Users, Clock, Share2 } from "lucide-react"
 import { Link } from "react-router-dom"
 import { apiService, Retro, RetroItem, Participant } from "@/services/api"
-import { Input } from "@/components/ui/input"
-
+// import { AddFeedbackForm } from "@/components/add-feedback-form"
 export default function RetroPage() {
   const params = useParams()
   const navigate = useNavigate()
   const retroId = params.id as string
-  const [newWentWell, setNewWentWell] = useState('');
-  const [retroItems, setRetroItems] = useState<RetroItem[]>([])
 
   const [retro, setRetro] = useState<Retro | null>(null)
   const [items, setItems] = useState<RetroItem[]>([])
   const [participants, setParticipants] = useState<Participant[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-
-  // State untuk kategori dan author pada form tambahan
+  const [format, setFormat] = useState<string[]>([])
   const [inputCategory, setInputCategory] = useState("happy")
-  const [inputAuthor, setInputAuthor] = useState("")
+  const [inputText, setInputText] = useState('')
+  const userData = localStorage.getItem('user_data');
+  const currentUser = userData ? JSON.parse(userData) : null;
+  const [dataList, setDataList] = useState<{ category: string; text: string; id: string; user_id: string }[]>([]);
 
   useEffect(() => {
-    // If the ID is "new", redirect to the new retro page
-    if (retroId === "new") {
-      navigate("/retro/new")
+    if (!currentUser) {
+      navigate("/login")
       return
     }
-
-    // Validate that retroId is a number
-    const numericRetroId = Number.parseInt(String(retroId), 10)
-    if (isNaN(numericRetroId)) {
-      setError("Invalid retro ID")
-      setLoading(false)
+    if (retroId === "new") {
+      navigate("/retro/new")
       return
     }
 
@@ -49,7 +42,7 @@ export default function RetroPage() {
     try {
       console.log("Fetching retro data for ID:", retroId)
 
-      const data = await apiService.getRetro(Number.parseInt(String(retroId), 10))
+      const data = await apiService.getRetro(retroId)
       console.log("Retro data received:", data)
       if (data.retro.format === "happy_sad_confused") {
         setFormat(["Happy", "Sad", "Confused"])
@@ -60,7 +53,6 @@ export default function RetroPage() {
         throw new Error("No retro data in response")
       }
       setRetro(data.retro)
-      setItems(data.items || [])
       setParticipants(data.participants || [])
     } catch (error) {
       console.error("Error fetching retro data:", error)
@@ -70,20 +62,43 @@ export default function RetroPage() {
       setLoading(false)
     }
   }
+  
+  const handleAdd = () => {
+    if (!inputText.trim()) return; // Jangan tambahkan jika kosong
 
-  const handleAddFeedback = () => {
-    if (!newFeedback.trim()) return;
-  
-    const newItem: FeedbackItem = {
-      id: crypto.randomUUID(), // generate unique id for React key
-      content: newFeedback.trim(),
-      format: "format_1",
-      retro_id: retroId,
+    const newItem = {
+      id: crypto.randomUUID(),
+      category: inputCategory,
+      text: inputText.trim(),
+      user_id: currentUser?.id,
     };
-  
-    setFeedbackItems((prev) => [...prev, newItem]);
-    setNewFeedback('');
+
+    // Tambahkan item ke dalam array secara asynchronous
+    setDataList(prev => [...prev, newItem]);
+    setInputText(""); // Kosongkan input setelah ditambahkan
   };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      handleAdd();
+    }
+  };
+
+  // const handleAddFeedback = () => {
+  //   if (!newFeedback.trim()) return;
+  
+  //   const newItem: FeedbackItem = {
+  //     id: crypto.randomUUID(), // generate unique id for React key
+  //     content: newFeedback.trim(),
+  //     format: "format_1",
+  //     retro_id: retroId,
+  //   };
+  
+  //   setFeedbackItems((prev) => [...prev, newItem]);
+  //   setNewFeedback('');
+  // };
+
+
   
   
 
@@ -100,36 +115,28 @@ export default function RetroPage() {
     }
   }
 
-  const handleUpdateItem = async (id: number, content: string) => {
-    try {
-      const updatedItem = await apiService.updateItem(Number.parseInt(String(retroId), 10), id, { content })
-      setItems((prev) => prev.map((item) => (item.id === id ? updatedItem : item)))
-    } catch (error) {
-      console.error("Error updating item:", error)
-    }
-  }
+  // const handleUpdateItem = async (id: number, content: string) => {
+  //   try {
+  //     const updatedItem = await apiService.updateItem(Number.parseInt(String(retroId), 10), id, { content })
+  //     setItems((prev) => prev.map((item) => (item.id === id ? updatedItem : item)))
+  //   } catch (error) {
+  //     console.error("Error updating item:", error)
+  //   }
+  // }
 
-  const handleDeleteItem = async (id: number) => {
-    try {
-      await apiService.deleteItem(Number.parseInt(String(retroId), 10), id)
-      setItems((prev) => prev.filter((item) => item.id !== id))
-    } catch (error) {
-      console.error("Error deleting item:", error)
-    }
-  }
+  // const handleDeleteItem = async (id: number) => {
+  //   try {
+  //     await apiService.deleteItem(Number.parseInt(String(retroId), 10), id)
+  //     setItems((prev) => prev.filter((item) => item.id !== id))
+  //   } catch (error) {
+  //     console.error("Error deleting item:", error)
+  //   }
+  // }
 
-  const handleVoteItem = async (id: number) => {
-    try {
-      const updatedItem = await apiService.voteItem(Number.parseInt(String(retroId), 10), id)
-      setItems((prev) => prev.map((item) => (item.id === id ? updatedItem : item)))
-    } catch (error) {
-      console.error("Error voting item:", error)
-    }
-  }
 
-  const getItemsByType = (type: string) => {
-    return items.filter((item) => item.category === type).sort((a, b) => b.votes - a.votes)
-  }
+  // const getItemsByType = (type: string) => {
+  //   return items.filter((item) => item.category === type).sort((a, b) => b.votes - a.votes)
+  // }
 
   const copyShareLink = () => {
     navigator.clipboard.writeText(window.location.href)
@@ -206,15 +213,15 @@ export default function RetroPage() {
       {/* Retro Board */}
       <div className="container mx-auto px-4 py-8">
         <div className="grid lg:grid-cols-3 gap-6">
-          {/* Happy */}
+          {/* Format 1 */}
           <Card className="h-fit">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <span role="img" aria-label="happy">😃</span> happy
+                <span role="img" aria-label="format_1">X</span> {format[0]}
               </CardTitle>
             </CardHeader>
             <CardContent className="p-4 space-y-4 min-h-[200px]">
-              {getItemsByType && getItemsByType("happy").map((item) => (
+              {/* {getItemsByType && getItemsByType("happy").map((item) => (
                 <FeedbackCard
                   key={item.id}
                   item={{ ...item, author: item.author || "Anonymous" }}
@@ -222,45 +229,63 @@ export default function RetroPage() {
                   onDelete={handleDeleteItem}
                   onVote={handleVoteItem}
                 />
-              ))}
+              ))} */}
+              <div className="max-w-md mx-auto mt-4">
+                  <h3 className="font-semibold mb-2">Data:</h3>
+                  <ul className="space-y-1">
+                  {dataList
+                      .filter(item => item.category === format[0]) // hanya ambil yang kategori happy
+                      .map((item, index) => (
+                        <li key={index} className="border p-2 rounded bg-gray-50">
+                          <span className="font-medium text-blue-600">{item.user_id}</span>: {item.text}
+                        </li>
+                    ))}
+                  </ul>
+                </div>
             </CardContent>
           </Card>
-          {/* Sad */}
+          {/* Format 2 */}
           <Card className="h-fit">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <span role="img" aria-label="sad">😢</span> sad
+                <span role="img" aria-label="format_2">X</span> {format[1]}
               </CardTitle>
             </CardHeader>
             <CardContent className="p-4 space-y-4 min-h-[200px]">
-              {getItemsByType && getItemsByType("sad").map((item) => (
-                <FeedbackCard
-                  key={item.id}
-                  item={{ ...item, author: item.author || "Anonymous" }}
-                  onUpdate={handleUpdateItem}
-                  onDelete={handleDeleteItem}
-                  onVote={handleVoteItem}
-                />
-              ))}
+            <div className="max-w-md mx-auto mt-4">
+                  <h3 className="font-semibold mb-2">Data:</h3>
+                  <ul className="space-y-1">
+                  {dataList
+                      .filter(item => item.category === format[1]) // hanya ambil yang kategori happy
+                      .map((item, index) => (
+                        <li key={index} className="border p-2 rounded bg-gray-50">
+                          <span className="font-medium text-blue-600">{item.user_id}</span>: {item.text}
+                        </li>
+                    ))}
+                  </ul>
+                </div>
             </CardContent>
           </Card>
-          {/* Confused */}
+          {/* Format 3 */}
           <Card className="h-fit">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <span role="img" aria-label="confused">😕</span> confused
+                <span role="img" aria-label="format_3">X</span> {format[2]}
               </CardTitle>
             </CardHeader>
             <CardContent className="p-4 space-y-4 min-h-[200px]">
-              {getItemsByType && getItemsByType("confused").map((item) => (
-                <FeedbackCard
-                  key={item.id}
-                  item={{ ...item, author: item.author || "Anonymous" }}
-                  onUpdate={handleUpdateItem}
-                  onDelete={handleDeleteItem}
-                  onVote={handleVoteItem}
-                />
-              ))}
+            <div className="max-w-md mx-auto mt-4">
+                  <h3 className="font-semibold mb-2">Data:</h3>
+                  <ul className="space-y-1">
+                  {dataList
+                      .filter(item => item.category === format[2]) // hanya ambil yang kategori happy
+                      .map((item, index) => (
+                        <li key={index} className="border p-2 rounded bg-gray-50">
+                          <span className="font-medium text-blue-600">{item.user_id}</span>: {item.text}
+                        </li>
+                    ))}
+                  </ul>
+                </div>
             </CardContent>
           </Card>
         </div>
@@ -268,19 +293,26 @@ export default function RetroPage() {
         <div className="mt-8">
           <div className="flex flex-col md:flex-row gap-2 items-center justify-center">
             <label className="font-medium mr-2">Category:</label>
+            <input type="hidden" value={currentUser?.id} />
+
             <select
               className="border rounded px-2 py-1"
               value={inputCategory}
               onChange={e => setInputCategory(e.target.value)}
             >
-              <option value="happy">happy</option>
-              <option value="sad">sad</option>
-              <option value="confused">confused</option>
+              <option value={format[0]}>{format[0].charAt(0).toUpperCase() + format[0].slice(1)}</option>
+              <option value={format[1]}>{format[1].charAt(0).toUpperCase() + format[1].slice(1)}</option>
+              <option value={format[2]}>{format[2].charAt(0).toUpperCase() + format[2].slice(1)}</option>
             </select>
-            <AddFeedbackForm
-              type={inputCategory}
-              onAdd={(content, author) => handleAddItem(inputCategory, content, author)}
+            <input
+              type="text"
+              placeholder="Type something..."
+              className="border rounded px-2 py-1"
+              value={inputText}
+              onChange={e => setInputText(e.target.value)}
+              onKeyDown={handleKeyDown}
             />
+            <button onClick={handleAdd}>Add</button>
           </div>
         </div>
       </div>
