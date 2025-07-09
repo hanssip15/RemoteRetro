@@ -8,6 +8,17 @@ import { ArrowLeft, Users, Clock, Share2 } from "lucide-react"
 import { Link } from "react-router-dom"
 import { apiService, Retro, RetroItem, Participant } from "@/services/api"
 import { useSocket } from "@/hooks/use-socket"
+import { ShareLinkModal } from '@/components/share-link-modal';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { LogOut, User, Pen } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 export default function RetroPage() {
   const params = useParams()
@@ -25,11 +36,14 @@ export default function RetroPage() {
   const [isAddingItem, setIsAddingItem] = useState(false)
   const [isUpdatingItem, setIsUpdatingItem] = useState(false)
   const [isDeletingItem, setIsDeletingItem] = useState(false)
-  const userData = localStorage.getItem('user_data');
-  const currentUser = userData ? JSON.parse(userData) : null;
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [user, setUser] = useState(() => {
+    const userData = localStorage.getItem('user_data');
+    return userData ? JSON.parse(userData) : null;
+  });
 
   // Get current user's role in this retro
-  const currentUserRole = participants.find(p => p.user.id === currentUser?.id)?.role || false;
+  const currentUserRole = participants.find(p => p.user.id === user?.id)?.role || false;
 
   // WebSocket handlers
   const handleItemAdded = (newItem: RetroItem) => {
@@ -116,15 +130,15 @@ export default function RetroPage() {
   }
   
   const handleAdd = async () => {
-    if (!inputText.trim() || !currentUser) return;
+    if (!inputText.trim() || !user) return;
 
     setIsAddingItem(true)
     try {
       const newItem = await apiService.createItem(retroId, {
         category: inputCategory,
         content: inputText.trim(),
-        created_by: currentUser.id,
-        author: currentUser.name || currentUser.email,
+        created_by: user.id,
+        author: user.name || user.email,
       })
 
       // Note: Item will be added via WebSocket broadcast, so we don't need to add it here
@@ -138,13 +152,13 @@ export default function RetroPage() {
   };
 
   const handleUpdateItem = async (itemId: string, content: string) => {
-    if (!currentUser) return;
+    if (!user) return;
 
     setIsUpdatingItem(true)
     try {
       await apiService.updateItem(retroId, itemId, { 
         content,
-        userId: currentUser.id 
+        userId: user.id 
       })
       // Note: Item will be updated via WebSocket broadcast
     } catch (error) {
@@ -156,7 +170,7 @@ export default function RetroPage() {
   };
 
   const handleDeleteItem = async (itemId: string) => {
-    if (!currentUser) return;
+    if (!user) return;
 
     setIsDeletingItem(true)
     try {
@@ -204,6 +218,12 @@ export default function RetroPage() {
     // You could add a toast notification here
   }
 
+  const handleLogout = () => {
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('user_data');
+    window.location.href = '/login';
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -229,7 +249,7 @@ export default function RetroPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
       <div className="bg-white border-b">
         <div className="container mx-auto px-4 py-4">
@@ -255,8 +275,6 @@ export default function RetroPage() {
                     </Badge>
                   )}
                   <Badge variant={retro.status === "draft" ? "default" : "secondary"}>{retro.status}</Badge>
-                  {/* WebSocket connection status */}
-                  {/* User role indicator */}
                   {currentUserRole && (
                     <Badge variant="default" className="bg-blue-500">
                       Facilitator
@@ -265,22 +283,58 @@ export default function RetroPage() {
                 </div>
               </div>
             </div>
-            <Button variant="outline" onClick={copyShareLink}>
-              <Share2 className="h-4 w-4 mr-2" />
-              Share
-            </Button>
+            <div className="flex items-center space-x-2">
+              <Button variant="outline" onClick={() => setShowShareModal(true)}>
+                <Share2 className="h-4 w-4 mr-2" />
+                Share
+              </Button>
+              {user && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage src={user.imageUrl} alt={user.name} />
+                        <AvatarFallback>
+                          {user.name?.charAt(0)?.toUpperCase() || <User className="h-4 w-4" />}
+                        </AvatarFallback>
+                      </Avatar>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-56" align="end" forceMount>
+                    <DropdownMenuLabel className="font-normal">
+                      <div className="flex flex-col space-y-1">
+                        <p className="text-sm font-medium leading-none">{user.name}</p>
+                        <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+                      </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleLogout}>
+                      <LogOut className="mr-2 h-4 w-4" />
+                      <span>Log out</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
+      {/* Share Link Modal */}
+      <ShareLinkModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        shareUrl={typeof window !== 'undefined' ? window.location.href : ''}
+      />
+
       {/* Retro Board */}
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 flex-1 pb-56">
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Happy */}
           <Card className="h-fit">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <span role="img" aria-label="format_1">X</span> {getCategoryDisplayName(format[0])}
+                <span role="img" aria-label="happy">😀</span> {getCategoryDisplayName(format[0])}
               </CardTitle>
             </CardHeader>
             <CardContent className="p-4 space-y-4 min-h-[200px]">
@@ -288,7 +342,7 @@ export default function RetroPage() {
                 <FeedbackCard
                   key={item.id}
                   item={{ ...item, author: item.author || "Anonymous" }}
-                  currentUser={currentUser}
+                  currentUser={user}
                   userRole={currentUserRole}
                   onUpdate={handleUpdateItem}
                   onDelete={handleDeleteItem}
@@ -300,7 +354,7 @@ export default function RetroPage() {
           <Card className="h-fit">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <span role="img" aria-label="format_2">X</span> {getCategoryDisplayName(format[1])}
+                <span role="img" aria-label="sad">😢</span> {getCategoryDisplayName(format[1])}
               </CardTitle>
             </CardHeader>
             <CardContent className="p-4 space-y-4 min-h-[200px]">
@@ -308,7 +362,7 @@ export default function RetroPage() {
                 <FeedbackCard
                   key={item.id}
                   item={{ ...item, author: item.author || "Anonymous" }}
-                  currentUser={currentUser}
+                  currentUser={user}
                   userRole={currentUserRole}
                   onUpdate={handleUpdateItem}
                   onDelete={handleDeleteItem}
@@ -320,7 +374,7 @@ export default function RetroPage() {
           <Card className="h-fit">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <span role="img" aria-label="format_3">X</span> {getCategoryDisplayName(format[2])}
+                <span role="img" aria-label="confused">🤔</span> {getCategoryDisplayName(format[2])}
               </CardTitle>
             </CardHeader>
             <CardContent className="p-4 space-y-4 min-h-[200px]">
@@ -328,7 +382,7 @@ export default function RetroPage() {
                 <FeedbackCard
                   key={item.id}
                   item={{ ...item, author: item.author || "Anonymous" }}
-                  currentUser={currentUser}
+                  currentUser={user}
                   userRole={currentUserRole}
                   onUpdate={handleUpdateItem}
                   onDelete={handleDeleteItem}
@@ -337,39 +391,96 @@ export default function RetroPage() {
             </CardContent>
           </Card>
         </div>
-        {/* Input form di bawah grid */}
-        <div className="mt-8">
-          <div className="flex flex-col md:flex-row gap-2 items-center justify-center">
-            <label className="font-medium mr-2">Category:</label>
-            <select
-              className="border rounded px-2 py-1"
-              value={inputCategory}
-              onChange={e => setInputCategory(e.target.value)}
-              disabled={isAddingItem}
-            >
-              <option value="format_1">{getCategoryDisplayName("format_1")}</option>
-              <option value="format_2">{getCategoryDisplayName("format_2")}</option>
-              <option value="format_3">{getCategoryDisplayName("format_3")}</option>
-            </select>
-            <input
-              type="text"
-              placeholder="Type something..."
-              className="border rounded px-2 py-1"
-              value={inputText}
-              onChange={e => setInputText(e.target.value)}
-              onKeyDown={handleKeyDown}
-              disabled={isAddingItem}
-            />
-            <Button 
-              onClick={handleAdd} 
-              disabled={isAddingItem || !inputText.trim()}
-              className="px-4 py-1"
-            >
-              {isAddingItem ? "Adding..." : "Add"}
-            </Button>
-          </div>
+      </div>
+
+      {/* Input bawah sticky */}
+      <div className="fixed bottom-0 left-0 w-full bg-white border-t z-40">
+        <div className="container mx-auto px-4 py-4 flex flex-col items-center">
+          {/* Avatar semua participants berjajar horizontal di atas card submit */}
+          {participants.length > 0 && (
+            <div className="flex flex-row items-end gap-6 mb-3">
+              {participants.map((p) => {
+                const isCurrentUser = user && p.user.id === user.id;
+                const isCurrentFacilitator = participants.find(x => x.role)?.user.id === user?.id;
+                return (
+                  <div key={p.id} className="flex flex-col items-center relative">
+                    <div className="relative">
+                      <Avatar
+                        className={`h-14 w-14 border-2 ${p.role ? 'border-blue-500' : 'border-gray-200'} group-hover:border-indigo-500 transition`}
+                        title={`${p.user.name} ${p.role ? '(Facilitator)' : '(Participant)'}`}
+                      >
+                        {p.user.imageUrl ? (
+                          <AvatarImage src={p.user.imageUrl} alt={p.user.name} />
+                        ) : (
+                          <AvatarFallback>
+                            {p.user.name?.charAt(0)?.toUpperCase() || <User className="h-4 w-4" />}
+                          </AvatarFallback>
+                        )}
+                      </Avatar>
+                      {/* Icon pensil hanya muncul pada avatar peserta lain, jika user saat ini facilitator */}
+                      {isCurrentFacilitator && !isCurrentUser && (
+                        <span className="absolute -top-2 -right-2 bg-white rounded-full p-1 shadow border cursor-pointer" title="Promote to Facilitator">
+                          <Pen className="h-4 w-4 text-indigo-600" />
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-xs text-gray-900 mt-1 font-medium">{p.user.name}</span>
+                    <span className="text-[11px] text-gray-500">{p.role ? 'Facilitator' : 'Participant'}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          <Card className="bg-white rounded-xl w-full">
+            <CardContent className="py-4 px-8">
+              {/* Teks submit an idea di atas form, rata tengah */}
+              <div className="w-full flex justify-center mb-2">
+                <span className="text-xs text-teal-600 font-semibold">Submit an idea!</span>
+              </div>
+              <form
+                className="flex flex-col md:flex-row items-center gap-2 md:gap-4 w-full"
+                onSubmit={e => { e.preventDefault(); handleAdd(); }}
+              >
+                <label className="font-medium mr-2 mb-1">Category:</label>
+                <select
+                  className="w-32 px-3 pr-8 py-2 rounded-md border text-base"
+                  value={inputCategory}
+                  onChange={e => setInputCategory(e.target.value)}
+                  disabled={isAddingItem}
+                >
+                  <option value="format_1">{getCategoryDisplayName("format_1")}</option>
+                  <option value="format_2">{getCategoryDisplayName("format_2")}</option>
+                  <option value="format_3">{getCategoryDisplayName("format_3")}</option>
+                </select>
+                <input
+                  type="text"
+                  placeholder="Ex. we have a linter!"
+                  className="border rounded px-2 py-1 flex-1"
+                  value={inputText}
+                  onChange={e => setInputText(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  disabled={isAddingItem}
+                />
+                <Button
+                  onClick={handleAdd}
+                  disabled={isAddingItem || !inputText.trim()}
+                  className="px-4 py-1"
+                  type="submit"
+                >
+                  {isAddingItem ? "Adding..." : "Submit"}
+                </Button>
+                <Button
+                  variant="secondary"
+                  className="ml-2"
+                  disabled={items.length === 0}
+                >
+                  Grouping
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
-  )
+  );
 }
