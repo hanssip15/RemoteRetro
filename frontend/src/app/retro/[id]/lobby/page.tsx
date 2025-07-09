@@ -153,10 +153,6 @@ export default function RetroLobbyPage() {
                     <Users className="h-3 w-3" />
                     <span>{participants.length} participants</span>
                   </Badge>
-                  <Badge variant="secondary" className="flex items-center space-x-1">
-                    <Clock className="h-3 w-3" />
-                    <span>{retro.duration} min</span>
-                  </Badge>
                   <Badge variant={retro.status === "active" ? "default" : "secondary"}>{retro.status}</Badge>
                 </div>
               </div>
@@ -180,7 +176,7 @@ export default function RetroLobbyPage() {
       {/* Lobby Content */}
       <div className="container mx-auto px-4 py-8">
         <div className="grid lg:grid-cols-2 gap-8">
-          {/* Participants */}
+          {/* Kolom kiri: Participants */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
@@ -188,8 +184,8 @@ export default function RetroLobbyPage() {
                 <span>Participants ({participants.length})</span>
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
+            <CardContent className="h-[420px] flex items-center justify-center">
+              <div className="space-y-3 w-full">
                 {participants.map((participant) => (
                   <div key={participant.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div className="flex items-center space-x-3">
@@ -211,74 +207,70 @@ export default function RetroLobbyPage() {
                   </div>
                 ))}
                 {participants.length === 0 && (
-                  <p className="text-gray-500 text-center py-8">No participants yet</p>
+                  <div className="flex w-full h-full items-center justify-center">
+                    <p className="text-gray-500 text-center">No participants yet</p>
+                  </div>
                 )}
               </div>
             </CardContent>
           </Card>
-
-          {/* Retro Info */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Retrospective Details</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <h3 className="font-medium text-gray-900">Title</h3>
-                <p className="text-gray-600">{retro.title}</p>
-              </div>
-              {retro.description && (
+          {/* Kolom kanan: Stack Retrospective Details + Prime Directive */}
+          <div className="flex flex-col gap-8">
+            <Card>
+              <CardHeader>
+                <CardTitle>Retrospective Details</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <div>
-                  <h3 className="font-medium text-gray-900">Description</h3>
-                  <p className="text-gray-600">{retro.description}</p>
+                  <h3 className="font-medium text-gray-900">Title</h3>
+                  <p className="text-gray-600">{retro.title}</p>
                 </div>
-              )}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <h3 className="font-medium text-gray-900">Duration</h3>
-                  <p className="text-gray-600">{retro.duration} minutes</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <h3 className="font-medium text-gray-900">Status</h3>
+                    <p className="text-gray-600">{retro.status}</p>
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-gray-900">Format</h3>
+                    <p className="text-gray-600">{retro.format || "-"}</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-medium text-gray-900">Status</h3>
-                  <Badge variant={retro.status === "active" ? "default" : "secondary"}>
-                    {retro.status}
-                  </Badge>
+                {facilitator && (
+                  <div>
+                    <h3 className="font-medium text-gray-900">Facilitator</h3>
+                    <p className="text-gray-600">{facilitator.name}</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+            <Card className="w-full">
+              <CardHeader>
+                <CardTitle className="text-center">The Prime Directive</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col items-center">
+                  <hr className="my-2 w-full" />
+                  <div className="mt-4 text-base text-gray-800 text-center" style={{ whiteSpace: 'pre-line' }}>
+{`Regardless of what we discover,
+we understand and truly believe
+that everyone did the best job they could,
+given what they knew at the time,
+their skills and abilities,
+the resources available,
+and the situation at hand.`}
+                  </div>
                 </div>
-              </div>
-              {facilitator && (
-                <div>
-                  <h3 className="font-medium text-gray-900">Facilitator</h3>
-                  <p className="text-gray-600">{facilitator.name}</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
         </div>
-
-        {/* Instructions */}
-        <Card className="mt-8">
-          <CardHeader>
-            <CardTitle>How to Participate</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3 text-sm text-gray-600">
-              <p>• Share the link with your team members</p>
-              <p>• Each participant should join with their name</p>
-              <p>• The facilitator can start the retrospective when ready</p>
-              <p>• During the session, add feedback items to the board</p>
-              <p>• Vote on items that resonate with you</p>
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Modals */}
       {showJoinModal && (
         <JoinNameModal
-          isOpen={showJoinModal}
-          onClose={() => setShowJoinModal(false)}
           onJoin={handleJoin}
-          error={joinError}
+          error={joinError ?? undefined}
           isJoining={isJoining}
         />
       )}
