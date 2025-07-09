@@ -15,6 +15,7 @@ export interface Retro {
   format: string;
   status: string;
   createdAt: string;
+  createdBy: string;
 }
 
 export interface RetroFormat {
@@ -166,20 +167,17 @@ class ApiService {
       body: JSON.stringify(data),
     });
   }
-
   async updateItem(retroId: string, itemId: string, data: UpdateItemData): Promise<RetroItem> {
     return this.request<RetroItem>(`/retros/${retroId}/items/${itemId}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     });
   }
-
   async deleteItem(retroId: string, itemId: string): Promise<{ success: boolean; message: string; itemId: string }> {
     return this.request<{ success: boolean; message: string; itemId: string }>(`/retros/${retroId}/items/${itemId}`, {
       method: 'DELETE',
     });
   }
-
   async voteItem(retroId: string, itemId: string): Promise<RetroItem> {
     return this.request<RetroItem>(`/retros/${retroId}/items/${itemId}/vote`, {
       method: 'POST',
@@ -218,7 +216,7 @@ class ApiService {
   }
 
   // Dashboard endpoints
-  async getDashboardRetros(page = 1, limit = 3): Promise<{
+  async getDashboardRetros(userId: string, page = 1, limit = 3): Promise<{
     retros: Retro[];
     pagination: {
       page: number;
@@ -229,10 +227,11 @@ class ApiService {
       hasPrev: boolean;
     };
   }> {
-    return this.request(`/dashboard/retros?page=${page}&limit=${limit}`);
+    return this.request(`/dashboard/retros?page=${page}&limit=${limit}&userId=${userId}`);
   }
 
-  async getDashboardStats(): Promise<{
+  async getDashboardStats(userId: string): Promise<{
+    userId: string;
     totalRetros: number;
     uniqueMembers: number;
     actionItems: {
@@ -240,7 +239,7 @@ class ApiService {
       completed: number;
     };
   }> {
-    return this.request('/dashboard/stats');
+    return this.request(`/dashboard/stats/${userId}`);
   }
 }
 // api.ts
