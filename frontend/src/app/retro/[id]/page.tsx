@@ -78,12 +78,6 @@ export default function RetroPage() {
     }
 
     // Validate that retroId is a number
-    const numericRetroId = Number.parseInt(String(retroId), 10)
-    if (isNaN(numericRetroId)) {
-      setError("Invalid retro ID")
-      setLoading(false)
-      return
-    }
 
     fetchRetroData()
     fetchItems()
@@ -91,10 +85,7 @@ export default function RetroPage() {
 
   const fetchRetroData = async () => {
     try {
-      console.log("Fetching retro data for ID:", retroId)
-
-      const data = await apiService.getRetro(Number.parseInt(String(retroId), 10))
-      console.log("Retro data received:", data)
+      const data = await apiService.getRetro(retroId)
       if (data.retro.format === "happy_sad_confused") {
         setFormat(["format_1", "format_2", "format_3"])
       } else {

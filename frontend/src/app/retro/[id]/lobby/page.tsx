@@ -125,7 +125,6 @@ export default function RetroLobbyPage() {
       console.log('🔁 Participants update received, refreshing data...');
       fetchLobbyData();
     };
-
     socket.on(`participants-update:${retroId}`, updateHandler);
       return () => {
       socket.off(`participants-update:${retroId}`, updateHandler);
@@ -157,9 +156,23 @@ export default function RetroLobbyPage() {
     }
   }, [retroId, navigate, socket, isOngoing])
 
+  
+  useEffect(() => {
+    if (!socket || !retroId) return;
+  
+    const handleRetroStarted = () => {
+      handleChangeView()
+    };
+    socket.on(`retro-started:${retroId}`, handleRetroStarted);
+    console.log('🔁 Retro started received, refreshing data...');
+    return () => {
+      socket.off(`retro-started:${retroId}`, handleRetroStarted);
+    };
+    
+  }, [socket, retroId, navigate]);
+
   const handlePromoteToFacilitator = useCallback(async () => {
     if (!selectedParticipant) return;
-    
     try {
       setIsPromoting(true);
       await apiService.updateParticipantRole(retroId, selectedParticipant.id);
@@ -175,18 +188,6 @@ export default function RetroLobbyPage() {
     }
   }, [retroId, selectedParticipant, fetchLobbyData]);
 
-  useEffect(() => {
-    if (!socket || !retroId) return;
-  
-    const handleRetroStarted = () => {
-      handleChangeView()
-    };
-    socket.on(`retro-started:${retroId}`, handleRetroStarted);
-    console.log('🔁 Retro started received, refreshing data...');
-    return () => {
-      socket.off(`retro-started:${retroId}`, handleRetroStarted);
-    };
-  }, [socket, retroId, navigate]);
   
   const shareUrl = typeof window !== "undefined" ? window.location.href : ""
   const facilitator = participants.find((p) => p.role === true)
