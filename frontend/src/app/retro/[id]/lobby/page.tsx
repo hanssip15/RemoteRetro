@@ -1,5 +1,6 @@
 "use client"
-import { io } from 'socket.io-client';
+// import { io } from 'socket.io-client';
+import { useSocket } from "@/hooks/use-socket"
 
 import { useEffect, useState, useCallback } from "react"
 import { useParams, useNavigate } from "react-router-dom"
@@ -90,46 +91,46 @@ export default function RetroLobbyPage() {
   }, [currentUser, retroId, participants, fetchLobbyData]);
 
   // Initialize socket connection
-  useEffect(() => {
-    if (!retroId) return;
+  // useEffect(() => {
+  //   if (!retroId) return;
 
-    console.log('🔌 Initializing socket connection...');
-    const newSocket = io('http://localhost:3001', {
-      transports: ['websocket', 'polling'],
-      timeout: 10000,
-    });
+  //   console.log('🔌 Initializing socket connection...');
+  //   const newSocket = io('http://localhost:3001', {
+  //     transports: ['websocket', 'polling'],
+  //     timeout: 10000,
+  //   });
 
-    newSocket.on('connect', () => {
-      console.log('✅ Socket connected:', newSocket.id);
-    });
+  //   newSocket.on('connect', () => {
+  //     console.log('✅ Socket connected:', newSocket.id);
+  //   });
 
-    newSocket.on('connect_error', (error) => {
-      console.error('❌ Socket connection error:', error);
-    });
+  //   newSocket.on('connect_error', (error) => {
+  //     console.error('❌ Socket connection error:', error);
+  //   });
 
-    newSocket.on('disconnect', (reason) => {
-      console.log('🔌 Socket disconnected:', reason);
-    });
+  //   newSocket.on('disconnect', (reason) => {
+  //     console.log('🔌 Socket disconnected:', reason);
+  //   });
 
-    setSocket(newSocket);
+  //   setSocket(newSocket);
 
-    return () => {
-      console.log('🔌 Cleaning up socket connection...');
-      newSocket.disconnect();
-    };
-  }, [retroId]);
+  //   return () => {
+  //     console.log('🔌 Cleaning up socket connection...');
+  //     newSocket.disconnect();
+  //   };
+  // }, [retroId]);
 
-  useEffect(() => {
-    if (!socket || !retroId) return;
-    const updateHandler = () => {
-      console.log('🔁 Participants update received, refreshing data...');
-      fetchLobbyData();
-    };
-    socket.on(`participants-update:${retroId}`, updateHandler);
-      return () => {
-      socket.off(`participants-update:${retroId}`, updateHandler);
-    };
-  }, [socket, retroId]);
+  // useEffect(() => {
+  //   if (!socket || !retroId) return;
+  //   const updateHandler = () => {
+  //     console.log('🔁 Participants update received, refreshing data...');
+  //     fetchLobbyData();
+  //   };
+  //   socket.on(`participants-update:${retroId}`, updateHandler);
+  //     return () => {
+  //     socket.off(`participants-update:${retroId}`, updateHandler);
+  //   };
+  // }, [socket, retroId]);
 
   useEffect(() => {
     if (!loading && retro && participants.length > 0) {
@@ -157,19 +158,19 @@ export default function RetroLobbyPage() {
   }, [retroId, navigate, socket, isOngoing])
 
   
-  useEffect(() => {
-    if (!socket || !retroId) return;
+  // useEffect(() => {
+  //   if (!socket || !retroId) return;
   
-    const handleRetroStarted = () => {
-      handleChangeView()
-    };
-    socket.on(`retro-started:${retroId}`, handleRetroStarted);
-    console.log('🔁 Retro started received, refreshing data...');
-    return () => {
-      socket.off(`retro-started:${retroId}`, handleRetroStarted);
-    };
-    
-  }, [socket, retroId, navigate]);
+  //   const handleRetroStarted = () => {
+  //     handleChangeView()
+  //   };
+  //   socket.on(`retro-started:${retroId}`, handleRetroStarted);
+  //   console.log('🔁 Retro started received, refreshing data...');
+  //   return () => {
+  //     socket.off(`retro-started:${retroId}`, handleRetroStarted);
+  //   };
+
+  // }, [socket, retroId, navigate]);
 
   const handlePromoteToFacilitator = useCallback(async () => {
     if (!selectedParticipant) return;
@@ -188,6 +189,12 @@ export default function RetroLobbyPage() {
     }
   }, [retroId, selectedParticipant, fetchLobbyData]);
 
+
+  const { isConnected } = useSocket({
+    retroId,
+    onParticipantUpdate: fetchLobbyData,
+    onRetroStarted: handleChangeView,
+  });
   
   const shareUrl = typeof window !== "undefined" ? window.location.href : ""
   const facilitator = participants.find((p) => p.role === true)
