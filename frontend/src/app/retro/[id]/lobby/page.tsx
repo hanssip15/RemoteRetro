@@ -350,7 +350,8 @@ export default function RetroLobbyPage() {
                   </div>
                   <div>
                     <h3 className="font-medium text-gray-900">Format</h3>
-                    <p className="text-gray-600">{retro?.format}</p>
+
+                    <p className="text-gray-600">{retro?.format || "-"}</p>
                   </div>
                 </div>
                 {facilitator && (
