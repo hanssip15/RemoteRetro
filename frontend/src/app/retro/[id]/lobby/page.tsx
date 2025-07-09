@@ -308,22 +308,22 @@ export default function RetroLobbyPage() {
               <CardContent className="space-y-4">
                 <div>
                   <h3 className="font-medium text-gray-900">Title</h3>
-                  <p className="text-gray-600">{retro.title}</p>
+                  <p className="text-gray-600">{retro?.title}</p>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <h3 className="font-medium text-gray-900">Status</h3>
-                    <p className="text-gray-600">{retro.status}</p>
+                    <p className="text-gray-600">{retro?.status}</p>
                   </div>
                   <div>
                     <h3 className="font-medium text-gray-900">Format</h3>
-                    <p className="text-gray-600">{retro.format || "-"}</p>
+                    <p className="text-gray-600">{retro?.format || "-"}</p>
                   </div>
                 </div>
                 {facilitator && (
                   <div>
                     <h3 className="font-medium text-gray-900">Facilitator</h3>
-                    <p className="text-gray-600">{facilitator.name}</p>
+                    <p className="text-gray-600">{facilitator.user.name}</p>
                   </div>
                 )}
               </CardContent>
@@ -351,14 +351,6 @@ and the situation at hand.`}
         </div>
       </div>
 
-      {/* Modals */}
-      {showJoinModal && (
-        <JoinNameModal
-          onJoin={handleJoin}
-          error={joinError ?? undefined}
-          isJoining={isJoining}
-        />
-      )}
 
       {showShareModal && shareUrl && (
         <ShareLinkModal
