@@ -9,7 +9,6 @@ export interface Retro {
   status: string;
   createdAt: string;
   updatedAt: string;
-  format?: string;
 }
 
 
@@ -157,6 +156,10 @@ class ApiService {
     return this.request<RetroItem[]>(`/retros/${retroId}/items`);
   }
 
+  async getItem(retroId: number, itemId: number): Promise<RetroItem> {
+    return this.request<RetroItem>(`/retros/${retroId}/items/${itemId}`);
+  }
+
   async createItem(retroId: number, data: CreateItemData): Promise<RetroItem> {
     return this.request<RetroItem>(`/retros/${retroId}/items`, {
       method: 'POST',
@@ -164,16 +167,22 @@ class ApiService {
     });
   }
 
-  async updateItem(itemId: number, data: UpdateItemData): Promise<RetroItem> {
-    return this.request<RetroItem>(`/items/${itemId}`, {
+  async updateItem(retroId: number, itemId: number, data: UpdateItemData): Promise<RetroItem> {
+    return this.request<RetroItem>(`/retros/${retroId}/items/${itemId}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     });
   }
 
-  async deleteItem(itemId: number): Promise<void> {
-    return this.request<void>(`/items/${itemId}`, {
+  async deleteItem(retroId: number, itemId: number): Promise<void> {
+    return this.request<void>(`/retros/${retroId}/items/${itemId}`, {
       method: 'DELETE',
+    });
+  }
+
+  async voteItem(retroId: number, itemId: number): Promise<RetroItem> {
+    return this.request<RetroItem>(`/retros/${retroId}/items/${itemId}/vote`, {
+      method: 'POST',
     });
   }
 
@@ -189,7 +198,7 @@ class ApiService {
     });
   }
 
-  async leaveRetro(retroId: number, participantId: number): Promise<void> {
+  async removeParticipant(retroId: number, participantId: number): Promise<void> {
     return this.request<void>(`/retros/${retroId}/participants/${participantId}`, {
       method: 'DELETE',
     });
@@ -235,3 +244,43 @@ export const fetchProtectedData = async () => {
 };
 
 export const apiService = new ApiService();
+
+export const api = {
+  // Get current user info from session
+  getCurrentUser: async (): Promise<any> => {
+    const userData = localStorage.getItem('user_data');
+    if (!userData) {
+      throw new Error('No user data found in session');
+    }
+    return JSON.parse(userData);
+  },
+
+  // Set auth token and user data
+  setAuthToken: (token: string, userData?: any) => {
+    console.log('Setting auth token:', token.substring(0, 50) + '...');
+    localStorage.setItem('auth_token', token);
+    console.log('Auth token stored in localStorage');
+    
+    if (userData) {
+      console.log('Setting user data in session:', userData);
+      localStorage.setItem('user_data', JSON.stringify(userData));
+    }
+  },
+
+  // Remove auth token and user data (logout)
+  removeAuthToken: () => {
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('user_data');
+  },
+
+  // Check if user is authenticated
+  isAuthenticated: (): boolean => {
+    return !!(localStorage.getItem('auth_token') && localStorage.getItem('user_data'));
+  },
+
+  // Set user data in session
+  setUserData: (userData: any) => {
+    console.log('Setting user data in session:', userData);
+    localStorage.setItem('user_data', JSON.stringify(userData));
+  }
+}; 
