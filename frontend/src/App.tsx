@@ -8,24 +8,27 @@ import DebugPage from './app/debug-db/page';
 import TestApiPage from './app/test-api/page';
 import LoginPage from './app/login/page';
 import AuthCallbackPage from './app/auth/callback/page';
+import { SocketProvider } from './contexts/SocketContext';
 
 import './index.css';
 
 function App() {
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/auth/callback" element={<AuthCallbackPage />} />
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/retro/new" element={<NewRetroPage />} />
-        <Route path="/retro/:id" element={<RetroPage />} />
-        <Route path="/retro/:id/lobby" element={<LobbyPage />} />
-        <Route path="/debug-db" element={<DebugPage />} />
-        <Route path="/test-api" element={<TestApiPage />} />
-      </Routes>
-    </Router>
+    <SocketProvider>
+      <Router>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/auth/callback" element={<AuthCallbackPage />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/retro/new" element={<NewRetroPage />} />
+          <Route path="/retro/:id" element={<RetroPage />} />
+          <Route path="/retro/:id/lobby" element={<LobbyPage />} />
+          <Route path="/debug-db" element={<DebugPage />} />
+          <Route path="/test-api" element={<TestApiPage />} />
+        </Routes>
+      </Router>
+    </SocketProvider>
   );
 }
 
