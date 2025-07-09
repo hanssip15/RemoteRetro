@@ -385,8 +385,15 @@ and the situation at hand.`}
         </div>
       </div>
 
-      {/* Modals */}
 
+
+      {showShareModal && shareUrl && (
+        <ShareLinkModal
+          isOpen={showShareModal}
+          onClose={() => setShowShareModal(false)}
+          shareUrl={shareUrl}
+        />
+      )}
 
       {/* Promote to Facilitator Confirmation */}
       {showRoleModal && selectedParticipant && (
