@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Calendar, Users, TrendingUp, RefreshCw, ChevronLeft, ChevronRight, LogOut, User, Settings } from "lucide-react"
+import { Plus, Calendar, Users, TrendingUp, RefreshCw, ChevronLeft, ChevronRight, LogOut, User } from "lucide-react"
 import { Link } from "react-router-dom"
 import { apiService, Retro } from "@/services/api"
 import { api } from '../../services/api'
@@ -21,11 +21,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 interface DashboardStats {
   totalRetros: number
-  uniqueMembers: number
-  actionItems: {
-    total: number
-    completed: number
-  }
   activeRetros?: number
   completedRetros?: number
 }
@@ -141,7 +136,7 @@ export default function DashboardPage() {
       
       // Validate data structure
       const validRetrosData = retrosData && typeof retrosData === 'object' ? retrosData : { retros: [], pagination: null }
-      const validStatsData = statsData && typeof statsData === 'object' ? statsData : { totalRetros: 0, uniqueMembers: 0, actionItems: { total: 0, completed: 0 } }
+      const validStatsData = statsData && typeof statsData === 'object' ? statsData : { totalRetros: 0, activeRetros: 0, completedRetros: 0 }
       
       console.log('Validated data:', { validRetrosData, validStatsData })
       
@@ -195,8 +190,8 @@ export default function DashboardPage() {
           // Set empty data instead of error
           setStats({
             totalRetros: 0,
-            uniqueMembers: 0,
-            actionItems: { total: 0, completed: 0 }
+            activeRetros: 0,
+            completedRetros: 0
           })
           setRetros([])
           setPagination({
@@ -215,8 +210,8 @@ export default function DashboardPage() {
         console.log('Setting empty data for unknown error type')
         setStats({
           totalRetros: 0,
-          uniqueMembers: 0,
-          actionItems: { total: 0, completed: 0 }
+          activeRetros: 0,
+          completedRetros: 0
         })
         setRetros([])
         setPagination({
@@ -250,12 +245,12 @@ export default function DashboardPage() {
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
-      case "in_progress":
-        return "bg-green-100 text-green-800"
-      case "completed":
-        return "bg-blue-100 text-blue-800"
       case "draft":
         return "bg-gray-100 text-gray-800"
+      case "ongoing":
+        return "bg-blue-100 text-blue-800"
+      case "completed":
+        return "bg-green-100 text-green-800"
       default:
         return "bg-gray-100 text-gray-800"
     }
@@ -263,12 +258,12 @@ export default function DashboardPage() {
 
   const getStatusLabel = (status: string) => {
     switch (status.toLowerCase()) {
-      case "in_progress":
-        return "In Progress"
-      case "completed":
-        return "Completed"
       case "draft":
         return "Draft"
+      case "ongoing":
+        return "Ongoing"
+      case "completed":
+        return "Completed"
       default:
         return status
     }
@@ -400,15 +395,6 @@ export default function DashboardPage() {
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem>
-                    <User className="mr-2 h-4 w-4" />
-                    <span>Profile</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <Settings className="mr-2 h-4 w-4" />
-                    <span>Settings</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout}>
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>Log out</span>
@@ -460,30 +446,30 @@ export default function DashboardPage() {
             <CardContent>
               <div className="text-2xl font-bold">{stats?.totalRetros ?? 0}</div>
               <p className="text-xs text-muted-foreground">
-                {(stats?.totalRetros ?? 0) === 1 ? "retrospective" : "retrospectives"} created
+                Total retrospectives created
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Active Retros</CardTitle>
+              <CardTitle className="text-sm font-medium">Active Retros</CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats?.activeRetros ?? 0}</div>
-              <p className="text-xs text-muted-foreground">Active retrospectives</p>
+              <p className="text-xs text-muted-foreground">Ongoing sessions</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Completed Retros</CardTitle>
+              <CardTitle className="text-sm font-medium">Completed Retros</CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats?.completedRetros ?? 0}</div>
-              <p className="text-xs text-muted-foreground">Completed retrospectives</p>
+              <p className="text-xs text-muted-foreground">Finished sessions</p>
             </CardContent>
           </Card>
         </div>

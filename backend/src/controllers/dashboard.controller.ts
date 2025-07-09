@@ -37,16 +37,17 @@ export class DashboardController {
   @Get('stats')
   async getStats() {
     const totalRetros = await this.retroService.count();
-    const uniqueMembers = await this.participantService.countUniqueMembers();
-    const actionItems = await this.itemService.getActionItemsStats();
+    
+    // Count active retros (status = 'ongoing' only)
+    const activeRetros = await this.retroService.countByStatus('ongoing');
+    
+    // Count completed retros (status = 'completed')
+    const completedRetros = await this.retroService.countByStatus('completed');
 
     const response = {
       totalRetros,
-      uniqueMembers,
-      actionItems: {
-        total: actionItems.total,
-        completed: Math.floor(actionItems.total * 0.75), // Hardcoded 75% completion rate
-      },
+      activeRetros,
+      completedRetros,
     };
     console.log('Dashboard /stats response:', response);
     return response;

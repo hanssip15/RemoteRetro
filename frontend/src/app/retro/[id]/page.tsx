@@ -71,12 +71,17 @@ export default function RetroPage() {
   });
 
   useEffect(() => {
-    if (!currentUser) {
-      navigate("/login")
-      return
-    }
+    // If the ID is "new", redirect to the new retro page
     if (retroId === "new") {
       navigate("/retro/new")
+      return
+    }
+
+    // Validate that retroId is a number
+    const numericRetroId = Number.parseInt(String(retroId), 10)
+    if (isNaN(numericRetroId)) {
+      setError("Invalid retro ID")
+      setLoading(false)
       return
     }
 
@@ -88,7 +93,7 @@ export default function RetroPage() {
     try {
       console.log("Fetching retro data for ID:", retroId)
 
-      const data = await apiService.getRetro(retroId)
+      const data = await apiService.getRetro(Number.parseInt(String(retroId), 10))
       console.log("Retro data received:", data)
       if (data.retro.format === "happy_sad_confused") {
         setFormat(["format_1", "format_2", "format_3"])
@@ -99,6 +104,7 @@ export default function RetroPage() {
         throw new Error("No retro data in response")
       }
       setRetro(data.retro)
+      setItems(data.items || [])
       setParticipants(data.participants || [])
     } catch (error) {
       console.error("Error fetching retro data:", error)
@@ -279,7 +285,7 @@ export default function RetroPage() {
       {/* Retro Board */}
       <div className="container mx-auto px-4 py-8">
         <div className="grid lg:grid-cols-3 gap-6">
-          {/* Format 1 */}
+          {/* Happy */}
           <Card className="h-fit">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -299,7 +305,7 @@ export default function RetroPage() {
               ))}
             </CardContent>
           </Card>
-          {/* Format 2 */}
+          {/* Sad */}
           <Card className="h-fit">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -319,7 +325,7 @@ export default function RetroPage() {
               ))}
             </CardContent>
           </Card>
-          {/* Format 3 */}
+          {/* Confused */}
           <Card className="h-fit">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">

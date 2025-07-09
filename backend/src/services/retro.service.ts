@@ -95,4 +95,10 @@ export class RetroService {
   async count(): Promise<number> {
     return this.retroRepository.count();
   }
+
+  async countByStatus(status: string): Promise<number> {
+    return this.retroRepository.count({
+      where: { status }
+    });
+  }
 } 

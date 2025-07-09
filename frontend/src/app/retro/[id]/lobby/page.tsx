@@ -31,6 +31,7 @@ export default function RetroLobbyPage() {
   const [showJoinModal, setShowJoinModal] = useState(false)
   const [socket, setSocket] = useState<any>(null)
   const [isOngoing, setIsOngoing] = useState(false)
+  const [isPromoting, setIsPromoting] = useState(false)
 
   // Get current user from localStorage
   const userData = localStorage.getItem('user_data');
@@ -156,6 +157,24 @@ export default function RetroLobbyPage() {
     }
   }, [retroId, navigate, socket, isOngoing])
 
+  const handlePromoteToFacilitator = useCallback(async () => {
+    if (!selectedParticipant) return;
+    
+    try {
+      setIsPromoting(true);
+      await apiService.updateParticipantRole(retroId, selectedParticipant.id);
+      await fetchLobbyData();
+      setShowRoleModal(false);
+      setSelectedParticipant(null);
+    } catch (error) {
+      console.error("Error promoting participant:", error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to promote participant';
+      alert(`Failed to promote participant: ${errorMessage}`);
+    } finally {
+      setIsPromoting(false);
+    }
+  }, [retroId, selectedParticipant, fetchLobbyData]);
+
   useEffect(() => {
     if (!socket || !retroId) return;
   
@@ -269,13 +288,7 @@ export default function RetroLobbyPage() {
             <CardContent className="h-[420px] flex items-center justify-center">
               <div className="space-y-3 w-full">
                 {participants.map((participant) => (
-                  <div key={participant.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg" 
-                  onClick={() => {
-                    if (!participant.role && isFacilitator) {
-                      setSelectedParticipant(participant)
-                      setShowRoleModal(true)
-                    }
-                  }}>
+                  <div key={participant.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div className="flex items-center space-x-3">
                       <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
                         <span className="text-sm font-medium text-indigo-600">
@@ -287,14 +300,27 @@ export default function RetroLobbyPage() {
                         <p className="text-sm text-gray-500">
                           {participant.role === true ? "Facilitator" : "Participant"}
                         </p>
-                        {!participant.role && isFacilitator && (
-                          <p className="text-xs text-blue-500">Click to promote to facilitator</p>
-                        )}
                       </div>
                     </div>
-                    {participant.role === true && (
-                      <Crown className="h-4 w-4 text-yellow-500" />
-                    )}
+                    <div className="flex items-center space-x-2">
+                      {participant.role === true && (
+                        <Crown className="h-4 w-4 text-yellow-500" />
+                      )}
+                      {!participant.role && isFacilitator && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedParticipant(participant);
+                            setShowRoleModal(true);
+                          }}
+                          className="text-xs px-2 py-1"
+                        >
+                          Promote to Facilitator
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 ))}
                 {participants.length === 0 && (
@@ -324,7 +350,8 @@ export default function RetroLobbyPage() {
                   </div>
                   <div>
                     <h3 className="font-medium text-gray-900">Format</h3>
-                    <p className="text-gray-600">{retro?.format}</p>
+
+                    <p className="text-gray-600">{retro?.format || "-"}</p>
                   </div>
                 </div>
                 {facilitator && (
@@ -358,14 +385,38 @@ and the situation at hand.`}
         </div>
       </div>
 
+      {/* Modals */}
 
 
-      {showShareModal && shareUrl && (
-        <ShareLinkModal
-          isOpen={showShareModal}
-          onClose={() => setShowShareModal(false)}
-          shareUrl={shareUrl}
-        />
+      {/* Promote to Facilitator Confirmation */}
+      {showRoleModal && selectedParticipant && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold mb-4">Promote to Facilitator?</h3>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to promote <strong>{selectedParticipant.user.name}</strong> to facilitator? 
+              You will no longer be the facilitator.
+            </p>
+            <div className="flex justify-end space-x-3">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setShowRoleModal(false);
+                  setSelectedParticipant(null);
+                }}
+                disabled={isPromoting}
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handlePromoteToFacilitator}
+                disabled={isPromoting}
+              >
+                {isPromoting ? 'Promoting...' : 'Promote to Facilitator'}
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Start Confirmation */}
