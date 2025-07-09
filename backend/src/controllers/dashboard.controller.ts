@@ -38,8 +38,8 @@ export class DashboardController {
   async getStats() {
     const totalRetros = await this.retroService.count();
     
-    // Count active retros (status = 'active')
-    const activeRetros = await this.retroService.countByStatus('active');
+    // Count active retros (status = 'ongoing' only)
+    const activeRetros = await this.retroService.countByStatus('ongoing');
     
     // Count completed retros (status = 'completed')
     const completedRetros = await this.retroService.countByStatus('completed');

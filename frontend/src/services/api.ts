@@ -23,11 +23,12 @@ export interface RetroFormat {
 
 
 export interface RetroItem {
-  id: number;
+  id: string;
   retroId: string;
   category: string;
   content: string;
   author?: string;
+  createdBy?: string;
   createdAt: string;
 }
 
@@ -56,11 +57,13 @@ export interface CreateItemData {
   category: string;
   content: string;
   author?: string;
+  created_by?: string;
 }
 
 export interface UpdateItemData {
-  content?: string;
+  content: string;
   author?: string;
+  userId?: string;
 }
 
 export interface addParticipantData {
@@ -149,35 +152,35 @@ class ApiService {
     return result;
   }
 
-  async getItems(retroId: number): Promise<RetroItem[]> {
+  async getItems(retroId: string): Promise<RetroItem[]> {
     return this.request<RetroItem[]>(`/retros/${retroId}/items`);
   }
 
-  async getItem(retroId: number, itemId: number): Promise<RetroItem> {
+  async getItem(retroId: string, itemId: string): Promise<RetroItem> {
     return this.request<RetroItem>(`/retros/${retroId}/items/${itemId}`);
   }
 
-  async createItem(retroId: number, data: CreateItemData): Promise<RetroItem> {
+  async createItem(retroId: string, data: CreateItemData): Promise<RetroItem> {
     return this.request<RetroItem>(`/retros/${retroId}/items`, {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
-  async updateItem(retroId: number, itemId: number, data: UpdateItemData): Promise<RetroItem> {
+  async updateItem(retroId: string, itemId: string, data: UpdateItemData): Promise<RetroItem> {
     return this.request<RetroItem>(`/retros/${retroId}/items/${itemId}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     });
   }
 
-  async deleteItem(retroId: number, itemId: number): Promise<void> {
-    return this.request<void>(`/retros/${retroId}/items/${itemId}`, {
+  async deleteItem(retroId: string, itemId: string): Promise<{ success: boolean; message: string; itemId: string }> {
+    return this.request<{ success: boolean; message: string; itemId: string }>(`/retros/${retroId}/items/${itemId}`, {
       method: 'DELETE',
     });
   }
 
-  async voteItem(retroId: number, itemId: number): Promise<RetroItem> {
+  async voteItem(retroId: string, itemId: string): Promise<RetroItem> {
     return this.request<RetroItem>(`/retros/${retroId}/items/${itemId}/vote`, {
       method: 'POST',
     });

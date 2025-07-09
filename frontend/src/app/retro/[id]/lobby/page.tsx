@@ -247,7 +247,7 @@ export default function RetroLobbyPage() {
                     <Users className="h-3 w-3" />
                     <span>{participants.length} participants</span>
                   </Badge>
-                  <Badge variant={retro?.status === "active" ? "default" : "secondary"}>{retro?.status}</Badge>
+                  <Badge variant={retro?.status === "draft" ? "default" : "secondary"}>{retro?.status}</Badge>
                 </div>
               </div>
             </div>

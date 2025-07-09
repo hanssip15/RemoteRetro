@@ -10,18 +10,37 @@ interface FeedbackCardProps {
   item: {
     id: number
     content: string
-    createdBy?: string  // Changed from 'author' to 'createdBy'
-    votes: number
-    type: string  // Changed from 'category' to 'type'
+    author: string
+    category: string
+    createdBy?: string
   }
+  currentUser: {
+    id: string
+    name: string
+    email: string
+  } | null
+  userRole: boolean // true for facilitator, false for regular participant
   onUpdate: (id: number, content: string) => void
   onDelete: (id: number) => void
   onVote: (id: number) => void
 }
 
-export function FeedbackCard({ item, onUpdate, onDelete, onVote }: FeedbackCardProps) {
+export function FeedbackCard({ 
+  item, 
+  currentUser, 
+  userRole, 
+  onUpdate, 
+  onDelete, 
+  onVote 
+}: FeedbackCardProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editContent, setEditContent] = useState(item.content)
+
+  // Check if user can edit this item
+  const canEdit = userRole || (currentUser && item.createdBy === currentUser.id)
+
+  // Check if user can delete this item
+  const canDelete = userRole || (currentUser && item.createdBy === currentUser.id)
 
   const handleSave = () => {
     if (editContent.trim()) {
@@ -63,30 +82,37 @@ export function FeedbackCard({ item, onUpdate, onDelete, onVote }: FeedbackCardP
           <>
             <p className="text-sm mb-3 leading-relaxed">{item.content}</p>
             <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <span className="text-xs text-gray-500">by {item.createdBy}</span>
-              </div>
+              {/* <div className="flex items-center space-x-2"> */}
+                {/* <span className="text-xs text-gray-500">by {item.author}</span> */}
+                {/* {userRole && (
+                  <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                    Facilitator
+                  </span>
+                )} */}
+              {/* </div> */}
               <div className="flex items-center space-x-1">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => onVote(item.id)}
-                  className="flex items-center space-x-1 text-red-500 hover:text-red-600"
-                >
-                  <Heart className="h-3 w-3" />
-                  <span className="text-xs">{item.votes}</span>
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => setIsEditing(true)} className="p-1">
-                  <Edit2 className="h-3 w-3" />
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => onDelete(item.id)}
-                  className="p-1 text-red-500 hover:text-red-600"
-                >
-                  <Trash2 className="h-3 w-3" />
-                </Button>
+                {canEdit && (
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    onClick={() => setIsEditing(true)} 
+                    className="p-1"
+                    title="Edit item"
+                  >
+                    <Edit2 className="h-3 w-3" />
+                  </Button>
+                )}
+                {canDelete && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => onDelete(item.id)}
+                    className="p-1 text-red-500 hover:text-red-600"
+                    title="Delete item"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                )}
               </div>
             </div>
           </>
