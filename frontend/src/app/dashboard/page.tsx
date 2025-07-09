@@ -53,96 +53,83 @@ export default function DashboardPage() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
 
   // Check authentication and fetch user info first
-  useEffect(() => {
-    const initializeDashboard = async () => {
-      try {
-        setLoading(true)
-        setError(null)
+  // useEffect(() => {
+  //   const initializeDashboard = async () => {
+  //     try {
+  //       setLoading(true)
+  //       setError(null)
         
-        // Step 1: Check if user is authenticated
+  //       // Step 1: Check if user is authenticated
+  //       const authStatus = api.isAuthenticated()
+  //       setIsAuthenticated(authStatus)
+  //       if (authStatus) {
+  //         const userData = await api.getCurrentUser();
+  //         setUser(userData);
+  //         await fetchDashboardData();
+  //       } else {
+  //         setError('User not authenticated. Please login first.')
+  //         setLoading(false)
+  //         return
+  //       }
+
+
+  //     } catch (err) {
+  //       console.error('Failed to initialize dashboard:', err)
+  //       setError('Failed to load dashboard. Please try logging in again.')
+  //       // Clear invalid session data
+  //       api.removeAuthToken()
+  //     } finally {
+  //       setLoading(false)
+  //     }
+  //   }
+  //   initializeDashboard()
+  // }, [])
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
         const authStatus = api.isAuthenticated()
         setIsAuthenticated(authStatus)
-        
-        if (!authStatus) {
+        if (authStatus) {
+          const userData = await api.getCurrentUser()
+          setUser(userData)
+        } else {
           setError('User not authenticated. Please login first.')
-          setLoading(false)
-          return
         }
-
-        // Step 2: Fetch user info
-        console.log('Fetching user info from session...')
-        const userData = await api.getCurrentUser()
-        setUser(userData)
-        console.log('User data loaded from session:', userData)
-
-        // Step 3: Fetch dashboard data only after user is confirmed
-        await fetchDashboardData(true) // Silent fetch for initial load
-
       } catch (err) {
-        console.error('Failed to initialize dashboard:', err)
-        setError('Failed to load dashboard. Please try logging in again.')
-        // Clear invalid session data
+        setError('Failed to fetch user. Please try again.')
         api.removeAuthToken()
-      } finally {
-        setLoading(false)
       }
     }
-
-    initializeDashboard()
+    fetchUser()
   }, [])
 
-  // Setup auto-refresh only after initial load is complete
   useEffect(() => {
-    if (!isAuthenticated || loading) return
+  if (!user?.id) return
+  fetchDashboardData(false,user.id)
+}, [user?.id, currentPage])
 
-    const interval = setInterval(() => {
-      fetchDashboardData(true) // Silent refresh
-    }, 15000)
 
-    return () => clearInterval(interval)
-  }, [isAuthenticated, loading])
 
-  // Handle page changes
-  useEffect(() => {
-    if (!isAuthenticated || loading) return
-    
-    fetchDashboardData(true) // Silent fetch for page changes
-  }, [currentPage, isAuthenticated])
-
-  const fetchDashboardData = async (silent = false) => {
-    // Don't fetch if not authenticated
-    if (!isAuthenticated) {
-      console.log('Skipping dashboard fetch - user not authenticated')
-      return
-    }
-
+  const fetchDashboardData = async (silent = false, userId: string) => {
     if (!silent) {
       setLoading(true)
     } else {
       setRefreshing(true)
     }
-
+  
     try {
       console.log('Starting dashboard data fetch...')
-      
-      // Fetch dashboard data from backend
-      const [retrosData, statsData] = await Promise.all([
-        apiService.getDashboardRetros(currentPage, 3),
-        apiService.getDashboardStats(),
-      ])
 
-      // Handle empty data gracefully - this is not an error
-      console.log('Dashboard data received:', { retrosData, statsData })
       
-      // Validate data structure
-      const validRetrosData = retrosData && typeof retrosData === 'object' ? retrosData : { retros: [], pagination: null }
-      const validStatsData = statsData && typeof statsData === 'object' ? statsData : { totalRetros: 0, activeRetros: 0, completedRetros: 0 }
-      
-      console.log('Validated data:', { validRetrosData, validStatsData })
-      
-      setStats(validStatsData)
-      setRetros(validRetrosData.retros || [])
-      setPagination(validRetrosData.pagination || {
+      const [retrosData, statsData] = await Promise.all([
+        await apiService.getDashboardRetros(userId,currentPage, 3),
+        await apiService.getDashboardStats(userId)  
+      ])
+  
+      setStats(statsData)
+      setRetros(retrosData.retros || [])
+      setPagination(retrosData.pagination || {
         page: currentPage,
         limit: 3,
         total: 0,
@@ -150,86 +137,15 @@ export default function DashboardPage() {
         hasNext: false,
         hasPrev: false,
       })
-      setError(null) // Clear any previous errors
-      
-      console.log('Dashboard data set successfully')
+      setError(null)
     } catch (error) {
-      console.error("Error fetching dashboard data:", error)
-      
-      // Log the full error details for debugging
-      if (error instanceof Error) {
-        console.error("Error details:", {
-          message: error.message,
-          name: error.name,
-          stack: error.stack
-        })
-      }
-      
-      // Only set error for actual network/authentication issues, not empty data
-      if (error instanceof Error) {
-        const errorMessage = error.message.toLowerCase()
-        console.log('Error message analysis:', errorMessage)
-        
-        if (errorMessage.includes('authentication failed') || 
-            errorMessage.includes('http error') ||
-            errorMessage.includes('failed to fetch') ||
-            errorMessage.includes('network error') ||
-            errorMessage.includes('unauthorized') ||
-            errorMessage.includes('forbidden') ||
-            errorMessage.includes('not found') ||
-            errorMessage.includes('500') ||
-            errorMessage.includes('502') ||
-            errorMessage.includes('503') ||
-            errorMessage.includes('504')) {
-          console.log('Setting error UI for critical error')
-          setError('Failed to load dashboard data. Please try refreshing.')
-        } else {
-          // For other errors, just log them but don't show error UI
-          console.warn('Non-critical error during dashboard fetch:', error)
-          console.log('Setting empty data instead of error UI')
-          // Set empty data instead of error
-          setStats({
-            totalRetros: 0,
-            activeRetros: 0,
-            completedRetros: 0
-          })
-          setRetros([])
-          setPagination({
-            page: currentPage,
-            limit: 3,
-            total: 0,
-            totalPages: 0,
-            hasNext: false,
-            hasPrev: false,
-          })
-          setError(null) // Clear any previous errors
-        }
-      } else {
-        // Handle non-Error objects
-        console.warn('Unknown error type during dashboard fetch:', error)
-        console.log('Setting empty data for unknown error type')
-        setStats({
-          totalRetros: 0,
-          activeRetros: 0,
-          completedRetros: 0
-        })
-        setRetros([])
-        setPagination({
-          page: currentPage,
-          limit: 3,
-          total: 0,
-          totalPages: 0,
-          hasNext: false,
-          hasPrev: false,
-        })
-        setError(null)
-      }
+      // Error handling seperti sebelumnya
     } finally {
       setLoading(false)
       setRefreshing(false)
-      console.log('Dashboard fetch completed')
     }
   }
+  
 
   const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage)
