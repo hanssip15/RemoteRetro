@@ -26,6 +26,8 @@ interface DashboardStats {
     total: number
     completed: number
   }
+  activeRetros?: number
+  completedRetros?: number
 }
 
 interface PaginationInfo {
@@ -465,27 +467,23 @@ export default function DashboardPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Team Members</CardTitle>
+              <CardTitle className="text-sm font-medium">Total Active Retros</CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats?.uniqueMembers ?? 0}</div>
-              <p className="text-xs text-muted-foreground">
-                {(stats?.uniqueMembers ?? 0) === 1 ? "unique participant" : "unique participants"}
-              </p>
+              <div className="text-2xl font-bold">{stats?.activeRetros ?? 0}</div>
+              <p className="text-xs text-muted-foreground">Active retrospectives</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Action Items</CardTitle>
+              <CardTitle className="text-sm font-medium">Total Completed Retros</CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats?.actionItems?.total ?? 0}</div>
-              <p className="text-xs text-muted-foreground">
-                {stats?.actionItems?.completed ?? 0} completed
-              </p>
+              <div className="text-2xl font-bold">{stats?.completedRetros ?? 0}</div>
+              <p className="text-xs text-muted-foreground">Completed retrospectives</p>
             </CardContent>
           </Card>
         </div>
@@ -521,12 +519,14 @@ export default function DashboardPage() {
                   >
                     <div className="flex-1">
                       <h3 className="font-semibold">{retro.title}</h3>
-                      <p className="text-sm text-gray-600">
-                        {formatDate(retro.createdAt)} • {retro.teamSize || 0} participants • {retro.duration} min
-                      </p>
-                      {retro.description && (
-                        <p className="text-sm text-gray-500 mt-1 line-clamp-1">{retro.description}</p>
+                      {retro.format && (
+                        <div className="text-xs text-gray-600 mt-1 mb-1">
+                          Format: {retro.format.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())}
+                        </div>
                       )}
+                      <p className="text-sm text-gray-600">
+                        {formatDate(retro.createdAt)}
+                      </p>
                     </div>
                     <div className="flex items-center space-x-2 ml-4">
                       <Badge className={`${getStatusColor(retro.status)} border-0`}>

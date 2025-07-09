@@ -22,20 +22,23 @@ export default function RetroPage() {
   const [participants, setParticipants] = useState<Participant[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [format, setFormat] = useState<string[]>([])
-  const [newFeedback, setNewFeedback] = useState('');
-  const [feedbackItems, setFeedbackItems] = useState<FeedbackItem[]>([]);
-  
-  interface FeedbackItem {
-    id: string;
-    content: string;
-    format: string;
-    retro_id: string;
-  }
+
+  // State untuk kategori dan author pada form tambahan
+  const [inputCategory, setInputCategory] = useState("happy")
+  const [inputAuthor, setInputAuthor] = useState("")
+
   useEffect(() => {
     // If the ID is "new", redirect to the new retro page
     if (retroId === "new") {
       navigate("/retro/new")
+      return
+    }
+
+    // Validate that retroId is a number
+    const numericRetroId = Number.parseInt(String(retroId), 10)
+    if (isNaN(numericRetroId)) {
+      setError("Invalid retro ID")
+      setLoading(false)
       return
     }
 
@@ -46,7 +49,7 @@ export default function RetroPage() {
     try {
       console.log("Fetching retro data for ID:", retroId)
 
-      const data = await apiService.getRetro(retroId)
+      const data = await apiService.getRetro(Number.parseInt(String(retroId), 10))
       console.log("Retro data received:", data)
       if (data.retro.format === "happy_sad_confused") {
         setFormat(["Happy", "Sad", "Confused"])
@@ -86,7 +89,7 @@ export default function RetroPage() {
 
   const handleAddItem = async (type: string, content: string, author: string) => {
     try {
-      const newItem = await apiService.createItem(Number.parseInt(retroId, 10), {
+      const newItem = await apiService.createItem(Number.parseInt(String(retroId), 10), {
         category: type,
         content,
         author,
@@ -99,7 +102,7 @@ export default function RetroPage() {
 
   const handleUpdateItem = async (id: number, content: string) => {
     try {
-      const updatedItem = await apiService.updateItem(Number.parseInt(retroId, 10), id, { content })
+      const updatedItem = await apiService.updateItem(Number.parseInt(String(retroId), 10), id, { content })
       setItems((prev) => prev.map((item) => (item.id === id ? updatedItem : item)))
     } catch (error) {
       console.error("Error updating item:", error)
@@ -108,7 +111,7 @@ export default function RetroPage() {
 
   const handleDeleteItem = async (id: number) => {
     try {
-      await apiService.deleteItem(Number.parseInt(retroId, 10), id)
+      await apiService.deleteItem(Number.parseInt(String(retroId), 10), id)
       setItems((prev) => prev.filter((item) => item.id !== id))
     } catch (error) {
       console.error("Error deleting item:", error)
@@ -117,7 +120,7 @@ export default function RetroPage() {
 
   const handleVoteItem = async (id: number) => {
     try {
-      const updatedItem = await apiService.voteItem(Number.parseInt(retroId, 10), id)
+      const updatedItem = await apiService.voteItem(Number.parseInt(String(retroId), 10), id)
       setItems((prev) => prev.map((item) => (item.id === id ? updatedItem : item)))
     } catch (error) {
       console.error("Error voting item:", error)
@@ -131,6 +134,11 @@ export default function RetroPage() {
   const copyShareLink = () => {
     navigator.clipboard.writeText(window.location.href)
     // You could add a toast notification here
+  }
+
+  // Handler khusus untuk AddFeedbackForm baru (happy, sad, confused)
+  const handleAddItemSimple = (content: string, author: string) => {
+    handleAddItem("happy", content, author)
   }
 
   if (loading) {
@@ -177,10 +185,12 @@ export default function RetroPage() {
                     <Users className="h-3 w-3" />
                     <span>{participants.length} participants</span>
                   </Badge>
-                  <Badge variant="secondary" className="flex items-center space-x-1">
-                    <Clock className="h-3 w-3" />
-                    <span>{retro.duration} min</span>
-                  </Badge>
+                  {retro && (retro as any).duration && (
+                    <Badge variant="secondary" className="flex items-center space-x-1">
+                      <Clock className="h-3 w-3" />
+                      <span>{(retro as any).duration} min</span>
+                    </Badge>
+                  )}
                   <Badge variant={retro.status === "active" ? "default" : "secondary"}>{retro.status}</Badge>
                 </div>
               </div>
@@ -196,83 +206,18 @@ export default function RetroPage() {
       {/* Retro Board */}
       <div className="container mx-auto px-4 py-8">
         <div className="grid lg:grid-cols-3 gap-6">
-          {/* Format 1 */}
+          {/* Happy */}
           <Card className="h-fit">
-            <CardHeader className="bg-green-50">
-              <CardTitle className="text-green-800 flex items-center justify-between">
-                {format[0]}
-                <Badge variant="secondary">{getItemsByType("went_well").length}</Badge>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <span role="img" aria-label="happy">😃</span> happy
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-4 space-y-4">
-              {getItemsByType("went_well").map((item) => (
+            <CardContent className="p-4 space-y-4 min-h-[200px]">
+              {getItemsByType && getItemsByType("happy").map((item) => (
                 <FeedbackCard
                   key={item.id}
-                  item={{
-                    id: item.id,
-                    content: item.content,
-                    author: item.author || "Anonymous",
-                    votes: item.votes,
-                    category: item.category,
-                  }}
-                  onUpdate={handleUpdateItem}
-                  onDelete={handleDeleteItem}
-                  onVote={handleVoteItem}
-                />
-              ))}
-               <div className="flex items-center space-x-2 pt-2">
-               <input type="hidden" name="format" value="format_1" />
-               <input type="hidden" name="retro_id" value={retroId} />
-                  <Input
-                    placeholder="Add feedback..."
-                    className="flex-1"
-                    value={newFeedback}
-                    onChange={(e) => setNewFeedback(e.target.value)}
-                  />
-                  <Button
-                    onClick={handleAddFeedback}
-                    disabled={!newFeedback.trim()}
-                  >
-                    Add
-                  </Button>
-                </div>
-                <div className="space-y-2 mt-4">
-                  {feedbackItems.map((item) => (
-                    <div
-                      key={item.id}
-                      className="p-3 bg-white border rounded shadow-sm flex justify-between"
-                    >
-                      <div>
-                        <p className="text-sm font-medium">{item.content}</p>
-                        <p className="text-xs text-gray-500">
-                          Format: {item.format} | Retro ID: {item.retro_id}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-            </CardContent>
-          </Card>
-
-          {/* Format 2 */}
-          <Card className="h-fit">
-            <CardHeader className="bg-yellow-50">
-              <CardTitle className="text-yellow-800 flex items-center justify-between">
-                {format[1]}
-                <Badge variant="secondary">{getItemsByType("improve").length}</Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 space-y-4">
-              {getItemsByType("improve").map((item) => (
-                <FeedbackCard
-                  key={item.id}
-                  item={{
-                    id: item.id,
-                    content: item.content,
-                    author: item.author || "Anonymous",
-                    votes: item.votes,
-                    category: item.category,
-                  }}
+                  item={{ ...item, author: item.author || "Anonymous" }}
                   onUpdate={handleUpdateItem}
                   onDelete={handleDeleteItem}
                   onVote={handleVoteItem}
@@ -280,34 +225,63 @@ export default function RetroPage() {
               ))}
             </CardContent>
           </Card>
-
-          {/* Format 3 */}
+          {/* Sad */}
           <Card className="h-fit">
-            <CardHeader className="bg-blue-50">
-              <CardTitle className="text-blue-800 flex items-center justify-between">
-                {format[2]}
-                <Badge variant="secondary">{getItemsByType("action_item").length}</Badge>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <span role="img" aria-label="sad">😢</span> sad
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-4 space-y-4">
-              {getItemsByType("action_item").map((item) => (
+            <CardContent className="p-4 space-y-4 min-h-[200px]">
+              {getItemsByType && getItemsByType("sad").map((item) => (
                 <FeedbackCard
                   key={item.id}
-                  item={{
-                    id: item.id,
-                    content: item.content,
-                    author: item.author || "Anonymous",
-                    votes: item.votes,
-                    category: item.category,
-                  }}
+                  item={{ ...item, author: item.author || "Anonymous" }}
                   onUpdate={handleUpdateItem}
                   onDelete={handleDeleteItem}
                   onVote={handleVoteItem}
                 />
               ))}
-              
             </CardContent>
           </Card>
+          {/* Confused */}
+          <Card className="h-fit">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <span role="img" aria-label="confused">😕</span> confused
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 space-y-4 min-h-[200px]">
+              {getItemsByType && getItemsByType("confused").map((item) => (
+                <FeedbackCard
+                  key={item.id}
+                  item={{ ...item, author: item.author || "Anonymous" }}
+                  onUpdate={handleUpdateItem}
+                  onDelete={handleDeleteItem}
+                  onVote={handleVoteItem}
+                />
+              ))}
+            </CardContent>
+          </Card>
+        </div>
+        {/* Input form di bawah grid */}
+        <div className="mt-8">
+          <div className="flex flex-col md:flex-row gap-2 items-center justify-center">
+            <label className="font-medium mr-2">Category:</label>
+            <select
+              className="border rounded px-2 py-1"
+              value={inputCategory}
+              onChange={e => setInputCategory(e.target.value)}
+            >
+              <option value="happy">happy</option>
+              <option value="sad">sad</option>
+              <option value="confused">confused</option>
+            </select>
+            <AddFeedbackForm
+              type={inputCategory}
+              onAdd={(content, author) => handleAddItem(inputCategory, content, author)}
+            />
+          </div>
         </div>
       </div>
     </div>
