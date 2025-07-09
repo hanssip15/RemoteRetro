@@ -34,8 +34,8 @@ export class ParticipantService {
     }
 
     // Check if retro is still available for joining
-    if (retro.status !== 'active' && retro.status !== 'draft') {
-      throw new BadRequestException('Retro is not available for joining');
+    if (retro.status === 'completed') {
+      throw new BadRequestException('Retro is completed');
     }
     
     const existingParticipant = await this.participantRepository.findOne({

@@ -1,15 +1,20 @@
-import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsNotEmpty, IsUUID, IsString, IsEnum } from 'class-validator';
+import { RetroFormatTypes } from 'src/entities/retro-item.entity';
 
-export class CreateItemDto {
-  @IsString()
+export class CreateRetroItemDto {
   @IsNotEmpty()
-  type: string;
-
   @IsString()
-  @IsNotEmpty()
   content: string;
 
-  @IsOptional()
-  @IsString()
-  author?: string;
-} 
+  @IsNotEmpty()
+  @IsUUID()
+  retro_id: string;
+
+  @IsNotEmpty()
+  @IsUUID()
+  created_by: string;
+
+  @IsNotEmpty()
+  @IsEnum(RetroFormatTypes)
+  format_type: RetroFormatTypes;
+}

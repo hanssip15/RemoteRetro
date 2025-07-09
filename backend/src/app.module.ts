@@ -11,6 +11,10 @@ import { Participant } from './entities/participant.entity';
 import { User } from './entities/user.entity';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './module/user.module';
+import { RetroItemsModule } from './module/item.module';
+import { RetroItemsService } from './services/item.service';
+import { ParticipantGateway } from './gateways/participant.gateways';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -27,12 +31,14 @@ import { UsersModule } from './module/user.module';
       } : false,
       logging: false, // Disable SQL logging
     }),
+    TypeOrmModule.forFeature([RetroItem, Retro, Participant]),
     RetroModule, // ← TAMBAHKAN INI!
     AuthModule,
     UsersModule,
-],
+    RetroItemsModule,
+  ],
   controllers: [AppController, DashboardController],
-  providers: [AppService],
+  providers: [AppService, RetroItemsService, ParticipantGateway],
 })
 export class AppModule {
   constructor() {
