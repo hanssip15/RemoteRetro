@@ -10,9 +10,9 @@ interface FeedbackCardProps {
   item: {
     id: number
     content: string
-    author: string
+    createdBy?: string  // Changed from 'author' to 'createdBy'
     votes: number
-    category: string
+    type: string  // Changed from 'category' to 'type'
   }
   onUpdate: (id: number, content: string) => void
   onDelete: (id: number) => void
@@ -64,7 +64,7 @@ export function FeedbackCard({ item, onUpdate, onDelete, onVote }: FeedbackCardP
             <p className="text-sm mb-3 leading-relaxed">{item.content}</p>
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <span className="text-xs text-gray-500">by {item.author}</span>
+                <span className="text-xs text-gray-500">by {item.createdBy}</span>
               </div>
               <div className="flex items-center space-x-1">
                 <Button
