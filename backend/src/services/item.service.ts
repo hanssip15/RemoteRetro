@@ -1,65 +1,155 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { RetroItem } from '../entities/retro-item.entity';
-import { CreateItemDto } from '../dto/create-item.dto';
-import { UpdateItemDto } from '../dto/update-item.dto';
+import { RetroItem, RetroFormatTypes } from '../entities/retro-item.entity';
+import { CreateRetroItemDto } from '../dto/create-item.dto';
+import { Retro } from '../entities/retro.entity';
+import { Participant } from '../entities/participant.entity';
+import { ParticipantGateway } from '../gateways/participant.gateways';
 
 @Injectable()
-export class ItemService {
+export class RetroItemsService {
   constructor(
     @InjectRepository(RetroItem)
-    private itemRepository: Repository<RetroItem>,
+    private retroItemRepository: Repository<RetroItem>,
+    @InjectRepository(Retro)
+    private retroRepository: Repository<Retro>,
+    @InjectRepository(Participant)
+    private participantRepository: Repository<Participant>,
+    private readonly participantGateway: ParticipantGateway,
   ) {}
 
-  async findByRetroId(retroId: string): Promise<RetroItem[]> {
-    return this.itemRepository.find({
-      where: { retroId },
-      order: { createdAt: 'ASC' },
+  async create(dto: CreateRetroItemDto): Promise<any> {
+    // First check if the retro exists
+    const retro = await this.retroRepository.findOne({ where: { id: dto.retro_id } });
+    if (!retro) {
+      throw new NotFoundException(`Retro with ID ${dto.retro_id} not found`);
+    }
+
+    const newItem = this.retroItemRepository.create(dto);
+    const savedItem = await this.retroItemRepository.save(newItem);
+    
+    // Transform to match frontend interface
+    const transformedItem = {
+      id: savedItem.id,
+      retroId: savedItem.retro_id,
+      category: savedItem.format_type,
+      content: savedItem.content,
+      author: savedItem.creator?.name || savedItem.creator?.email,
+      createdBy: savedItem.created_by,
+    };
+
+    // Broadcast the new item to all connected clients
+    this.participantGateway.broadcastItemAdded(dto.retro_id, transformedItem);
+    
+    return transformedItem;
+  }
+
+  async findByRetroId(retroId: string): Promise<any[]> {
+    // First check if the retro exists
+    const retro = await this.retroRepository.findOne({ where: { id: retroId } });
+    if (!retro) {
+      throw new NotFoundException(`Retro with ID ${retroId} not found`);
+    }
+
+    const items = await this.retroItemRepository.find({
+      where: { retro_id: retroId },
+      relations: ['creator'],
+      order: { id: 'ASC' },
     });
+
+    // Transform to match frontend interface
+    const transformedItems = items.map(item => ({
+      id: item.id,
+      retroId: item.retro_id,
+      category: item.format_type,
+      content: item.content,
+      author: item.creator?.name || item.creator?.email,
+      createdBy: item.created_by,
+    }));
+
+    return transformedItems;
   }
 
-  async findOne(id: number): Promise<RetroItem> {
-    const item = await this.itemRepository.findOne({ where: { id } });
+  async update(id: string, content: string, userId: string, retroId: string): Promise<any> {
+    const item = await this.retroItemRepository.findOne({ 
+      where: { id },
+      relations: ['creator']
+    });
+    
     if (!item) {
-      throw new NotFoundException(`Item with ID ${id} not found`);
+      throw new NotFoundException('Item not found');
     }
-    return item;
-  }
 
-  // async create(retroId: number, createItemDto: CreateItemDto): Promise<RetroItem> {
-  //   const item = this.itemRepository.create({
-  //     ...createItemDto,
-  //     retroId,
-  //     votes: 0,
-  //   });
-  //   return this.itemRepository.save(item);
-  // }
+    // Check if user is participant in this retro
+    const participant = await this.participantRepository.findOne({
+      where: { retroId, userId }
+    });
 
-  async update(id: number, updateItemDto: UpdateItemDto): Promise<RetroItem> {
-    const item = await this.findOne(id);
-    Object.assign(item, updateItemDto);
-    return this.itemRepository.save(item);
-  }
-
-  async remove(id: number): Promise<void> {
-    const result = await this.itemRepository.delete(id);
-    if (result.affected === 0) {
-      throw new NotFoundException(`Item with ID ${id} not found`);
+    if (!participant) {
+      throw new ForbiddenException('You are not a participant in this retro');
     }
+
+    // Check permissions: facilitator can edit any item, regular user can only edit their own
+    if (!participant.role && item.created_by !== userId) {
+      throw new ForbiddenException('You can only edit your own items');
+    }
+
+    // Update the item
+    item.content = content;
+    const updatedItem = await this.retroItemRepository.save(item);
+
+    // Transform to match frontend interface
+    const transformedItem = {
+      id: updatedItem.id,
+      retroId: updatedItem.retro_id,
+      category: updatedItem.format_type,
+      content: updatedItem.content,
+      author: updatedItem.creator?.name || updatedItem.creator?.email,
+      createdBy: updatedItem.created_by,
+    };
+
+    // Broadcast the updated item
+    this.participantGateway.broadcastItemUpdated(retroId, transformedItem);
+
+    return transformedItem;
   }
 
-  async vote(id: number): Promise<RetroItem> {
-    const item = await this.findOne(id);
-    item.votes += 1;
-    return this.itemRepository.save(item);
+  async remove(id: string, userId: string, retroId: string): Promise<void> {
+    const item = await this.retroItemRepository.findOne({ 
+      where: { id },
+      relations: ['creator']
+    });
+    
+    if (!item) {
+      throw new NotFoundException('Item not found');
+    }
+
+    // Check if user is participant in this retro
+    const participant = await this.participantRepository.findOne({
+      where: { retroId, userId }
+    });
+
+    if (!participant) {
+      throw new ForbiddenException('You are not a participant in this retro');
+    }
+
+    // Check permissions: facilitator can delete any item, regular user can only delete their own
+    if (!participant.role && item.created_by !== userId) {
+      throw new ForbiddenException('You can only delete your own items');
+    }
+
+    await this.retroItemRepository.remove(item);
+    
+    // Broadcast item deletion
+    this.participantGateway.broadcastItemDeleted(retroId, id);
   }
 
   async getActionItemsStats(): Promise<{ total: number }> {
-    const total = await this.itemRepository.count({
-      where: { type: 'action_item' },
+    const total = await this.retroItemRepository.count({
+      where: { format_type: RetroFormatTypes.format_3 } // Assuming format_3 is for action items
     });
     
     return { total };
   }
-} 
+}
