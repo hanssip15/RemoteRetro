@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { ShareLinkModal } from "@/components/share-link-modal"
 import { ArrowLeft, Users, Clock, Share2, Play, RefreshCw, Crown } from "lucide-react"
 import { Link } from "react-router-dom"
-import { apiService, Retro, Participant } from "@/services/api"
+import { apiService, Retro, Participant, api } from "@/services/api"
 
 
 export default function RetroLobbyPage() {
@@ -57,6 +57,13 @@ export default function RetroLobbyPage() {
   }, [retroId]);
 
   useEffect(() => {
+    // Step 1: Check if user is authenticated
+    const authStatus = api.isAuthenticated()
+    if (!authStatus) {
+      navigate('/login')
+      return
+    }
+
     if (!retroId) return;    
     fetchLobbyData();
   }, [retroId, fetchLobbyData]);
@@ -317,7 +324,7 @@ export default function RetroLobbyPage() {
                   </div>
                   <div>
                     <h3 className="font-medium text-gray-900">Format</h3>
-                    <p className="text-gray-600">{retro?.format || "-"}</p>
+                    <p className="text-gray-600">{retro?.format}</p>
                   </div>
                 </div>
                 {facilitator && (
@@ -350,6 +357,7 @@ and the situation at hand.`}
           </div>
         </div>
       </div>
+
 
 
       {showShareModal && shareUrl && (

@@ -1,14 +1,14 @@
 import { Controller, Get, Query, ParseIntPipe } from '@nestjs/common';
 import { RetroService } from '../services/retro.service';
 import { ParticipantService } from '../services/participant.service';
-import { ItemService } from '../services/item.service';
+import { RetroItemsService } from '../services/item.service';
 
 @Controller('dashboard')
 export class DashboardController {
   constructor(
     private readonly retroService: RetroService,
     private readonly participantService: ParticipantService,
-    private readonly itemService: ItemService,
+    private readonly itemService: RetroItemsService,
   ) {}
 
   @Get('retros')

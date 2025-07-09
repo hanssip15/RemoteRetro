@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
+import { IoAdapter } from '@nestjs/platform-socket.io';
 import * as dotenv from 'dotenv';
 
 // Load environment variables
@@ -14,6 +15,9 @@ async function bootstrap() {
   console.log('NODE_ENV:', process.env.NODE_ENV || 'development');
   
   const app = await NestFactory.create(AppModule);
+  
+  // Enable WebSocket adapter
+  app.useWebSocketAdapter(new IoAdapter(app));
   
   // Enable CORS
   app.enableCors({
@@ -35,6 +39,7 @@ async function bootstrap() {
   console.log(`Application is running on: http://localhost:${port}`);
   console.log(`Backend is ready to accept requests on port ${port}`);
   console.log(`Frontend can proxy requests to: http://localhost:${port}`);
+  console.log(`WebSocket server is ready on: ws://localhost:${port}`);
   
 }
 bootstrap();
