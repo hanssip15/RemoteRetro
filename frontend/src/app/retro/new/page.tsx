@@ -34,6 +34,7 @@ const RETRO_FORMATS = [
 ]
 
 export default function NewRetroPage() {
+  console.log("=== NewRetroPage RENDER ===")
   
   const navigate = useNavigate()
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -41,21 +42,50 @@ export default function NewRetroPage() {
   const [selectedFormat, setSelectedFormat] = useState<string>("happy_sad_confused")
   
   useEffect(() => {
+    console.log("=== useEffect RUNNING ===")
     const authStatus = api.isAuthenticated()
+    console.log("=== AUTH STATUS ===", authStatus)
     if (!authStatus) {
+      console.log("=== REDIRECTING TO LOGIN ===")
       navigate('/login')
     }
-  }, [navigate])
+  }, []) // Remove navigate dependency to prevent re-runs
+
+  // Prevent unwanted navigation during form submission
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isSubmitting) {
+        e.preventDefault()
+        e.returnValue = ''
+      }
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [isSubmitting])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    e.stopPropagation()
     console.log("=== FORM SUBMIT TRIGGERED ===")
+    console.log("=== TITLE ===", title)
+    console.log("=== SELECTED FORMAT ===", selectedFormat)
 
-    if (!title.trim() && !selectedFormat) {
-      alert("Please enter a title and select a format")
+    // Check if title is empty
+    if (!title.trim()) {
+      alert("Please enter a retrospective title")
       return
     }
 
+    // Check if format is valid (not just default)
+    const validFormats = ['happy_sad_confused', 'start_stop_continue']
+    const isValidFormat = selectedFormat && validFormats.includes(selectedFormat)
+    if (!isValidFormat) {
+      alert("Please select a valid format")
+      return
+    }
+
+    console.log("=== VALIDATION PASSED ===")
     setIsSubmitting(true)
 
     try {
@@ -71,14 +101,18 @@ export default function NewRetroPage() {
       if (!retro || !retro.id) {
         throw new Error("No retro ID returned from API")
       }
+      
       let user;
       const userData = localStorage.getItem('user_data');
       if (userData) {
         user = JSON.parse(userData)
+        console.log("=== USER DATA FOUND ===", user)
       } else {
         console.log("=== NO USER DATA FOUND ===")
+        throw new Error("User data not found. Please login again.")
       }
 
+      console.log("=== ADDING PARTICIPANT ===")
       await apiService.addParticipant(retro.id, { 
         userId: user.id,
         role: true
@@ -89,7 +123,9 @@ export default function NewRetroPage() {
       console.error("=== CATCH ERROR ===", error)
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
       alert(`Error creating retro: ${errorMessage}`)
+      // Don't redirect on error, let user stay on the form
     } finally {
+      console.log("=== FINALLY BLOCK ===")
       setIsSubmitting(false)
     }
   }
@@ -101,6 +137,7 @@ export default function NewRetroPage() {
   
 
   const handleFormatSelect = (key: string) => {
+    console.log("=== FORMAT SELECTED ===", key)
     setSelectedFormat(key);
   };
 
@@ -110,7 +147,12 @@ export default function NewRetroPage() {
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-2xl mx-auto">
           <div className="flex items-center space-x-4 mb-8">
-            <Link to="/dashboard">
+            <Link to="/dashboard" onClick={(e) => {
+              if (isSubmitting) {
+                e.preventDefault()
+                return
+              }
+            }}>
               <Button variant="ghost" size="sm">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Dashboard
@@ -124,22 +166,66 @@ export default function NewRetroPage() {
               <CardDescription>Set up a new retrospective session for your team</CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <form onSubmit={handleSubmit} className="space-y-6" noValidate>
                 <div className="space-y-2">
                   <Label htmlFor="title">Retrospective Title *</Label>
                   <Input
                     id="title"
                     name="title"
-                    placeholder="e.g., Sprint 24 Retrospective"
+                    placeholder="e.g., Sprint 24 Retrospective (Press Enter to submit)"
                     value={title}
                     onChange={handleTitleChange}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        console.log("=== ENTER KEY PRESSED ===")
+                        console.log("=== TITLE VALUE ===", title)
+                        console.log("=== SELECTED FORMAT ===", selectedFormat)
+                        console.log("=== TITLE TRIM ===", title.trim())
+                        console.log("=== IS SUBMITTING ===", isSubmitting)
+                        
+                        e.preventDefault()
+                        e.stopPropagation()
+                        
+                        // Check if title is filled and format is selected
+                        const validFormats = ['happy_sad_confused', 'start_stop_continue']
+                        const isValidFormat = selectedFormat && validFormats.includes(selectedFormat)
+                        
+                        if (title.trim() && isValidFormat && !isSubmitting) {
+                          console.log("=== AUTO SUBMIT ON ENTER ===")
+                          // Trigger form submission by clicking the submit button
+                          const submitButton = e.currentTarget.closest('form')?.querySelector('button[type="submit"]') as HTMLButtonElement
+                          if (submitButton && !submitButton.disabled) {
+                            submitButton.click()
+                          }
+                        } else {
+                          console.log("=== VALIDATION FAILED ===")
+                          // Show validation message
+                          if (!title.trim()) {
+                            alert("Please enter a retrospective title")
+                          } else if (!isValidFormat) {
+                            alert("Please select a valid format")
+                          } else if (isSubmitting) {
+                            alert("Please wait, form is being submitted")
+                          }
+                        }
+                      }
+                    }}
                     required
                     disabled={isSubmitting}
                   />
+                  {title.trim() && selectedFormat && ['happy_sad_confused', 'start_stop_continue'].includes(selectedFormat) && (
+                    <div className="text-sm text-green-600 flex items-center">
+                      <span className="mr-1">✓</span>
+                      Form ready to submit (press Enter or click Create button)
+                    </div>
+                  )}
                 </div>
 
                 <div className="mb-6">
                   <Label htmlFor="format">Select Format *</Label>
+                  <div className="text-sm text-gray-500 mb-2">
+                    {selectedFormat ? `Selected: ${RETRO_FORMATS.find(f => f.key === selectedFormat)?.label}` : "Please select a format"}
+                  </div>
                   <div className="space-y-4">
                     {RETRO_FORMATS.map((format) => (
                       <div
@@ -150,6 +236,15 @@ export default function NewRetroPage() {
                             : "border-gray-200 hover:border-blue-300"
                         }`}
                         onClick={() => handleFormatSelect(format.key)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault()
+                            handleFormatSelect(format.key)
+                          }
+                        }}
+                        tabIndex={0}
+                        role="button"
+                        aria-label={`Select ${format.label} format`}
                       >
                         <span className="text-3xl mr-4">{format.icon}</span>
                         <div>
@@ -165,8 +260,22 @@ export default function NewRetroPage() {
                 </div>
 
                 <div className="flex justify-end space-x-4 pt-6">
-                  <Link to="/dashboard">
-                    <Button variant="outline" disabled={isSubmitting}>
+                  <Link to="/dashboard" onClick={(e) => {
+                    if (isSubmitting) {
+                      e.preventDefault()
+                      return
+                    }
+                  }}>
+                    <Button 
+                      variant="outline" 
+                      disabled={isSubmitting}
+                      onClick={(e) => {
+                        if (isSubmitting) {
+                          e.preventDefault()
+                          return
+                        }
+                      }}
+                    >
                       Cancel
                     </Button>
                   </Link>
