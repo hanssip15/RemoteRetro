@@ -7,6 +7,8 @@ export interface User {
   name: string;
   email: string;
   role: string;
+  imageUrl?: string;
+  image_url?: string;
 }
 
 export interface Retro {
@@ -79,8 +81,8 @@ class ApiService {
     const url = `${API_BASE_URL}${endpoint}`;
     const token = localStorage.getItem('auth_token');
     
-    console.log('API request to:', url);
-    console.log('Token present:', !!token);
+    // console.log('API request to:', url);
+    // console.log('Token present:', !!token);
     
     const config: RequestInit = {
       headers: {
@@ -92,11 +94,11 @@ class ApiService {
     };
 
     try {
-      console.log('Making request with config:', config);
+      // console.log('Making request with config:', config);
       const response = await fetch(url, config);
       
-      console.log('Response status:', response.status);
-      console.log('Response ok:', response.ok);
+      // console.log('Response status:', response.status);
+      // console.log('Response ok:', response.ok);
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -124,7 +126,6 @@ class ApiService {
       }
       
       const data = await response.json();
-      console.log('Response data:', data);
       return data;
     } catch (error) {
       console.error('API request failed:', error);

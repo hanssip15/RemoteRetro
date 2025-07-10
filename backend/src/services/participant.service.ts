@@ -21,6 +21,7 @@ export class ParticipantService {
   async findByRetroId(retroId: string): Promise<Participant[]> {
     return this.participantRepository.find({
       where: { retroId },
+      relations: ['user'],
       order: { joinedAt: 'ASC' },
     });
   }

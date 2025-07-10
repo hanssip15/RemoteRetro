@@ -12,10 +12,7 @@ export class RetroController {
   @Get()
   @UseGuards(AuthGuard('jwt'))
   async findAll(@Req() req: Request) {
-    console.log('📋 === GET /retros ===');
-    console.log('👤 User from JWT:', req.user);
     const retros = await this.retroService.findAll();
-    console.log('📊 Retros fetched:', retros.length);
     return retros;
   }
 
@@ -55,7 +52,6 @@ export class RetroController {
 
   @Get(':id')
   async findOne(@Param('id') id: string) {
-    console.log(`=== GET /retros/${id} ===`);
     const { retro, participants } = await this.retroService.findOne(id);
     return { retro, participants };
   }

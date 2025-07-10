@@ -337,7 +337,7 @@ export default function DashboardPage() {
               variant="outline"
               size="default"
               className="flex items-center space-x-2 h-10 px-4"
-              onClick={() => fetchDashboardData()}
+              onClick={() => fetchDashboardData(false, user?.id || '')}
               disabled={refreshing}
             >
               <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />

@@ -77,5 +77,35 @@ import {
       console.log(`📋 Broadcasting items update to room: ${retroId}`, items.length, 'items');
       this.server.to(`retro:${retroId}`).emit(`items-update:${retroId}`, items);
     }
+
+    // Handle phase change from facilitator
+    @SubscribeMessage('phase-change')
+    handlePhaseChange(client: Socket, data: { retroId: string; phase: string; facilitatorId: string }) {
+      console.log(`🔄 Phase change request from facilitator:`, data);
+      
+      // Broadcast phase change to all participants in the retro
+      this.server.to(`retro:${data.retroId}`).emit(`phase-change:${data.retroId}`, {
+        phase: data.phase,
+        facilitatorId: data.facilitatorId,
+        timestamp: new Date().toISOString()
+      });
+      
+      console.log(`📡 Phase change broadcasted to room: ${data.retroId}`);
+    }
+
+    // Handle item position updates during dragging
+    @SubscribeMessage('item-position-update')
+    handleItemPositionUpdate(client: Socket, data: { retroId: string; itemId: string; position: { x: number; y: number }; userId: string }) {
+      
+      // Broadcast position update to all participants in the retro
+      this.server.to(`retro:${data.retroId}`).emit(`item-position-update:${data.retroId}`, {
+        itemId: data.itemId,
+        position: data.position,
+        userId: data.userId,
+        timestamp: new Date().toISOString()
+      });
+      
+      console.log(`📡 Item position broadcasted to room: ${data.retroId}`);
+    }
   }
   

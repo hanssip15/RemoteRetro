@@ -7,6 +7,46 @@ import { FeedbackCard } from "@/components/feedback-card"
 import { ArrowLeft, Users, Clock, Share2 } from "lucide-react"
 import { Link } from "react-router-dom"
 import { apiService, Retro, RetroItem, Participant } from "@/services/api"
+
+// Interface untuk data grup
+interface GroupData {
+  groups: Array<{
+    id: string;
+    name: string;
+    color: string;
+    itemIds: string[];
+    createdAt: string;
+  }>;
+  lastUpdated: string;
+}
+
+interface DatabaseGroupData {
+  retroId: string;
+  groups: Array<{
+    groupId: string;
+    groupName: string;
+    groupColor: string;
+    itemIds: string[];
+    createdAt: string;
+  }>;
+  lastUpdated: string;
+}
+
+interface GroupedItem {
+  groupId: string;
+  groupName: string;
+  color: string;
+  items: RetroItem[];
+  itemCount: number;
+}
+
+interface GroupSummary {
+  totalGroups: number;
+  totalGroupedItems: number;
+  ungroupedItems: number;
+  totalItems: number;
+  groups: GroupedItem[];
+}
 import { useRetroSocket } from "@/hooks/use-retro-socket"
 import { ShareLinkModal } from '@/components/share-link-modal';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -45,11 +85,18 @@ export default function RetroPage() {
     return userData ? JSON.parse(userData) : null;
   });
   const [phase, setPhase] = useState<'submit' | 'grouping' | 'labelling' | 'voting' | 'result' | 'final'>('submit');
+  const [isPhaseChanging, setIsPhaseChanging] = useState(false);
   const [itemPositions, setItemPositions] = useState<{ [key: string]: { x: number; y: number } }>({});
   const [itemGroups, setItemGroups] = useState<{ [key: string]: string }>({}); // itemId -> signature
   const [groupColors, setGroupColors] = useState<{ [key: number]: string }>({}); // groupId -> color (deprecated)
   const [highContrast, setHighContrast] = useState(false);
   const areaRef = useRef<HTMLDivElement>(null);
+
+  // Data structure untuk menyimpan grup yang bisa dimasukkan ke database
+  const [groupData, setGroupData] = useState<GroupData>({
+    groups: [],
+    lastUpdated: new Date().toISOString()
+  });
 
   // Promote to Facilitator Confirmation
   const [showRoleModal, setShowRoleModal] = useState(false);
@@ -169,10 +216,134 @@ export default function RetroPage() {
   const [signatureColors, setSignatureColors] = useState<{ [signature: string]: string }>({});
   const [usedColors, setUsedColors] = useState<string[]>([]);
 
+  // Fungsi untuk mengkonversi itemGroups menjadi struktur data yang bisa disimpan ke database
+  const convertGroupsToDatabaseFormat = useCallback(() => {
+    const groupsMap = new Map<string, string[]>();
+    
+    // Mengelompokkan item berdasarkan signature
+    Object.entries(itemGroups).forEach(([itemId, signature]) => {
+      if (!groupsMap.has(signature)) {
+        groupsMap.set(signature, []);
+      }
+      groupsMap.get(signature)!.push(itemId);
+    });
+
+    // Konversi ke format yang bisa disimpan ke database
+    const groups = Array.from(groupsMap.entries()).map(([signature, itemIds], index) => {
+      const color = signatureColors[signature] || getNextColor([]);
+      return {
+        id: `group_${signature}_${Date.now()}_${index}`,
+        name: `Group ${index + 1}`,
+        color: color,
+        itemIds: itemIds,
+        createdAt: new Date().toISOString()
+      };
+    });
+
+    return {
+      groups: groups,
+      lastUpdated: new Date().toISOString()
+    };
+  }, [itemGroups, signatureColors]);
+
+  // Fungsi untuk menyimpan data grup (akan diimplementasikan untuk database)
+  const saveGroupData = useCallback((): DatabaseGroupData => {
+    const dataToSave = convertGroupsToDatabaseFormat();
+    setGroupData(dataToSave);
+    
+    // Data yang siap untuk disimpan ke database
+    const databaseData: DatabaseGroupData = {
+      retroId: retroId,
+      groups: dataToSave.groups.map(group => ({
+        groupId: group.id,
+        groupName: group.name,
+        groupColor: group.color,
+        itemIds: group.itemIds,
+        createdAt: group.createdAt
+      })),
+      lastUpdated: dataToSave.lastUpdated
+    };
+
+    return databaseData;
+  }, [convertGroupsToDatabaseFormat, retroId]);
+
+  // Fungsi untuk mendapatkan data grup yang sudah dikelompokkan
+  const getGroupedItems = useCallback((): GroupedItem[] => {
+    const groupsMap = new Map<string, { items: RetroItem[], color: string }>();
+    
+    items.forEach(item => {
+      const signature = itemGroups[item.id];
+      if (signature) {
+        if (!groupsMap.has(signature)) {
+          groupsMap.set(signature, {
+            items: [],
+            color: signatureColors[signature] || '#e5e7eb'
+          });
+        }
+        groupsMap.get(signature)!.items.push(item);
+      } else {
+        // Item yang tidak tergrouping
+        if (!groupsMap.has('ungrouped')) {
+          groupsMap.set('ungrouped', {
+            items: [],
+            color: '#e5e7eb'
+          });
+        }
+        groupsMap.get('ungrouped')!.items.push(item);
+      }
+    });
+
+    return Array.from(groupsMap.entries()).map(([signature, data], index) => ({
+      groupId: signature,
+      groupName: signature === 'ungrouped' ? 'Ungrouped Items' : `Group ${index + 1}`,
+      color: data.color,
+      items: data.items,
+      itemCount: data.items.length
+    }));
+  }, [items, itemGroups, signatureColors]);
+
+  // Fungsi untuk mendapatkan ringkasan grup
+  const getGroupSummary = useCallback((): GroupSummary => {
+    const groupedItems = getGroupedItems();
+    const totalGroups = groupedItems.filter(group => group.groupId !== 'ungrouped').length;
+    const totalGroupedItems = groupedItems.reduce((sum, group) => 
+      group.groupId !== 'ungrouped' ? sum + group.itemCount : sum, 0
+    );
+    const ungroupedItems = groupedItems.find(group => group.groupId === 'ungrouped')?.itemCount || 0;
+
+    return {
+      totalGroups,
+      totalGroupedItems,
+      ungroupedItems,
+      totalItems: items.length,
+      groups: groupedItems
+    };
+  }, [getGroupedItems, items.length]);
+
+  // Throttle untuk broadcast position updates
+  const [lastBroadcastTime, setLastBroadcastTime] = useState<{ [itemId: string]: number }>({});
+
   // Handler drag - update posisi dan group/color
   const handleDrag = (id: string, e: any, data: any) => {
     setItemPositions(pos => {
       const newPos = { ...pos, [id]: { x: data.x, y: data.y } };
+      
+      // Broadcast posisi ke partisipan lain (throttled to 100ms)
+      if (socket && isConnected && user) {
+        const now = Date.now();
+        const lastBroadcast = lastBroadcastTime[id] || 0;
+        
+        if (now - lastBroadcast > 100) { // Throttle to 100ms
+          socket.emit('item-position-update', {
+            retroId: retroId,
+            itemId: id,
+            position: { x: data.x, y: data.y },
+            userId: user.id
+          });
+          setLastBroadcastTime(prev => ({ ...prev, [id]: now }));
+        }
+      }
+      
       setTimeout(() => {
         const { itemToGroup, newSignatureColors, newUsedColors } = computeGroupsAndColors(
           items,
@@ -272,15 +443,57 @@ export default function RetroPage() {
     fetchRetroData();
   }, []);
 
+  const handlePhaseChange = useCallback((newPhase: 'submit' | 'grouping' | 'labelling' | 'voting' | 'result' | 'final') => {
+    console.log('🔄 WebSocket: Phase change event received:', newPhase);
+    setPhase(newPhase);
+    setIsPhaseChanging(false);
+  }, []);
+
+  // State untuk tracking item yang sedang di-drag oleh user lain
+  const [draggingByOthers, setDraggingByOthers] = useState<{ [itemId: string]: string }>({});
+
+  // Handler untuk menerima posisi item dari partisipan lain
+  const handleItemPositionUpdate = useCallback((data: { itemId: string; position: { x: number; y: number }; userId: string }) => {
+    // Hanya update jika bukan dari user saat ini
+    if (data.userId !== user?.id) {
+      setItemPositions(pos => ({ ...pos, [data.itemId]: data.position }));
+      // Set item sebagai sedang di-drag oleh user lain
+      setDraggingByOthers(prev => ({ ...prev, [data.itemId]: data.userId }));
+      
+      // Clear dragging state setelah 2 detik
+      setTimeout(() => {
+        setDraggingByOthers(prev => {
+          const newState = { ...prev };
+          delete newState[data.itemId];
+          return newState;
+        });
+      }, 2000);
+    }
+  }, [user?.id]);
+
   // Initialize WebSocket connection using the stable hook
-  const { isConnected } = useRetroSocket({
+  const { isConnected, socket } = useRetroSocket({
     retroId,
     onItemAdded: handleItemAdded,
     onItemUpdated: handleItemUpdated,
     onItemDeleted: handleItemDeleted,
     onItemsUpdate: handleItemsUpdate,
     onParticipantUpdate: handleParticipantUpdate,
+    onPhaseChange: handlePhaseChange,
+    onItemPositionUpdate: handleItemPositionUpdate,
   });
+
+  // Fungsi untuk mengirim phase change ke semua partisipan
+  const broadcastPhaseChange = useCallback((newPhase: 'submit' | 'grouping' | 'labelling' | 'voting' | 'result' | 'final') => {
+    if (socket && isConnected) {
+      console.log('📡 Broadcasting phase change:', newPhase);
+      socket.emit('phase-change', {
+        retroId: retroId,
+        phase: newPhase,
+        facilitatorId: user?.id
+      });
+    }
+  }, [socket, isConnected, retroId, user?.id]);
 
   const fetchRetroData = useCallback(async () => {
     try {
@@ -313,13 +526,15 @@ export default function RetroPage() {
           userId: user.id,
           role: false,
         });
-        await fetchRetroData();
+        // Refresh data setelah join
+        const data = await apiService.getRetro(retroId);
+        setRetro(data.retro);
+        setParticipants(data.participants || []);
       } catch (error) {
         console.error("Failed to join as participant:", error);
-      } finally {
       }
     }
-  }, [user, retroId, participants, fetchRetroData]);
+  }, [user, retroId, participants]);
   const fetchItems = useCallback(async () => {
     try {
       const itemsData = await apiService.getItems(retroId)
@@ -486,8 +701,14 @@ export default function RetroPage() {
 
     fetchRetroData()
     fetchItems()
-    checkAndJoinParticipant()
-  }, [retroId, navigate, fetchRetroData, fetchItems, checkAndJoinParticipant])
+  }, [retroId, navigate, fetchRetroData, fetchItems])
+
+  // Separate useEffect untuk checkAndJoinParticipant
+  useEffect(() => {
+    if (retro && participants.length > 0 && user) {
+      checkAndJoinParticipant()
+    }
+  }, [retro, participants, user, checkAndJoinParticipant])
   const isCurrentFacilitator = participants.find(x => x.role)?.user.id === user?.id;
   const currentUserParticipant = participants.find(x => x.user.id === user?.id);
   
@@ -606,6 +827,17 @@ export default function RetroPage() {
           onClose={() => setShowShareModal(false)}
           shareUrl={typeof window !== 'undefined' ? window.location.href : ''}
         />
+
+        {/* Phase Change Notification */}
+        {isPhaseChanging && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+              <h3 className="text-lg font-semibold mb-2">Phase Change in Progress</h3>
+              <p className="text-gray-600">Facilitator is moving to the next phase...</p>
+            </div>
+          </div>
+        )}
 
         {/* Promote to Facilitator Modal */}
         {showRoleModal && selectedParticipant && (
@@ -727,6 +959,10 @@ export default function RetroPage() {
               <div className="flex flex-row items-end gap-6 mb-3">
                 {participants.map((p) => {
                   const isCurrentUser = user && p.user.id === user.id;
+                  console.log('👤 Participant user data:', p.user);
+                  console.log('🖼️ User image URL:', p.user.imageUrl || p.user.image_url);
+                  console.log('🔍 User object keys:', Object.keys(p.user));
+                  console.log('🔍 User object values:', Object.values(p.user));
                   return (
                     <div key={p.id} className="flex flex-col items-center relative">
                       <div className="relative">
@@ -734,13 +970,21 @@ export default function RetroPage() {
                           className={`h-14 w-14 border-2 ${p.role ? 'border-blue-500' : 'border-gray-200'} group-hover:border-indigo-500 transition`}
                           title={`${p.user.name} ${p.role ? '(Facilitator)' : '(Participant)'}`}
                         >
-                          {typeof (p.user as any)["image_url"] === "string" ? (
-                            <AvatarImage src={(p.user as any)["image_url"]} alt={p.user.name} />
-                          ) : (
-                            <AvatarFallback>
-                              {p.user.name?.charAt(0)?.toUpperCase() || <User className="h-4 w-4" />}
-                            </AvatarFallback>
-                          )}
+                          <AvatarImage 
+                            src={p.user.imageUrl || p.user.image_url || undefined} 
+                            alt={p.user.name} 
+                            onError={(e) => {
+                              console.log('❌ Avatar image failed to load for user:', p.user.name, 'URL:', p.user.imageUrl || p.user.image_url);
+                              // Hide the image element on error
+                              (e.target as HTMLImageElement).style.display = 'none';
+                            }}
+                            onLoad={() => {
+                              console.log('✅ Avatar image loaded for user:', p.user.name, 'URL:', p.user.imageUrl || p.user.image_url);
+                            }}
+                          />
+                          <AvatarFallback>
+                            {p.user.name?.charAt(0)?.toUpperCase() || <User className="h-4 w-4" />}
+                          </AvatarFallback>
                         </Avatar>
                         {/* Icon pensil hanya muncul pada avatar peserta lain, jika user saat ini facilitator */}
                         {isCurrentFacilitator && !isCurrentUser && (
@@ -807,10 +1051,13 @@ export default function RetroPage() {
                   <Button
                     variant="secondary"
                     className="ml-2"
-                    disabled={items.length === 0}
-                    onClick={() => setPhase('grouping')}
+                    disabled={items.length === 0 || isPhaseChanging}
+                    onClick={() => {
+                      setIsPhaseChanging(true);
+                      broadcastPhaseChange('grouping');
+                    }}
                   >
-                    Grouping
+                    {isPhaseChanging ? 'Starting Grouping...' : 'Grouping'}
                   </Button>
                   )}
                 </form>
@@ -820,7 +1067,7 @@ export default function RetroPage() {
         </div>
       </div>
     );
-  }, [loading, error, retro, participants, user, currentUserRole, showShareModal, showRoleModal, selectedParticipant, isPromoting, format, items, inputCategory, inputText, isAddingItem, isConnected, getCategoryDisplayName, getItemsByCategory, handleUpdateItem, handleDeleteItem, handleAdd, handleKeyDown, handleLogout, handlePromoteToFacilitator]);
+  }, [loading, error, retro, participants, user, currentUserRole, showShareModal, showRoleModal, selectedParticipant, isPromoting, isPhaseChanging, format, items, inputCategory, inputText, isAddingItem, isConnected, getCategoryDisplayName, getItemsByCategory, handleUpdateItem, handleDeleteItem, handleAdd, handleKeyDown, handleLogout, handlePromoteToFacilitator, broadcastPhaseChange]);
 
   
   // PHASE 2: Grouping (template)
@@ -847,6 +1094,9 @@ export default function RetroPage() {
             borderColor = signatureColors[signature];
           }
           const pos = itemPositions[item.id] || { x: 200 + (idx % 3) * 220, y: 100 + Math.floor(idx / 3) * 70 };
+          const isBeingDraggedByOthers = draggingByOthers[item.id];
+          const draggingUser = participants.find(p => p.user.id === isBeingDraggedByOthers);
+          
           return (
             // @ts-ignore
             <Draggable
@@ -858,17 +1108,25 @@ export default function RetroPage() {
             >
               <div
                 id={'group-item-' + item.id}
-                className="px-3 py-2 bg-white border rounded shadow text-sm cursor-move select-none"
+                className={`px-3 py-2 bg-white border rounded shadow text-sm cursor-move select-none relative ${
+                  isBeingDraggedByOthers ? 'ring-2 ring-blue-500 ring-opacity-50' : ''
+                }`}
                 style={{
                   minWidth: 80,
                   textAlign: 'center',
-                  zIndex: 2,
+                  zIndex: isBeingDraggedByOthers ? 10 : 2,
                   border: `4px solid ${borderColor}`,
                   transition: 'border-color 0.2s',
                   position: 'absolute',
                 }}
               >
                 {item.content}
+                {/* Indicator jika item sedang di-drag oleh user lain */}
+                {isBeingDraggedByOthers && draggingUser && (
+                  <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 bg-blue-500 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
+                    {draggingUser.user.name} is dragging
+                  </div>
+                )}
               </div>
             </Draggable>
           );
@@ -912,17 +1170,43 @@ export default function RetroPage() {
           {/* Label tengah */}
           <div className="flex flex-col items-center">
             <div className="text-lg font-semibold">Grouping</div>
-            <div className="text-xs text-gray-500">Group Related Ideas</div>
+            <div className="text-xs text-gray-500">
+              {(() => {
+                const summary = getGroupSummary();
+                return `${summary.totalGroups} groups, ${summary.totalGroupedItems} items grouped`;
+              })()}
+            </div>
           </div>
           {/* Tombol kanan */}
-          <Button className="bg-gray-400 text-white px-8 py-2 rounded" style={{ minWidth: 180 }} onClick={() => setPhase('labelling')}>
-            Group Labeling
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              className="text-gray-600 border-gray-300"
+              onClick={() => {
+                const data = saveGroupData();
+                // Data siap untuk disimpan ke database
+                console.log('Data grup yang siap disimpan:', data);
+              }}
+            >
+              Save Groups
+            </Button>
+            <Button 
+              className="bg-gray-400 text-white px-8 py-2 rounded" 
+              style={{ minWidth: 180 }} 
+              disabled={isPhaseChanging}
+              onClick={() => {
+                setIsPhaseChanging(true);
+                broadcastPhaseChange('labelling');
+              }}
+            >
+              {isPhaseChanging ? 'Moving to Labelling...' : 'Group Labeling'}
+            </Button>
+          </div>
         </div>
       </div>
     </div>
     
-  ), [retro, participants, user, currentUserRole, showShareModal, setShowShareModal, handleLogout, items, setPhase, itemPositions, highContrast, itemGroups, signatureColors, handleDrag, handleStop]);
+  ), [retro, participants, user, currentUserRole, showShareModal, setShowShareModal, handleLogout, items, itemPositions, highContrast, itemGroups, signatureColors, handleDrag, handleStop, getGroupSummary, saveGroupData, isPhaseChanging, broadcastPhaseChange, draggingByOthers]);
 
   // PHASE 3: Labelling (template)
   const LabellingPhase = useMemo(() => (
