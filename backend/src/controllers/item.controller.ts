@@ -29,7 +29,7 @@ export class RetroItemsController {
   async update(
     @Param('retroId') retroId: string,
     @Param('itemId') itemId: string,
-    @Body() body: { content: string; category?: string; userId?: string },
+    @Body() body: { content: string; category: string; userId?: string },
     @Req() req: Request
   ) {
     // Extract user ID from request body or headers
