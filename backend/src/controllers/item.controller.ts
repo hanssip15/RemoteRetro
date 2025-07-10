@@ -29,7 +29,7 @@ export class RetroItemsController {
   async update(
     @Param('retroId') retroId: string,
     @Param('itemId') itemId: string,
-    @Body() body: { content: string; userId?: string },
+    @Body() body: { content: string; category?: string; userId?: string },
     @Req() req: Request
   ) {
     // Extract user ID from request body or headers
@@ -38,7 +38,7 @@ export class RetroItemsController {
       throw new ForbiddenException('User ID is required');
     }
 
-    return this.retroItemsService.update(itemId, body.content, userId, retroId);
+    return this.retroItemsService.update(itemId, body.content, body.category, userId, retroId);
   }
 
   @Delete(':itemId')

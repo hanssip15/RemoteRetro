@@ -37,6 +37,7 @@ export class RetroItemsService {
       content: savedItem.content,
       author: savedItem.creator?.name || savedItem.creator?.email,
       createdBy: savedItem.created_by,
+      isEdited: savedItem.is_edited,
     };
 
     // Broadcast the new item to all connected clients
@@ -66,12 +67,13 @@ export class RetroItemsService {
       content: item.content,
       author: item.creator?.name || item.creator?.email,
       createdBy: item.created_by,
+      isEdited: item.is_edited,
     }));
 
     return transformedItems;
   }
 
-  async update(id: string, content: string, userId: string, retroId: string): Promise<any> {
+  async update(id: string, content: string, category: string, userId: string, retroId: string): Promise<any> {
     const item = await this.retroItemRepository.findOne({ 
       where: { id },
       relations: ['creator']
@@ -97,6 +99,8 @@ export class RetroItemsService {
 
     // Update the item
     item.content = content;
+    item.format_type = category as any;
+    item.is_edited = true;
     const updatedItem = await this.retroItemRepository.save(item);
 
     // Transform to match frontend interface
@@ -107,6 +111,7 @@ export class RetroItemsService {
       content: updatedItem.content,
       author: updatedItem.creator?.name || updatedItem.creator?.email,
       createdBy: updatedItem.created_by,
+      isEdited: updatedItem.is_edited,
     };
 
     // Broadcast the updated item

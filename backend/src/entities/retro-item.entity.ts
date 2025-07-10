@@ -32,5 +32,8 @@ export class RetroItem {
 
   @Column({ type: 'enum', enum: RetroFormatTypes })
   format_type: RetroFormatTypes;
+
+  @Column({ default: false })
+  is_edited: boolean;
 }
 
