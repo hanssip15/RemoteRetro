@@ -34,6 +34,7 @@ model Retro {
   id        String   @id @default(uuid())
   title     String
   status    String   @default("draft")
+  currentPhase String @default("submit") @map("current_phase")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
   createdBy String   @map("created_by")
@@ -66,6 +67,8 @@ model RetroItem {
   type      String      // 'went_well' | 'improve' | 'action_item'
   content   String
   votes     Int         @default(0)
+  positionX Float?      @map("position_x")
+  positionY Float?      @map("position_y")
   createdAt DateTime    @default(now()) @map("created_at")
   createdBy String?     @map("created_by")
 
@@ -74,6 +77,18 @@ model RetroItem {
   creator User? @relation("ItemCreator", fields: [createdBy], references: [id], onDelete: SetNull)
 
   @@map("retro_items")
+}
+
+model LabelsGroup {
+  id       Int      @id @default(autoincrement())
+  label    String?
+  retro_id String
+  item_id  String
+
+  retro    Retro     @relation(fields: [retro_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  item     RetroItem @relation(fields: [item_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@map("labels_group")
 }
 
 

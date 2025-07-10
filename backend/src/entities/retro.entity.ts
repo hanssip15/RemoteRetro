@@ -24,6 +24,9 @@ export class Retro {
   @Column({ type: 'varchar', length: 100, nullable: true })
   format: string;
 
+  @Column({ type: 'varchar', length: 50, default: 'submit', name: 'current_phase' })
+  currentPhase: string;
+
   @CreateDateColumn({ name: 'created_at', type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;
 

@@ -97,6 +97,14 @@ export class RetroController {
     return retro;
   }
 
+  @Put(':id/phase')
+  async updatePhase(@Param('id') id: string, @Body() body: { phase: string; facilitatorId: string }) {
+    console.log(`=== PUT /retros/${id}/phase ===`);
+    console.log('📝 Phase update request:', body);
+    const retro = await this.retroService.updatePhase(id, body.phase, body.facilitatorId);
+    return retro;
+  }
+
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   async remove(@Param('id') id: string) {

@@ -345,6 +345,7 @@ export default function RetroPage() {
         }
       }
       
+      // Compute grouping after a short delay to allow DOM to update
       setTimeout(() => {
         const { itemToGroup, newSignatureColors, newUsedColors } = computeGroupsAndColors(
           items,
@@ -352,24 +353,68 @@ export default function RetroPage() {
           signatureColors,
           usedColors,
         );
+        
+        // Update local state
         setItemGroups(itemToGroup);
         setSignatureColors(newSignatureColors);
         setUsedColors(newUsedColors);
-      }, 10);
+        
+        // Broadcast grouping update to other users
+        if (socket && isConnected && user) {
+          socket.emit('grouping-update', {
+            retroId: retroId,
+            itemGroups: itemToGroup,
+            signatureColors: newSignatureColors,
+            userId: user.id
+          });
+        }
+      }, 50); // Slightly longer delay to ensure DOM is updated
+      
       return newPos;
     });
   };
 
   const handleStop = (id: string, e: any, data: any) => {
     setItemPositions(pos => ({ ...pos, [id]: { x: data.x, y: data.y } }));
+    
+    // Final grouping computation after drag stops
+    setTimeout(() => {
+      const { itemToGroup, newSignatureColors, newUsedColors } = computeGroupsAndColors(
+        items,
+        { ...itemPositions, [id]: { x: data.x, y: data.y } },
+        signatureColors,
+        usedColors,
+      );
+      
+      // Update local state
+      setItemGroups(itemToGroup);
+      setSignatureColors(newSignatureColors);
+      setUsedColors(newUsedColors);
+      
+      // Broadcast final grouping update to other users
+      if (socket && isConnected && user) {
+        socket.emit('grouping-update', {
+          retroId: retroId,
+          itemGroups: itemToGroup,
+          signatureColors: newSignatureColors,
+          userId: user.id
+        });
+      }
+    }, 100);
   };
 
-  // Reset phase ke 'submit' setiap kali retroId berubah (masuk dari lobby)
+  // Load phase from retro data when component mounts or retro changes
   useEffect(() => {
-    setPhase('submit');
+    if (retro?.currentPhase) {
+      setPhase(retro.currentPhase as 'submit' | 'grouping' | 'labelling' | 'voting' | 'final' | 'ActionItems');
+      console.log('🔄 Loaded phase from retro:', retro.currentPhase);
+    } else {
+      setPhase('submit');
+      console.log('🔄 Set default phase: submit');
+    }
     console.log('Render RetroPage');
     console.log('Render SubmitPhase');
-  }, [retroId]);
+  }, [retro?.currentPhase]);
 
   
 
@@ -447,7 +492,7 @@ export default function RetroPage() {
   const handlePhaseChange = useCallback((newPhase: 'submit' | 'grouping' | 'labelling' | 'voting' | 'final' | 'ActionItems') => {
     console.log('🔄 WebSocket: Phase change event received:', newPhase);
     setPhase(newPhase);
-    setIsPhaseChanging(false);
+    // Don't set isPhaseChanging to false here as it's handled by the button
   }, []);
 
   // State untuk tracking item yang sedang di-drag oleh user lain
@@ -472,6 +517,20 @@ export default function RetroPage() {
     }
   }, [user?.id]);
 
+  // Handler untuk menerima grouping update dari partisipan lain
+  const handleGroupingUpdate = useCallback((data: { 
+    itemGroups: { [itemId: string]: string }; 
+    signatureColors: { [signature: string]: string };
+    userId: string 
+  }) => {
+    // Hanya update jika bukan dari user saat ini
+    if (data.userId !== user?.id) {
+      console.log('🎨 Received grouping update from other user:', data);
+      setItemGroups(data.itemGroups);
+      setSignatureColors(data.signatureColors);
+    }
+  }, [user?.id]);
+
   // Initialize WebSocket connection using the stable hook
   const { isConnected, socket } = useRetroSocket({
     retroId,
@@ -482,19 +541,27 @@ export default function RetroPage() {
     onParticipantUpdate: handleParticipantUpdate,
     onPhaseChange: handlePhaseChange,
     onItemPositionUpdate: handleItemPositionUpdate,
+    onGroupingUpdate: handleGroupingUpdate,
   });
 
   // Fungsi untuk mengirim phase change ke semua partisipan
-  const broadcastPhaseChange = useCallback((newPhase: 'submit' | 'grouping' | 'labelling' | 'voting' | 'final' | 'ActionItems') => {
-    if (socket && isConnected) {
-      console.log('📡 Broadcasting phase change:', newPhase);
-      socket.emit('phase-change', {
-        retroId: retroId,
-        phase: newPhase,
-        facilitatorId: user?.id
-      });
+  const broadcastPhaseChange = useCallback(async (newPhase: 'submit' | 'grouping' | 'labelling' | 'voting' | 'final' | 'ActionItems') => {
+    if (!user?.id) {
+      console.error('❌ No user ID available for phase change');
+      return;
     }
-  }, [socket, isConnected, retroId, user?.id]);
+
+    try {
+      console.log('📡 Updating phase via API:', newPhase);
+      await apiService.updatePhase(retroId, newPhase, user.id);
+      
+      // Phase change will be broadcasted via WebSocket from the server
+      console.log('✅ Phase updated successfully');
+    } catch (error) {
+      console.error('❌ Failed to update phase:', error);
+      setError('Failed to change phase. Please try again.');
+    }
+  }, [retroId, user?.id]);
 
   const fetchRetroData = useCallback(async () => {
     try {
@@ -539,7 +606,20 @@ export default function RetroPage() {
   const fetchItems = useCallback(async () => {
     try {
       const itemsData = await apiService.getItems(retroId)
+      console.log('📦 Items data from API:', itemsData);
       setItems(itemsData)
+      
+      // Initialize item positions with default layout (no database persistence)
+      const positions: { [key: string]: { x: number; y: number } } = {};
+      itemsData.forEach((item, index) => {
+        // Default grid layout for items
+        positions[item.id] = { 
+          x: 200 + (index % 3) * 220, 
+          y: 100 + Math.floor(index / 3) * 70 
+        };
+      });
+      console.log('🎯 Initial positions object:', positions);
+      setItemPositions(positions);
     } catch (error) {
       console.error("Error fetching items:", error)
     }
@@ -724,6 +804,27 @@ export default function RetroPage() {
       throw error;
     }
   }, [retroId, user, fetchRetroData]);
+
+  // Request state dari server saat socket connect
+  useEffect(() => {
+    if (socket && isConnected && retroId) {
+      // Request state terkini dari server
+      socket.emit('request-retro-state', { retroId });
+
+      // Handler untuk menerima state dari server
+      const handleRetroState = (state: { itemPositions: any, itemGroups: any, signatureColors: any }) => {
+        setItemPositions(state.itemPositions || {});
+        setItemGroups(state.itemGroups || {});
+        setSignatureColors(state.signatureColors || {});
+        console.log('🟢 Synced state from server:', state);
+      };
+      socket.on(`retro-state:${retroId}`, handleRetroState);
+
+      return () => {
+        socket.off(`retro-state:${retroId}`, handleRetroState);
+      };
+    }
+  }, [socket, isConnected, retroId]);
 
   // PHASE 1: Submit an Idea (existing)
   const SubmitPhase = useMemo(() => {
@@ -1053,9 +1154,15 @@ export default function RetroPage() {
                     variant="secondary"
                     className="ml-2"
                     disabled={items.length === 0 || isPhaseChanging}
-                    onClick={() => {
+                    onClick={async () => {
                       setIsPhaseChanging(true);
-                      broadcastPhaseChange('grouping');
+                      try {
+                        await broadcastPhaseChange('grouping');
+                      } catch (error) {
+                        console.error('Failed to change phase:', error);
+                      } finally {
+                        setIsPhaseChanging(false);
+                      }
                     }}
                   >
                     {isPhaseChanging ? 'Starting Grouping...' : 'Grouping'}
@@ -1191,17 +1298,25 @@ export default function RetroPage() {
             >
               Save Groups
             </Button>
+            {isCurrentFacilitator && currentUserParticipant?.role && (
             <Button 
               className="bg-gray-400 text-white px-8 py-2 rounded" 
               style={{ minWidth: 180 }} 
               disabled={isPhaseChanging}
-              onClick={() => {
+              onClick={async () => {
                 setIsPhaseChanging(true);
-                broadcastPhaseChange('labelling');
+                try {
+                  await broadcastPhaseChange('labelling');
+                } catch (error) {
+                  console.error('Failed to change phase:', error);
+                } finally {
+                  setIsPhaseChanging(false);
+                }
               }}
             >
               {isPhaseChanging ? 'Moving to Labelling...' : 'Group Labeling'}
             </Button>
+            )}
           </div>
         </div>
       </div>

@@ -35,5 +35,7 @@ export class RetroItem {
 
   @Column({ default: false })
   is_edited: boolean;
+
+
 }
 

@@ -64,6 +64,8 @@ export class RetroItemsController {
     };
   }
 
+
+
   private extractUserId(req: Request): string | null {
     // Try to get user ID from different sources
     const authHeader = req.headers.authorization;
