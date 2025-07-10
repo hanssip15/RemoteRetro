@@ -14,7 +14,16 @@
   "devDependencies": {
     "concurrently": "^8.2.2"
   },
-  "keywords": ["retrospective", "remote", "team", "react", "nestjs"],
+  "keywords": [
+    "retrospective",
+    "remote",
+    "team",
+    "react",
+    "nestjs"
+  ],
   "author": "RemoteRetro Team",
-  "license": "MIT"
-} 
+  "license": "MIT",
+  "dependencies": {
+    "react-draggable": "^4.5.0"
+  }
+}
