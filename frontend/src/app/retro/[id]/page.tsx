@@ -199,8 +199,11 @@ export default function RetroPage() {
     console.log('Render SubmitPhase');
   }, [retroId]);
 
-  // Get current user's role in this retro
+  
+
   const currentUserRole = participants.find(p => p.user.id === user?.id)?.role || false;
+  
+ 
 
   // Memoize WebSocket handlers to prevent unnecessary re-renders
   const handleItemAdded = useCallback((newItem: RetroItem) => {
@@ -301,6 +304,22 @@ export default function RetroPage() {
     }
   }, [retroId])
 
+  const checkAndJoinParticipant = useCallback(async () => {
+    if (!user || !retroId) return;
+    const participant = participants.find((p) => p.user.id === user.id);
+    if (!participant) {
+      try {
+        await apiService.addParticipant(retroId, {
+          userId: user.id,
+          role: false,
+        });
+        await fetchRetroData();
+      } catch (error) {
+        console.error("Failed to join as participant:", error);
+      } finally {
+      }
+    }
+  }, [user, retroId, participants, fetchRetroData]);
   const fetchItems = useCallback(async () => {
     try {
       const itemsData = await apiService.getItems(retroId)
@@ -467,7 +486,8 @@ export default function RetroPage() {
 
     fetchRetroData()
     fetchItems()
-  }, [retroId, navigate, fetchRetroData, fetchItems])
+    checkAndJoinParticipant()
+  }, [retroId, navigate, fetchRetroData, fetchItems, checkAndJoinParticipant])
   const isCurrentFacilitator = participants.find(x => x.role)?.user.id === user?.id;
   const currentUserParticipant = participants.find(x => x.user.id === user?.id);
   
@@ -534,7 +554,7 @@ export default function RetroPage() {
                       </Badge>
                     )}
                     <Badge variant={retro?.status === "draft" ? "default" : "secondary"}>{retro?.status ?? ''}</Badge>
-                    {currentUserRole && (
+                    {currentUserParticipant?.role && (
                       <Badge variant="default" className="bg-blue-500">
                         Facilitator
                       </Badge>
