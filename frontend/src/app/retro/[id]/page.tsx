@@ -44,12 +44,13 @@ export default function RetroPage() {
     const userData = localStorage.getItem('user_data');
     return userData ? JSON.parse(userData) : null;
   });
-  const [phase, setPhase] = useState<'submit' | 'grouping' | 'labelling' | 'voting' | 'result' | 'final'>('submit');
+  const [phase, setPhase] = useState<'submit' | 'grouping' | 'labelling' | 'voting' | 'final' | 'ActionItems'>('submit');
   const [itemPositions, setItemPositions] = useState<{ [key: string]: { x: number; y: number } }>({});
   const [itemGroups, setItemGroups] = useState<{ [key: string]: string }>({}); // itemId -> signature
   const [groupColors, setGroupColors] = useState<{ [key: number]: string }>({}); // groupId -> color (deprecated)
   const [highContrast, setHighContrast] = useState(false);
   const areaRef = useRef<HTMLDivElement>(null);
+  const [groupLabels, setGroupLabels] = useState<string[]>(["", ""]); // contoh 2 group
 
   // Helper warna random konsisten
   function getNextColor(used: string[]): string {
@@ -833,29 +834,365 @@ export default function RetroPage() {
     </div>
   ), [retro, participants, user, currentUserRole, showShareModal, setShowShareModal, handleLogout, items, setPhase, itemPositions, highContrast, itemGroups, signatureColors, handleDrag, handleStop]);
 
-  // PHASE 3: Labelling (template)
+  // PHASE 3: Labelling (template, sesuai gambar)
   const LabellingPhase = useMemo(() => (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center">
-      <h2 className="text-2xl font-bold mb-4">Labelling Phase (Template)</h2>
-      <Button onClick={() => setPhase('voting')}>Next: Voting</Button>
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Header */}
+      <RetroHeader
+        retro={retro}
+        participants={participants}
+        user={user}
+        currentUserRole={currentUserRole}
+        showShareModal={showShareModal}
+        setShowShareModal={setShowShareModal}
+        handleLogout={handleLogout}
+      />
+      {/* Group Board */}
+      <div className="flex-1 flex flex-col items-center justify-start w-full">
+        <div className="flex flex-row gap-8 mt-8 w-full justify-center">
+          {[0, 1].map((groupIdx) => (
+            <div key={groupIdx} className="bg-white border rounded-lg shadow-sm min-w-[350px] max-w-[400px] w-full p-4">
+              <div className="mb-2">
+                <input
+                  className="w-full text-center text-gray-500 font-semibold bg-gray-100 rounded px-2 py-1 mb-2 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  placeholder="Optional Group Label"
+                  maxLength={20}
+                  value={groupLabels[groupIdx] || ""}
+                  onChange={e => {
+                    const val = e.target.value;
+                    setGroupLabels(prev => {
+                      const arr = [...prev];
+                      arr[groupIdx] = val;
+                      return arr;
+                    });
+                  }}
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                {groupIdx === 0 ? (
+                  <>
+                    <div className="flex items-center gap-2 text-base">
+                      <span role="img" aria-label="happy">😀</span>
+                      <span>asdasd Sasasdsadsad</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-base">
+                      <span role="img" aria-label="sad">😢</span>
+                      <span>asdasdczvxcv</span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-2 text-base">
+                      <span role="img" aria-label="happy">😀</span>
+                      <span>vxvf</span>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      {/* Footer sticky ala submit phase */}
+      <div className="fixed bottom-0 left-0 w-full bg-white border-t z-40 rounded-t-xl shadow-lg">
+        <div className="container mx-auto px-4 py-4 flex flex-row items-center justify-between">
+          {/* Judul dan deskripsi di kiri */}
+          <div className="flex flex-col items-start justify-center">
+            <div className="text-2xl font-semibold mb-1">Labelling</div>
+            <div className="text-gray-500">Arrive at sensible group labels</div>
+          </div>
+          {/* Avatar peserta di tengah */}
+          <div className="flex flex-row items-center gap-4">
+            {participants.map((p) => {
+              const isCurrentUser = user && p.user.id === user.id;
+              const isCurrentFacilitator = participants.find(x => x.role)?.user.id === user?.id;
+              return (
+                <div key={p.id} className="flex flex-col items-center relative">
+                  <div className="relative">
+                    <Avatar
+                      className={`h-14 w-14 border-2 ${p.role ? 'border-blue-500' : 'border-gray-200'} group-hover:border-indigo-500 transition`}
+                      title={`${p.user.name} ${p.role ? '(Facilitator)' : '(Participant)'}`}
+                    >
+                      {typeof (p.user as any)["image_url"] === "string" ? (
+                        <AvatarImage src={(p.user as any)["image_url"]} alt={p.user.name} />
+                      ) : (
+                        <AvatarFallback>
+                          {p.user.name?.charAt(0)?.toUpperCase() || <User className="h-4 w-4" />}
+                        </AvatarFallback>
+                      )}
+                    </Avatar>
+                    {isCurrentFacilitator && !isCurrentUser && (
+                      <span className="absolute -top-2 -right-2 bg-white rounded-full p-1 shadow border cursor-pointer" title="Promote to Facilitator">
+                        <Pen className="h-4 w-4 text-indigo-600" />
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-xs text-gray-900 mt-1 font-medium">{p.user.name}</span>
+                  <span className="text-[11px] text-gray-500">{p.role ? 'Facilitator' : 'Participant'}</span>
+                </div>
+              );
+            })}
+          </div>
+          {/* Tombol Voting di kanan */}
+          <Button
+            variant="secondary"
+            className="px-8 py-2 rounded text-base font-semibold"
+            style={{ minWidth: 180 }}
+            onClick={() => setPhase('voting')}
+          >
+            Voting
+          </Button>
+        </div>
+      </div>
     </div>
-  ), []);
+  ), [retro, participants, user, currentUserRole, showShareModal, setShowShareModal, handleLogout, setPhase, groupLabels, setGroupLabels]);
 
   // PHASE 4: Voting (template)
-  const VotingPhase = useMemo(() => (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center">
-      <h2 className="text-2xl font-bold mb-4">Voting Phase (Template)</h2>
-      <Button onClick={() => setPhase('result')}>Next: Result</Button>
-    </div>
-  ), []);
+  const [userVotes, setUserVotes] = useState<{ [groupIdx: number]: number }>({});
+  const maxVotes = 3;
+  const totalVotesUsed = Object.values(userVotes).reduce((a, b) => a + b, 0);
+  const votesLeft = maxVotes - totalVotesUsed;
 
-  // PHASE 5: Result Voting & Assignment (template)
-  const ResultPhase = useMemo(() => (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center">
-      <h2 className="text-2xl font-bold mb-4">Result & Assignment Phase (Template)</h2>
-      <Button onClick={() => setPhase('final')}>Next: Final (Read Only)</Button>
+  const handleVote = (groupIdx: number, delta: number) => {
+    setUserVotes(prev => {
+      const current = prev[groupIdx] || 0;
+      let next = current + delta;
+      // Tidak boleh kurang dari 0, tidak boleh lebih dari sisa vote
+      if (next < 0) next = 0;
+      if (delta > 0 && votesLeft <= 0) return prev;
+      // Tidak boleh lebih dari maxVotes per user
+      if (totalVotesUsed + delta > maxVotes) return prev;
+      return { ...prev, [groupIdx]: next };
+    });
+  };
+
+  const VotingPhase = useMemo(() => (
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Header */}
+      <RetroHeader
+        retro={retro}
+        participants={participants}
+        user={user}
+        currentUserRole={currentUserRole}
+        showShareModal={showShareModal}
+        setShowShareModal={setShowShareModal}
+        handleLogout={handleLogout}
+      />
+      {/* Group Board */}
+      <div className="flex-1 flex flex-col items-center justify-start w-full">
+        <div className="flex flex-row gap-8 mt-8 w-full justify-center">
+          {[0, 1].map((groupIdx) => (
+            <div key={groupIdx} className="bg-white border rounded-lg shadow-sm min-w-[350px] max-w-[400px] w-full p-4">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-lg font-semibold text-gray-400">{groupLabels[groupIdx]?.trim() || 'Unlabeled'}</span>
+                <div className="flex items-center gap-2">
+                    <div className="relative flex items-center">
+                      <div className="bg-teal-400 text-white font-bold pl-4 pr-2 py-1 rounded-lg relative select-none text-left" style={{fontSize: '1rem', minWidth: '90px'}}>
+                        <span className="relative z-10">Vote! &gt; &gt; </span>
+                      </div>
+                    </div>
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    className="h-7 w-7 px-0"
+                    onClick={() => handleVote(groupIdx, -1)}
+                    disabled={(userVotes[groupIdx] || 0) <= 0}
+                  >
+                    –
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    className="h-7 w-7 px-0"
+                    onClick={() => handleVote(groupIdx, 1)}
+                    disabled={votesLeft <= 0}
+                  >
+                    +
+                  </Button>
+                  <span className="w-5 text-center font-semibold">{userVotes[groupIdx] || 0}</span>
+                </div>
+              </div>
+              <div className="flex flex-col gap-2">
+                {groupIdx === 0 ? (
+                  <>
+                    <div className="flex items-center gap-2 text-base">
+                      <span role="img" aria-label="happy">😀</span>
+                      <span>asdasd Sasasdsadsad</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-base">
+                      <span role="img" aria-label="sad">😢</span>
+                      <span>asdasdczvxcv</span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-2 text-base">
+                      <span role="img" aria-label="happy">😀</span>
+                      <span>vxvf</span>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      {/* Footer sticky ala submit phase */}
+      <div className="fixed bottom-0 left-0 w-full bg-white border-t z-40 rounded-t-xl shadow-lg">
+        <div className="container mx-auto px-4 py-4 flex flex-row items-center justify-between">
+          {/* Kiri: Voting: X Votes Left */}
+          <div className="flex flex-col items-start justify-center">
+            <div className="text-xl font-semibold">Voting: {votesLeft} Votes Left</div>
+          </div>
+          {/* Tengah: Avatar peserta */}
+          <div className="flex flex-row items-center gap-4">
+            {participants.map((p) => {
+              const isCurrentUser = user && p.user.id === user.id;
+              const isCurrentFacilitator = participants.find(x => x.role)?.user.id === user?.id;
+              return (
+                <div key={p.id} className="flex flex-col items-center relative">
+                  <div className="relative">
+                    <Avatar
+                      className={`h-14 w-14 border-2 ${p.role ? 'border-blue-500' : 'border-gray-200'} group-hover:border-indigo-500 transition`}
+                      title={`${p.user.name} ${p.role ? '(Facilitator)' : '(Participant)'}`}
+                    >
+                      {typeof (p.user as any)["image_url"] === "string" ? (
+                        <AvatarImage src={(p.user as any)["image_url"]} alt={p.user.name} />
+                      ) : (
+                        <AvatarFallback>
+                          {p.user.name?.charAt(0)?.toUpperCase() || <User className="h-4 w-4" />}
+                        </AvatarFallback>
+                      )}
+                    </Avatar>
+                    {isCurrentFacilitator && !isCurrentUser && (
+                      <span className="absolute -top-2 -right-2 bg-white rounded-full p-1 shadow border cursor-pointer" title="Promote to Facilitator">
+                        <Pen className="h-4 w-4 text-indigo-600" />
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-xs text-gray-900 mt-1 font-medium">{p.user.name}</span>
+                  <span className="text-[11px] text-gray-500">{p.role ? 'Facilitator' : 'Participant'}</span>
+                </div>
+              );
+            })}
+          </div>
+          {/* Kanan: Tombol Action Items */}
+          <Button
+            variant="secondary"
+            className="px-8 py-2 rounded text-base font-semibold"
+            style={{ minWidth: 180 }}
+            onClick={() => setPhase('ActionItems')}
+            disabled={votesLeft !== 0}
+          >
+            Action Items
+          </Button>
+        </div>
+      </div>
     </div>
-  ), []);
+  ), [retro, participants, user, currentUserRole, showShareModal, setShowShareModal, handleLogout, setPhase, groupLabels, userVotes, votesLeft]);
+
+  // PHASE 5: Action Items (template)
+  const ActionItemsPhase = useMemo(() => (
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Header */}
+      <RetroHeader
+        retro={retro}
+        participants={participants}
+        user={user}
+        currentUserRole={currentUserRole}
+        showShareModal={showShareModal}
+        setShowShareModal={setShowShareModal}
+        handleLogout={handleLogout}
+      />
+      {/* Main Content */}
+      <div className="w-full flex flex-row">
+        {/* Card group kiri */}
+        <div className="flex flex-row gap-6 p-8 items-start flex-1">
+          {[0, 1].map((groupIdx) => (
+            <div key={groupIdx} className="bg-white border rounded-lg shadow-sm w-auto min-w-[220px] max-w-[350px] px-4 py-3">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-lg font-semibold text-gray-400">{groupLabels[groupIdx]?.trim() || 'Unlabeled'}</span>
+                <div className="flex items-center gap-2">
+                  <div className="bg-gray-100 text-gray-700 font-bold px-3 py-1 rounded select-none text-center" style={{fontSize: '1rem', minWidth: '60px'}}>
+                    Votes {userVotes[groupIdx] || 0}
+                  </div>
+                </div>
+              </div>
+              <div className="flex flex-col gap-2">
+                {groupIdx === 0 ? (
+                  <>
+                    <div className="flex items-center gap-2 text-base">
+                      <span role="img" aria-label="happy">😀</span>
+                      <span>vxvf</span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-2 text-base">
+                      <span role="img" aria-label="happy">😀</span>
+                      <span>asdasd Sasasdsadsad</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-base">
+                      <span role="img" aria-label="sad">😢</span>
+                      <span>asdasdczvxcv</span>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+        {/* Panel Action Items sticky kanan */}
+        <div className="w-[400px] border-l bg-white flex flex-col p-6 sticky top-0 self-start overflow-y-auto" style={{ height: 'calc(100vh - 80px)', right: 0 }}>
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-2xl">🚀</span>
+            <span className="text-xl font-semibold">Action Items</span>
+          </div>
+          <hr className="mb-4" />
+          {/* List action items kosong (dummy) */}
+        </div>
+      </div>
+      {/* Footer ala submit/ideation */}
+      <div className="fixed bottom-0 left-0 w-full bg-white border-t z-40">
+        <div className="container mx-auto px-4 py-4 flex flex-col md:flex-row items-center gap-2 md:gap-4 w-full">
+          {/* Dropdown assignee */}
+          <div className="flex items-center gap-2 w-full md:w-auto">
+            <label className="font-medium mr-2 mb-1">Assignee:</label>
+            <select className="w-64 px-3 pr-8 py-2 rounded-md border text-base">
+              {participants.length > 0 ? (
+                participants.map((p) => (
+                  <option key={p.user.id} value={p.user.id}>{p.user.name}</option>
+                ))
+              ) : (
+                <option>No participants</option>
+              )}
+            </select>
+          </div>
+          {/* Input action item */}
+          <input
+            type="text"
+            placeholder="Ex. automate the linting process"
+            className="border rounded px-2 py-1 flex-1"
+          />
+          {/* Tombol Submit dan Send Action Items */}
+          <Button
+            className="px-4 py-1 bg-teal-200 text-white hover:bg-teal-300"
+            style={{ minWidth: 100 }}
+          >
+            Submit
+          </Button>
+          <Button
+            variant="secondary"
+            className="ml-2 bg-blue-300 text-white hover:bg-blue-400"
+            style={{ minWidth: 180 }}
+            disabled
+          >
+            Send Action Items
+          </Button>
+        </div>
+      </div>
+    </div>
+  ), [retro, participants, user, currentUserRole, showShareModal, setShowShareModal, handleLogout, setPhase, groupLabels, userVotes]);
 
   // PHASE 6: Final (read only, retro selesai)
   const FinalPhase = useMemo(() => (
@@ -870,7 +1207,7 @@ export default function RetroPage() {
   if (phase === 'grouping') return GroupingPhase;
   if (phase === 'labelling') return LabellingPhase;
   if (phase === 'voting') return VotingPhase;
-  if (phase === 'result') return ResultPhase;
+  if (phase === 'ActionItems') return ActionItemsPhase;
   if (phase === 'final') return FinalPhase;
 
   // Fallback loading
