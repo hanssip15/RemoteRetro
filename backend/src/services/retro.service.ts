@@ -26,9 +26,10 @@ export class RetroService {
     });
   }
 
-  async findWithPagination(limit: number, offset: number): Promise<[Retro[], number]> {
+  async findWithPagination(userId: string, limit: number, offset: number): Promise<[Retro[], number]> {
     return this.retroRepository.findAndCount({
       order: { createdAt: 'DESC' },
+      where: { createdBy: userId },
       skip: offset,
       take: limit,
     });
@@ -92,13 +93,15 @@ export class RetroService {
     }
   }
 
-  async count(): Promise<number> {
-    return this.retroRepository.count();
+  async count(userId: string): Promise<number> {
+    return this.retroRepository.count({
+      where: { createdBy: userId },
+    });
   }
 
-  async countByStatus(status: string): Promise<number> {
+  async countByStatus(status: string, userId: string): Promise<number> {
     return this.retroRepository.count({
-      where: { status }
+      where: { status, createdBy: userId },
     });
   }
 } 

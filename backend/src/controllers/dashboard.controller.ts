@@ -1,4 +1,4 @@
-import { Controller, Get, Query, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Query, ParseIntPipe, Param } from '@nestjs/common';
 import { RetroService } from '../services/retro.service';
 import { ParticipantService } from '../services/participant.service';
 import { RetroItemsService } from '../services/item.service';
@@ -12,13 +12,14 @@ export class DashboardController {
   ) {}
 
   @Get('retros')
-  async getRetros(
-    @Query('page', new ParseIntPipe({ optional: true })) page = 1,
-    @Query('limit', new ParseIntPipe({ optional: true })) limit = 3,
-  ) {
+    async getRetros(
+      @Query('userId') userId: string,
+      @Query('page', new ParseIntPipe({ optional: true })) page = 1,
+      @Query('limit', new ParseIntPipe({ optional: true })) limit = 3,
+    ) {
     const offset = (page - 1) * limit;
     
-    const [retros, total] = await this.retroService.findWithPagination(limit, offset);
+    const [retros, total] = await this.retroService.findWithPagination(userId, limit, offset);
     const totalPages = Math.ceil(total / limit);
 
     return {
@@ -34,15 +35,15 @@ export class DashboardController {
     };
   }
 
-  @Get('stats')
-  async getStats() {
-    const totalRetros = await this.retroService.count();
+  @Get('stats/:userId')
+  async getStats(@Param('userId') userId: string) {
+    const totalRetros = await this.retroService.count(userId);
     
     // Count active retros (status = 'ongoing' only)
-    const activeRetros = await this.retroService.countByStatus('ongoing');
+    const activeRetros = await this.retroService.countByStatus('ongoing', userId);
     
     // Count completed retros (status = 'completed')
-    const completedRetros = await this.retroService.countByStatus('completed');
+    const completedRetros = await this.retroService.countByStatus('completed', userId);
 
     const response = {
       totalRetros,
