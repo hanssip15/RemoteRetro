@@ -31,6 +31,7 @@ export interface RetroItem {
   author?: string;
   createdBy?: string;
   createdAt: string;
+  isEdited?: boolean;
 }
 
 export interface UpdateRetroData {
@@ -63,6 +64,7 @@ export interface CreateItemData {
 
 export interface UpdateItemData {
   content: string;
+  category?: string;
   author?: string;
   userId?: string;
 }
