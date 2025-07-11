@@ -50,7 +50,7 @@ interface GroupSummary {
 import { useRetroSocket } from "@/hooks/use-retro-socket"
 import { ShareLinkModal } from '@/components/share-link-modal';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { LogOut, User, Pen } from 'lucide-react';
+import { LogOut, User, Pen, Pencil, Trash2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -923,13 +923,6 @@ export default function RetroPage() {
           </div>
         </div>
 
-        {/* Share Link Modal */}
-        <ShareLinkModal
-          isOpen={showShareModal}
-          onClose={() => setShowShareModal(false)}
-          shareUrl={typeof window !== 'undefined' ? window.location.href : ''}
-        />
-
         {/* Phase Change Notification */}
         {isPhaseChanging && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -1054,18 +1047,12 @@ export default function RetroPage() {
 
 
         {/* Input bawah sticky */}
-        <div className="fixed bottom-0 left-0 w-full bg-white border-t z-40">
-          <div className="container mx-auto px-4 py-4 flex flex-col items-center">
-            {/* Avatar semua participants berjajar horizontal di atas card submit */}
+        <div className="fixed bottom-0 left-0 w-full z-40">
+          {/* Avatar bar: tanpa background putih */}
             {participants.length > 0 && (
-              <div className="flex flex-row items-end gap-6 mb-3">
-                {participants.map((p) => {
-                  const isCurrentUser = user && p.user.id === user.id;
-                  console.log('👤 Participant user data:', p.user);
-                  console.log('🖼️ User image URL:', p.user.imageUrl || p.user.image_url);
-                  console.log('🔍 User object keys:', Object.keys(p.user));
-                  console.log('🔍 User object values:', Object.values(p.user));
-                  return (
+            <div className="w-full flex justify-center pb-1">
+              <div className="flex flex-row items-end gap-6">
+                {participants.map((p) => (
                     <div key={p.id} className="flex flex-col items-center relative">
                       <div className="relative">
                         <Avatar
@@ -1076,51 +1063,25 @@ export default function RetroPage() {
                             src={p.user.imageUrl || p.user.image_url || undefined} 
                             alt={p.user.name} 
                             onError={(e) => {
-                              console.log('❌ Avatar image failed to load for user:', p.user.name, 'URL:', p.user.imageUrl || p.user.image_url);
-                              // Hide the image element on error
                               (e.target as HTMLImageElement).style.display = 'none';
-                            }}
-                            onLoad={() => {
-                              console.log('✅ Avatar image loaded for user:', p.user.name, 'URL:', p.user.imageUrl || p.user.image_url);
                             }}
                           />
                           <AvatarFallback>
                             {p.user.name?.charAt(0)?.toUpperCase() || <User className="h-4 w-4" />}
                           </AvatarFallback>
                         </Avatar>
-                        {/* Icon pensil hanya muncul pada avatar peserta lain, jika user saat ini facilitator */}
-                        {isCurrentFacilitator && !isCurrentUser && (
-                          <span className="absolute -top-2 -right-2 bg-white rounded-full p-1 shadow border cursor-pointer hover:bg-gray-50 transition-colors" title="Promote to Facilitator">
-                            <Pen className="h-4 w-4 text-indigo-600" onClick={(e) => {
-                              e.stopPropagation();
-                              setShowRoleModal(true);
-                              setSelectedParticipant(p);
-                            }}/>
-                          </span>
-                        )}
                       </div>
-                      <span className="text-xs text-gray-900 mt-1 font-medium">{p.user.name}</span>
-                      <span className="text-[11px] text-gray-500">{p.role ? 'Facilitator' : 'Participant'}</span>
+                    <span className="text-xs text-gray-900 mt-1 font-medium">{p.user.name}{p.role ? ' (Facilitator)' : ''}</span>
                     </div>
-                  );
-                })}
+                ))}
               </div>
-            )}
-
-
-
-
-            {/* Form submit an idea di bawah avatar participants */}
-            <Card className="bg-white rounded-xl w-full">
-              <CardContent className="py-4 px-8">
-                {/* Teks submit an idea di atas form, rata tengah */}
-                <div className="w-full flex justify-center mb-2">
-                  <span className="text-xs text-teal-600 font-semibold">Submit an idea!</span>
                 </div>
-                <form
-                  className="flex flex-col md:flex-row items-center gap-2 md:gap-4 w-full"
-                  onSubmit={e => { e.preventDefault(); handleAdd(); }}
-                >
+          )}
+          {/* Card putih hanya untuk form input ide dan tombol */}
+          <div className="w-full bg-white border-t">
+            <div className="container mx-auto px-4 py-4 flex flex-col md:flex-row items-center gap-2 md:gap-4">
+              {/* Dropdown assignee */}
+              <div className="flex items-center gap-2 w-full md:w-auto">
                   <label className="font-medium mr-2 mb-1">Category:</label>
                   <select
                     className="w-32 px-3 pr-8 py-2 rounded-md border text-base"
@@ -1132,6 +1093,7 @@ export default function RetroPage() {
                     <option value="format_2">{getCategoryDisplayName("format_2")}</option>
                     <option value="format_3">{getCategoryDisplayName("format_3")}</option>
                   </select>
+              </div>
                   <input
                     type="text"
                     placeholder="Ex. we have a linter!"
@@ -1168,9 +1130,7 @@ export default function RetroPage() {
                     {isPhaseChanging ? 'Starting Grouping...' : 'Grouping'}
                   </Button>
                   )}
-                </form>
-              </CardContent>
-            </Card>
+            </div>
           </div>
         </div>
       </div>
@@ -1384,54 +1344,56 @@ export default function RetroPage() {
         </div>
       </div>
       {/* Footer sticky ala submit phase */}
-      <div className="fixed bottom-0 left-0 w-full bg-white border-t z-40 rounded-t-xl shadow-lg">
-        <div className="container mx-auto px-4 py-4 flex flex-row items-center justify-between">
-          {/* Judul dan deskripsi di kiri */}
-          <div className="flex flex-col items-start justify-center">
-            <div className="text-2xl font-semibold mb-1">Labelling</div>
-            <div className="text-gray-500">Arrive at sensible group labels</div>
-          </div>
-          {/* Avatar peserta di tengah */}
-          <div className="flex flex-row items-center gap-4">
-            {participants.map((p) => {
-              const isCurrentUser = user && p.user.id === user.id;
-              const isCurrentFacilitator = participants.find(x => x.role)?.user.id === user?.id;
-              return (
+      <div className="fixed bottom-0 left-0 w-full z-40">
+        {/* Avatar bar: tanpa background putih */}
+        {participants.length > 0 && (
+          <div className="w-full flex justify-center pb-1">
+            <div className="flex flex-row items-end gap-6">
+              {participants.map((p) => (
                 <div key={p.id} className="flex flex-col items-center relative">
                   <div className="relative">
                     <Avatar
                       className={`h-14 w-14 border-2 ${p.role ? 'border-blue-500' : 'border-gray-200'} group-hover:border-indigo-500 transition`}
                       title={`${p.user.name} ${p.role ? '(Facilitator)' : '(Participant)'}`}
                     >
-                      {typeof (p.user as any)["image_url"] === "string" ? (
-                        <AvatarImage src={(p.user as any)["image_url"]} alt={p.user.name} />
-                      ) : (
-                        <AvatarFallback>
-                          {p.user.name?.charAt(0)?.toUpperCase() || <User className="h-4 w-4" />}
-                        </AvatarFallback>
-                      )}
+                      <AvatarImage 
+                        src={p.user.imageUrl || p.user.image_url || undefined} 
+                        alt={p.user.name} 
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                      <AvatarFallback>
+                        {p.user.name?.charAt(0)?.toUpperCase() || <User className="h-4 w-4" />}
+                      </AvatarFallback>
                     </Avatar>
-                    {isCurrentFacilitator && !isCurrentUser && (
-                      <span className="absolute -top-2 -right-2 bg-white rounded-full p-1 shadow border cursor-pointer" title="Promote to Facilitator">
-                        <Pen className="h-4 w-4 text-indigo-600" />
-                      </span>
-                    )}
                   </div>
-                  <span className="text-xs text-gray-900 mt-1 font-medium">{p.user.name}</span>
-                  <span className="text-[11px] text-gray-500">{p.role ? 'Facilitator' : 'Participant'}</span>
+                  <span className="text-xs text-gray-900 mt-1 font-medium">{p.user.name}{p.role ? ' (Facilitator)' : ''}</span>
                 </div>
-              );
-            })}
+              ))}
+            </div>
           </div>
-          {/* Tombol Voting di kanan */}
-          <Button
-            variant="secondary"
-            className="px-8 py-2 rounded text-base font-semibold"
-            style={{ minWidth: 180 }}
-            onClick={() => setPhase('voting')}
-          >
-            Voting
-          </Button>
+        )}
+        {/* Card putih hanya untuk baris title, tombol, dan space kosong di tengah */}
+        <div className="w-full bg-white border-t rounded-t-xl shadow-lg">
+          <div className="container mx-auto px-4 py-4 flex flex-row items-center justify-between">
+            {/* Kiri: Title dan deskripsi */}
+            <div className="flex flex-col items-start justify-center">
+              <div className="text-2xl font-semibold mb-1">Labelling</div>
+              <div className="text-gray-500">Arrive at sensible group labels</div>
+            </div>
+            {/* Tengah: Space kosong */}
+            <div className="flex flex-row items-center gap-4" style={{ minHeight: '56px' }}></div>
+            {/* Kanan: Tombol Voting */}
+            <Button
+              variant="secondary"
+              className="px-8 py-2 rounded text-base font-semibold"
+              style={{ minWidth: 180 }}
+              onClick={() => setPhase('voting')}
+            >
+              Voting
+            </Button>
+          </div>
         </div>
       </div>
     </div>
@@ -1528,60 +1490,130 @@ export default function RetroPage() {
         </div>
       </div>
       {/* Footer sticky ala submit phase */}
-      <div className="fixed bottom-0 left-0 w-full bg-white border-t z-40 rounded-t-xl shadow-lg">
-        <div className="container mx-auto px-4 py-4 flex flex-row items-center justify-between">
-          {/* Kiri: Voting: X Votes Left */}
-          <div className="flex flex-col items-start justify-center">
-            <div className="text-xl font-semibold">Voting: {votesLeft} Votes Left</div>
-          </div>
-          {/* Tengah: Avatar peserta */}
-          <div className="flex flex-row items-center gap-4">
-            {participants.map((p) => {
-              const isCurrentUser = user && p.user.id === user.id;
-              const isCurrentFacilitator = participants.find(x => x.role)?.user.id === user?.id;
-              return (
+      <div className="fixed bottom-0 left-0 w-full z-40">
+        {/* Avatar bar: tanpa background putih */}
+        {participants.length > 0 && (
+          <div className="w-full flex justify-center pb-1">
+            <div className="flex flex-row items-end gap-6">
+              {participants.map((p) => (
                 <div key={p.id} className="flex flex-col items-center relative">
                   <div className="relative">
                     <Avatar
                       className={`h-14 w-14 border-2 ${p.role ? 'border-blue-500' : 'border-gray-200'} group-hover:border-indigo-500 transition`}
                       title={`${p.user.name} ${p.role ? '(Facilitator)' : '(Participant)'}`}
                     >
-                      {typeof (p.user as any)["image_url"] === "string" ? (
-                        <AvatarImage src={(p.user as any)["image_url"]} alt={p.user.name} />
-                      ) : (
-                        <AvatarFallback>
-                          {p.user.name?.charAt(0)?.toUpperCase() || <User className="h-4 w-4" />}
-                        </AvatarFallback>
-                      )}
+                      <AvatarImage 
+                        src={p.user.imageUrl || p.user.image_url || undefined} 
+                        alt={p.user.name} 
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                      <AvatarFallback>
+                        {p.user.name?.charAt(0)?.toUpperCase() || <User className="h-4 w-4" />}
+                      </AvatarFallback>
                     </Avatar>
-                    {isCurrentFacilitator && !isCurrentUser && (
-                      <span className="absolute -top-2 -right-2 bg-white rounded-full p-1 shadow border cursor-pointer" title="Promote to Facilitator">
-                        <Pen className="h-4 w-4 text-indigo-600" />
-                      </span>
-                    )}
                   </div>
-                  <span className="text-xs text-gray-900 mt-1 font-medium">{p.user.name}</span>
-                  <span className="text-[11px] text-gray-500">{p.role ? 'Facilitator' : 'Participant'}</span>
+                  <span className="text-xs text-gray-900 mt-1 font-medium">{p.user.name}{p.role ? ' (Facilitator)' : ''}</span>
                 </div>
-              );
-            })}
+              ))}
+            </div>
           </div>
-          {/* Kanan: Tombol Action Items */}
-          <Button
-            variant="secondary"
-            className="px-8 py-2 rounded text-base font-semibold"
-            style={{ minWidth: 180 }}
-            onClick={() => setPhase('ActionItems')}
-            disabled={votesLeft !== 0}
-          >
-            Action Items
-          </Button>
+        )}
+        {/* Card putih hanya untuk baris info voting, tombol, dan space kosong di tengah */}
+        <div className="w-full bg-white border-t rounded-t-xl shadow-lg">
+          <div className="container mx-auto px-4 py-4 flex flex-row items-center justify-between">
+            {/* Kiri: Info voting */}
+            <div className="flex flex-col items-start justify-center">
+              <div className="text-xl font-semibold">Voting: {votesLeft} Votes Left</div>
+            </div>
+            {/* Tengah: Space kosong */}
+            <div className="flex flex-row items-center gap-4" style={{ minHeight: '56px' }}></div>
+            {/* Kanan: Tombol Action Items */}
+            <Button
+              variant="secondary"
+              className="px-8 py-2 rounded text-base font-semibold"
+              style={{ minWidth: 180 }}
+              onClick={() => setPhase('ActionItems')}
+              disabled={votesLeft !== 0}
+            >
+              Action Items
+            </Button>
+          </div>
         </div>
       </div>
     </div>
   ), [retro, participants, user, currentUserRole, showShareModal, setShowShareModal, handleLogout, setPhase, groupLabels, userVotes, votesLeft]);
 
   // PHASE 5: Action Items (template)
+  const [actionItems, setActionItems] = useState<{ assignee: string; assigneeName: string; task: string; edited?: boolean }[]>([]);
+  const [actionInput, setActionInput] = useState('');
+  const [actionAssignee, setActionAssignee] = useState(participants[0]?.user.id || '');
+  const [editingActionIdx, setEditingActionIdx] = useState<number | null>(null);
+  const [editActionInput, setEditActionInput] = useState('');
+  const [editActionAssignee, setEditActionAssignee] = useState('');
+
+  // Pastikan actionAssignee selalu valid jika participants berubah
+  useEffect(() => {
+    if (participants.length > 0) {
+      setActionAssignee(prev => {
+        // Jika assignee sebelumnya tidak ada di participants, set ke peserta pertama
+        if (!participants.find(p => p.user.id === prev)) {
+          return participants[0].user.id;
+        }
+        return prev;
+      });
+    }
+  }, [participants]);
+
+  const handleAddActionItem = () => {
+    if (!actionInput.trim() || !actionAssignee) return;
+    const assigneeObj = participants.find(p => p.user.id === actionAssignee);
+    setActionItems(prev => [
+      ...prev,
+      {
+        assignee: actionAssignee,
+        assigneeName: assigneeObj ? assigneeObj.user.name : 'Unknown',
+        task: actionInput.trim(),
+      },
+    ]);
+    setActionInput('');
+    // Debug log
+    console.log('Action item added:', {
+      assignee: actionAssignee,
+      assigneeName: assigneeObj ? assigneeObj.user.name : 'Unknown',
+      task: actionInput.trim(),
+    });
+  };
+
+  const handleEditActionItem = (idx: number) => {
+    const item = actionItems[idx];
+    setEditingActionIdx(idx);
+    setEditActionInput(item.task);
+    setEditActionAssignee(item.assignee);
+  };
+
+  const handleSaveEditActionItem = (idx: number) => {
+    if (!editActionInput.trim() || !editActionAssignee) return;
+    const assigneeObj = participants.find(p => p.user.id === editActionAssignee);
+    setActionItems(prev => prev.map((item, i) =>
+      i === idx
+        ? {
+            ...item,
+            assignee: editActionAssignee,
+            assigneeName: assigneeObj ? assigneeObj.user.name : 'Unknown',
+            task: editActionInput.trim(),
+            edited: true,
+          }
+        : item
+    ));
+    setEditingActionIdx(null);
+  };
+
+  const handleDeleteActionItem = (idx: number) => {
+    setActionItems(prev => prev.filter((_, i) => i !== idx));
+  };
+
   const ActionItemsPhase = useMemo(() => (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
@@ -1639,16 +1671,124 @@ export default function RetroPage() {
             <span className="text-xl font-semibold">Action Items</span>
           </div>
           <hr className="mb-4" />
-          {/* List action items kosong (dummy) */}
+          {/* List action items */}
+          <div className="flex flex-col gap-2">
+            {actionItems.length === 0 && <span className="text-gray-400 text-sm">No action items yet.</span>}
+            {actionItems.map((item, idx) => (
+              <div key={idx} className="bg-gray-50 border rounded px-3 py-2 text-sm flex items-center justify-between gap-2">
+                {editingActionIdx === idx ? (
+                  <>
+                    <div className="flex-1 flex flex-col gap-1">
+                      <div className="flex gap-2">
+                        <select
+                          className="w-32 px-2 py-1 rounded-md border text-sm"
+                          value={editActionAssignee}
+                          onChange={e => setEditActionAssignee(e.target.value)}
+                        >
+                          {participants.map((p) => (
+                            <option key={p.user.id} value={p.user.id}>{p.user.name}</option>
+                          ))}
+                        </select>
+                        <input
+                          type="text"
+                          className="border rounded px-2 py-1 flex-1 text-sm"
+                          value={editActionInput}
+                          onChange={e => setEditActionInput(e.target.value)}
+                        />
+                      </div>
+                      <div className="flex gap-2 mt-1">
+                        <button
+                          className="px-2 py-1 bg-gray-400 text-white rounded text-xs hover:bg-gray-500"
+                          onClick={() => handleSaveEditActionItem(idx)}
+                          type="button"
+                        >
+                          Save
+                        </button>
+                        <button
+                          className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs border hover:bg-gray-200"
+                          onClick={() => setEditingActionIdx(null)}
+                          type="button"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex-1 flex flex-col">
+                      <span>
+                        {item.task} <span className="text-gray-700">({item.assigneeName})</span>
+                        {item.edited && <span className="ml-2 text-xs text-gray-500 font-semibold">(edited)</span>}
+                      </span>
+                    </div>
+                    <div className="flex gap-1">
+                      <button
+                        className="p-1 hover:bg-gray-200 rounded"
+                        title="Edit"
+                        onClick={() => handleEditActionItem(idx)}
+                        type="button"
+                      >
+                        <Pencil className="h-4 w-4 text-gray-600" />
+                      </button>
+                      <button
+                        className="p-1 hover:bg-red-100 rounded"
+                        title="Delete"
+                        onClick={() => handleDeleteActionItem(idx)}
+                        type="button"
+                      >
+                        <Trash2 className="h-4 w-4 text-red-500" />
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
       {/* Footer ala submit/ideation */}
-      <div className="fixed bottom-0 left-0 w-full bg-white border-t z-40">
-        <div className="container mx-auto px-4 py-4 flex flex-col md:flex-row items-center gap-2 md:gap-4 w-full">
+      <div className="fixed bottom-0 left-0 w-full z-40">
+        {/* Avatar bar: tanpa background putih */}
+        {participants.length > 0 && (
+          <div className="w-full flex justify-center pb-1">
+            <div className="flex flex-row items-end gap-6">
+              {participants.map((p) => (
+                <div key={p.id} className="flex flex-col items-center relative">
+                  <div className="relative">
+                    <Avatar
+                      className={`h-14 w-14 border-2 ${p.role ? 'border-blue-500' : 'border-gray-200'} group-hover:border-indigo-500 transition`}
+                      title={`${p.user.name} ${p.role ? '(Facilitator)' : '(Participant)'}`}
+                    >
+                      <AvatarImage 
+                        src={p.user.imageUrl || p.user.image_url || undefined} 
+                        alt={p.user.name} 
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                      <AvatarFallback>
+                        {p.user.name?.charAt(0)?.toUpperCase() || <User className="h-4 w-4" />}
+                      </AvatarFallback>
+                    </Avatar>
+                  </div>
+                  <span className="text-xs text-gray-900 mt-1 font-medium">{p.user.name}{p.role ? ' (Facilitator)' : ''}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {/* Card putih hanya untuk form input ide dan tombol */}
+        <div className="w-full bg-white border-t">
+          <div className="container mx-auto px-4 py-4 flex flex-col md:flex-row items-center gap-2 md:gap-4">
           {/* Dropdown assignee */}
           <div className="flex items-center gap-2 w-full md:w-auto">
             <label className="font-medium mr-2 mb-1">Assignee:</label>
-            <select className="w-64 px-3 pr-8 py-2 rounded-md border text-base">
+              <select
+                className="w-64 px-3 pr-8 py-2 rounded-md border text-base"
+                value={actionAssignee}
+                onChange={e => setActionAssignee(e.target.value)}
+              >
               {participants.length > 0 ? (
                 participants.map((p) => (
                   <option key={p.user.id} value={p.user.id}>{p.user.name}</option>
@@ -1663,51 +1803,236 @@ export default function RetroPage() {
             type="text"
             placeholder="Ex. automate the linting process"
             className="border rounded px-2 py-1 flex-1"
+              value={actionInput}
+              onChange={e => setActionInput(e.target.value)}
           />
           {/* Tombol Submit dan Send Action Items */}
           <Button
-            className="px-4 py-1 bg-teal-200 text-white hover:bg-teal-300"
+              className="px-4 py-1 bg-gray-400 text-white hover:bg-gray-500"
             style={{ minWidth: 100 }}
+              onClick={handleAddActionItem}
+              disabled={!actionInput.trim() || !actionAssignee}
           >
             Submit
           </Button>
           <Button
-            variant="secondary"
-            className="ml-2 bg-blue-300 text-white hover:bg-blue-400"
+              className="ml-2 bg-gray-100 text-gray-400"
             style={{ minWidth: 180 }}
-            disabled
+            disabled={actionItems.length === 0}
+            onClick={() => setPhase('final')}
           >
             Send Action Items
           </Button>
         </div>
       </div>
     </div>
-  ), [retro, participants, user, currentUserRole, showShareModal, setShowShareModal, handleLogout, setPhase, groupLabels, userVotes]);
+    </div>
+  ), [retro, participants, user, currentUserRole, showShareModal, setShowShareModal, handleLogout, setPhase, groupLabels, userVotes, actionItems, actionInput, actionAssignee, setActionInput, setActionAssignee, editingActionIdx, editActionInput, editActionAssignee]);
 
   // PHASE 6: Final (read only, retro selesai)
   const FinalPhase = useMemo(() => (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center">
-      <h2 className="text-2xl font-bold mb-4">Retro Selesai (Read Only)</h2>
-      <p className="text-gray-600">This page is read only. Retro has been completed.</p>
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Header */}
+      <RetroHeader
+        retro={retro}
+        participants={participants}
+        user={user}
+        currentUserRole={currentUserRole}
+        showShareModal={showShareModal}
+        setShowShareModal={setShowShareModal}
+        handleLogout={handleLogout}
+      />
+      {/* Main Content: Group cards kiri, Action Items kanan (read-only) */}
+      <div className="w-full flex flex-row">
+        {/* Card group kiri (copy dari ActionItemsPhase, read-only) */}
+        <div className="flex flex-row gap-6 p-8 items-start flex-1">
+          {[0, 1].map((groupIdx) => (
+            <div key={groupIdx} className="bg-white border rounded-lg shadow-sm w-auto min-w-[220px] max-w-[350px] px-4 py-3">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-lg font-semibold text-gray-400">{groupLabels[groupIdx]?.trim() || 'Unlabeled'}</span>
+                <div className="flex items-center gap-2">
+                  <div className="bg-gray-100 text-gray-700 font-bold px-3 py-1 rounded select-none text-center" style={{fontSize: '1rem', minWidth: '60px'}}>
+                    Votes {userVotes[groupIdx] || 0}
+                  </div>
+                </div>
+              </div>
+              <div className="flex flex-col gap-2">
+                {groupIdx === 0 ? (
+                  <>
+                    <div className="flex items-center gap-2 text-base">
+                      <span role="img" aria-label="happy">😀</span>
+                      <span>vxvf</span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-2 text-base">
+                      <span role="img" aria-label="happy">😀</span>
+                      <span>asdasd Sasasdsadsad</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-base">
+                      <span role="img" aria-label="sad">😢</span>
+                      <span>asdasdczvxcv</span>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+        {/* Panel Action Items kanan (read-only) */}
+        <div className="w-[400px] border-l bg-white flex flex-col p-6 sticky top-0 self-start overflow-y-auto" style={{ height: 'calc(100vh - 80px)', right: 0 }}>
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-2xl">🚀</span>
+            <span className="text-xl font-semibold">Action Items</span>
+          </div>
+          <hr className="mb-4" />
+          {/* List action items (read-only) */}
+          <div className="flex flex-col gap-2">
+            {actionItems.length === 0 && <span className="text-gray-400 text-sm">No action items yet.</span>}
+            {actionItems.map((item, idx) => (
+              <div key={idx} className="bg-gray-50 border rounded px-3 py-2 text-sm flex items-center justify-between gap-2">
+                <div className="flex-1 flex flex-col">
+                  <span>
+                    {item.task} <span className="text-gray-700">({item.assigneeName})</span>
+                    {item.edited && <span className="ml-2 text-xs text-gray-500 font-semibold">(edited)</span>}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      {/* Footer ala ActionItems, dengan avatar bar di atas card putih */}
+      <div className="fixed bottom-0 left-0 w-full z-40">
+        {/* Avatar bar: tanpa background putih */}
+        {participants.length > 0 && (
+          <div className="w-full flex justify-center pb-1">
+            <div className="flex flex-row items-end gap-6">
+              {participants.map((p) => (
+                <div key={p.id} className="flex flex-col items-center relative">
+                  <div className="relative">
+                    <Avatar
+                      className={`h-14 w-14 border-2 ${p.role ? 'border-blue-500' : 'border-gray-200'} group-hover:border-indigo-500 transition`}
+                      title={`${p.user.name} ${p.role ? '(Facilitator)' : '(Participant)'}`}
+                    >
+                      <AvatarImage 
+                        src={p.user.imageUrl || p.user.image_url || undefined} 
+                        alt={p.user.name} 
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                      <AvatarFallback>
+                        {p.user.name?.charAt(0)?.toUpperCase() || <User className="h-4 w-4" />}
+                      </AvatarFallback>
+                    </Avatar>
+                  </div>
+                  <span className="text-xs text-gray-900 mt-1 font-medium">{p.user.name}{p.role ? ' (Facilitator)' : ''}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {/* Card putih footer */}
+        <div className="w-full bg-white border-t rounded-t-xl shadow-lg">
+          <div className="container mx-auto px-4 py-4 flex flex-row items-center justify-between">
+            {/* Kiri: Judul */}
+            <div className="text-xl font-semibold">This retro is all wrapped up!</div>
+            {/* Tengah: Teks read only */}
+            <div className="text-gray-600">Contents are read-only.</div>
+            {/* Kanan: Button dashboard */}
+            <Button
+              className="px-8 py-2 rounded text-base font-semibold bg-gray-200 text-gray-700 hover:bg-gray-300"
+              style={{ minWidth: 180 }}
+              onClick={() => window.location.href = '/dashboard'}
+            >
+              Visit your dashboard
+              <span className="ml-2">&rarr;</span>
+            </Button>
+          </div>
+        </div>
+      </div>
     </div>
-  ), []);
+  ), [retro, participants, user, currentUserRole, showShareModal, setShowShareModal, handleLogout, groupLabels, userVotes, actionItems]);
 
   // Phase switching
-  if (phase === 'submit') return SubmitPhase;
-  if (phase === 'grouping') return GroupingPhase;
-  if (phase === 'labelling') return LabellingPhase;
-  if (phase === 'voting') return VotingPhase;
-  if (phase === 'ActionItems') return ActionItemsPhase;
-  if (phase === 'final') return FinalPhase;
+  if (phase === 'submit') return (
+    <>
+      <ShareLinkModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        shareUrl={typeof window !== 'undefined' ? window.location.href : ''}
+      />
+      {SubmitPhase}
+    </>
+  );
+  if (phase === 'grouping') return (
+    <>
+      <ShareLinkModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        shareUrl={typeof window !== 'undefined' ? window.location.href : ''}
+      />
+      {GroupingPhase}
+    </>
+  );
+  if (phase === 'labelling') return (
+    <>
+      <ShareLinkModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        shareUrl={typeof window !== 'undefined' ? window.location.href : ''}
+      />
+      {LabellingPhase}
+    </>
+  );
+  if (phase === 'voting') return (
+    <>
+      <ShareLinkModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        shareUrl={typeof window !== 'undefined' ? window.location.href : ''}
+      />
+      {VotingPhase}
+    </>
+  );
+  if (phase === 'ActionItems') return (
+    <>
+      <ShareLinkModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        shareUrl={typeof window !== 'undefined' ? window.location.href : ''}
+      />
+      {ActionItemsPhase}
+    </>
+  );
+  if (phase === 'final') return (
+    <>
+      <ShareLinkModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        shareUrl={typeof window !== 'undefined' ? window.location.href : ''}
+      />
+      {FinalPhase}
+    </>
+  );
    
   // Fallback loading
   return (
+    <>
+      <ShareLinkModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        shareUrl={typeof window !== 'undefined' ? window.location.href : ''}
+      />
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
       <div className="text-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
         <p className="text-gray-600">Loading retrospective...</p>
       </div>
     </div>
+    </>
   );
 }
 
