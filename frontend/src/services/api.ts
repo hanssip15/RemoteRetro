@@ -97,6 +97,12 @@ export interface CreateLabelGroupSingle {
   label: string;
   item_id: string;
 }
+export interface CreateActionData {
+  retro_id: string;
+  action_item: string;
+}
+
+
 
 class ApiService {
   async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
@@ -155,6 +161,13 @@ class ApiService {
     }
   }
 
+  async createAction(data: CreateActionData): Promise<any> {
+    return this.request<any>('/action', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
   async createLabelGroup(retro_id: string, data: CreateLabelGroupSingle): Promise<LabelsGroup> {
     return this.request<LabelsGroup>('/labels-group', {
       method: 'POST',
@@ -164,6 +177,37 @@ class ApiService {
 
   async getLabelsByRetro(retro_id: string): Promise<LabelsGroup[]> {
     return this.request<LabelsGroup[]>(`/labels-group/${retro_id}`);
+  }
+
+  // Voting methods
+  async submitUserVote(retroId: string, userId: string, groupLabel: string, voteCount: number): Promise<any> {
+    return this.request<any>('/voting/vote', {
+      method: 'POST',
+      body: JSON.stringify({
+        retroId,
+        userId,
+        groupLabel,
+        voteCount
+      }),
+    });
+  }
+
+  async submitAllVotes(retroId: string, facilitatorId: string): Promise<any> {
+    return this.request<any>('/voting/submit', {
+      method: 'POST',
+      body: JSON.stringify({
+        retroId,
+        facilitatorId
+      }),
+    });
+  }
+
+  async getVoteResults(retroId: string): Promise<LabelsGroup[]> {
+    return this.request<LabelsGroup[]>(`/voting/results/${retroId}`);
+  }
+
+  async getUserVotes(retroId: string): Promise<any> {
+    return this.request<any>(`/voting/user-votes/${retroId}`);
   }
 
   async updateLabel(id: number, label: string): Promise<LabelsGroup> {

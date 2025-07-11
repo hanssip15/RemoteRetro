@@ -16,7 +16,7 @@ export class LabelsGroup {
   @Column({ type: 'uuid' })
   item_id: string;
 
-  @Column({ type: 'int', nullable: true })
+  @Column({ type: 'int', nullable: true, default: 0 })
   votes: number;
 
   // Relations

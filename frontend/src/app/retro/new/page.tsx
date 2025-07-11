@@ -34,7 +34,6 @@ const RETRO_FORMATS = [
 ]
 
 export default function NewRetroPage() {
-  console.log("=== NewRetroPage RENDER ===")
   
   const navigate = useNavigate()
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -42,9 +41,8 @@ export default function NewRetroPage() {
   const [selectedFormat, setSelectedFormat] = useState<string>("happy_sad_confused")
   
   useEffect(() => {
-    console.log("=== useEffect RUNNING ===")
     const authStatus = api.isAuthenticated()
-    console.log("=== AUTH STATUS ===", authStatus)
+
     if (!authStatus) {
       console.log("=== REDIRECTING TO LOGIN ===")
       navigate('/login')

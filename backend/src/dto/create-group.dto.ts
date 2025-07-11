@@ -1,5 +1,4 @@
-import { IsNotEmpty, IsUUID, IsString, IsEnum } from 'class-validator';
-import { RetroFormatTypes } from 'src/entities/retro-item.entity';
+import { IsNotEmpty, IsUUID, IsString } from 'class-validator';
 
 export class CreateGroupDto {
   @IsNotEmpty()

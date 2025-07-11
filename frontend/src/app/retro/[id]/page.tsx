@@ -31,7 +31,6 @@ interface GroupedItem {
   items: RetroItem[];
   itemCount: number;
 }
-
 interface GroupSummary {
   totalGroups: number;
   totalGroupedItems: number;
@@ -85,7 +84,7 @@ export default function RetroPage() {
   const [highContrast, setHighContrast] = useState(false);
   const areaRef = useRef<HTMLDivElement>(null);
   const [groupLabels, setGroupLabels] = useState<string[]>(["", ""]); // contoh 2 group
-
+  const [actionItem, setActionItem] = useState('')
   // Data structure untuk menyimpan grup yang bisa dimasukkan ke database
   const [groupData, setGroupData] = useState<GroupData>({
     groups: [],
@@ -412,9 +411,34 @@ export default function RetroPage() {
     console.log('Render SubmitPhase');
   }, [retro?.currentPhase]);
 
+  // Clear userVotes when phase changes to prevent stale data
   useEffect(() => {
-    if (phase === 'labelling') {
+    if (phase !== 'voting') {
+      // Clear userVotes from localStorage when not in voting phase
+      localStorage.removeItem(`userVotes_${retroId}_${user?.id}`);
+      setUserVotes({});
+    }
+  }, [phase, retroId, user?.id]);
+
+  // Cleanup localStorage when component unmounts or user changes
+  useEffect(() => {
+    return () => {
+      // Cleanup localStorage when component unmounts
+      if (user?.id) {
+        localStorage.removeItem(`userVotes_${retroId}_${user.id}`);
+      }
+    };
+  }, [retroId, user?.id]);
+
+  useEffect(() => {
+    if (phase === 'labelling' || phase === 'voting' || phase === 'ActionItems') {
+      setIsLoadingLabellingData(true);
+      console.log('🔄 Loading labelling data for phase:', phase);
+      console.log('📦 Current items:', items);
+      console.log('🆔 Retro ID:', retroId);
+      
       apiService.getLabelsByRetro(retroId).then((groups) => {
+        console.log('📋 Labels groups from API:', groups);
         setLabelsGroups(groups);
         // Kelompokkan item per group label
         const groupMap: { [label: string]: RetroItem[] } = {};
@@ -424,8 +448,32 @@ export default function RetroPage() {
           const item = items.find((it: RetroItem) => it.id === (g as any).item_id);
           if (item) groupMap[label].push(item);
         });
+        console.log('🗂️ Grouped items map:', groupMap);
         setLabellingItems(groupMap);
+        setIsLoadingLabellingData(false);
+      }).catch((error) => {
+        console.error('Error loading labelling data:', error);
+        setIsLoadingLabellingData(false);
+        // Fallback: create default groups if API fails
+        if (items.length > 0) {
+          const defaultGroupMap: { [label: string]: RetroItem[] } = {};
+          items.forEach((item, index) => {
+            const groupLabel = `Group ${Math.floor(index / 3) + 1}`;
+            if (!defaultGroupMap[groupLabel]) {
+              defaultGroupMap[groupLabel] = [];
+            }
+            defaultGroupMap[groupLabel].push(item);
+          });
+          console.log('🔄 Using fallback groups:', defaultGroupMap);
+          setLabellingItems(defaultGroupMap);
+        } else {
+          // If no items available, set empty map
+          setLabellingItems({});
+        }
       });
+    } else {
+      // Reset loading state when not in these phases
+      setIsLoadingLabellingData(false);
     }
   }, [phase, retroId, items]);
 
@@ -509,6 +557,9 @@ export default function RetroPage() {
   // State untuk tracking item yang sedang di-drag oleh user lain
   const [draggingByOthers, setDraggingByOthers] = useState<{ [itemId: string]: string }>({});
 
+  // State untuk loading data labelling
+  const [isLoadingLabellingData, setIsLoadingLabellingData] = useState(false);
+
   // Handler untuk menerima posisi item dari partisipan lain
   const handleItemPositionUpdate = useCallback((data: { itemId: string; position: { x: number; y: number }; userId: string }) => {
     // Hanya update jika bukan dari user saat ini
@@ -542,6 +593,30 @@ export default function RetroPage() {
     }
   }, [user?.id]);
 
+  // Handler untuk menerima vote update dari partisipan lain
+  const handleVoteUpdate = useCallback((data: { 
+    userId: string; 
+    groupLabel: string; 
+    voteCount: number 
+  }) => {
+    // Hanya update jika bukan dari user saat ini
+    if (data.userId !== user?.id) {
+      console.log('🗳️ Received vote update from other user:', data);
+      // Update UI to show other users' votes (optional)
+    }
+  }, [user?.id]);
+
+  // Handler untuk menerima vote submission dari facilitator
+  const handleVoteSubmission = useCallback((data: { 
+    facilitatorId: string; 
+    groupVotes: { [groupLabel: string]: number } 
+  }) => {
+    console.log('📊 Received vote submission:', data);
+    // Clear local votes since they've been submitted
+    localStorage.removeItem(`userVotes_${retroId}_${user?.id}`);
+    setUserVotes({});
+  }, [retroId, user?.id]);
+
   // Initialize WebSocket connection using the stable hook
   const { isConnected, socket } = useRetroSocket({
     retroId,
@@ -553,6 +628,8 @@ export default function RetroPage() {
     onPhaseChange: handlePhaseChange,
     onItemPositionUpdate: handleItemPositionUpdate,
     onGroupingUpdate: handleGroupingUpdate,
+    onVoteUpdate: handleVoteUpdate,
+    onVoteSubmission: handleVoteSubmission,
   });
 
   // Fungsi untuk mengirim phase change ke semua partisipan
@@ -1072,10 +1149,6 @@ export default function RetroPage() {
               <div className="flex flex-row items-end gap-6 mb-3">
                 {participants.map((p) => {
                   const isCurrentUser = user && p.user.id === user.id;
-                  console.log('👤 Participant user data:', p.user);
-                  console.log('🖼️ User image URL:', p.user.imageUrl || p.user.image_url);
-                  console.log('🔍 User object keys:', Object.keys(p.user));
-                  console.log('🔍 User object values:', Object.values(p.user));
                   return (
                     <div key={p.id} className="flex flex-col items-center relative">
                       <div className="relative">
@@ -1340,29 +1413,45 @@ export default function RetroPage() {
       />
       {/* Group Board */}
       <div className="flex-1 flex flex-col items-center justify-start w-full">
-        <div className="flex flex-row gap-8 mt-8 w-full justify-center">
-          {Object.entries(labellingItems).map(([label, groupItems], idx) => (
-            <div key={label} className="bg-white border rounded-lg shadow-sm min-w-[350px] max-w-[400px] w-full p-4">
-              {/* Tombol Voting di kanan */}
-              <div className="mb-2">
-                <input
-                  className="w-full text-center text-gray-500 font-semibold bg-gray-100 rounded px-2 py-1 mb-2 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                  placeholder="Optional Group Label"
-                  maxLength={20}
-                  value={label}
-                  readOnly
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                {groupItems.map((item) => (
-                  <div key={item.id} className="flex items-center gap-2 text-base">
-                    <span>{item.content}</span>
-                  </div>
-                ))}
-              </div>
+        {isLoadingLabellingData ? (
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading labelling data...</p>
             </div>
-          ))}
-        </div>
+          </div>
+        ) : Object.keys(labellingItems).length === 0 ? (
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <p className="text-gray-600 mb-4">No groups available for labelling</p>
+              <p className="text-sm text-gray-500">Please ensure the grouping phase has been completed</p>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-row gap-8 mt-8 w-full justify-center">
+            {Object.entries(labellingItems).map(([label, groupItems], idx) => (
+              <div key={label} className="bg-white border rounded-lg shadow-sm min-w-[350px] max-w-[400px] w-full p-4">
+                {/* Tombol Voting di kanan */}
+                <div className="mb-2">
+                  <input
+                    className="w-full text-center text-gray-500 font-semibold bg-gray-100 rounded px-2 py-1 mb-2 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                    placeholder="Optional Group Label"
+                    maxLength={20}
+                    value={label}
+                    readOnly
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  {groupItems.map((item) => (
+                    <div key={item.id} className="flex items-center gap-2 text-base">
+                      <span>{item.content}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
       {/* Footer sticky ala submit phase */}
       <div className="fixed bottom-0 left-0 w-full bg-white border-t z-40 rounded-t-xl shadow-lg">
@@ -1433,240 +1522,375 @@ export default function RetroPage() {
         </div>
       </div>
     </div>
-  ), [retro, participants, user, currentUserRole, showShareModal, setShowShareModal, handleLogout, setPhase, labellingItems]);
+  ), [retro, participants, user, currentUserRole, showShareModal, setShowShareModal, handleLogout, setPhase, labellingItems, isLoadingLabellingData, labelsGroups]);
 
   // PHASE 4: Voting (template)
-  const [userVotes, setUserVotes] = useState<{ [groupIdx: number]: number }>({});
+  const [userVotes, setUserVotes] = useState<{ [groupIdx: number]: number }>(() => {
+    // Load userVotes from localStorage on component mount
+    const savedVotes = localStorage.getItem(`userVotes_${retroId}_${user?.id}`);
+    return savedVotes ? JSON.parse(savedVotes) : {};
+  });
   const maxVotes = 3;
   const totalVotesUsed = Object.values(userVotes).reduce((a, b) => a + b, 0);
   const votesLeft = maxVotes - totalVotesUsed;
 
-  const handleVote = (groupIdx: number, delta: number) => {
-    setUserVotes(prev => {
-      const current = prev[groupIdx] || 0;
-      let next = current + delta;
-      // Tidak boleh kurang dari 0, tidak boleh lebih dari sisa vote
-      if (next < 0) next = 0;
-      if (delta > 0 && votesLeft <= 0) return prev;
-      // Tidak boleh lebih dari maxVotes per user
-      if (totalVotesUsed + delta > maxVotes) return prev;
-      return { ...prev, [groupIdx]: next };
-    });
+  const handleVote = async (groupIdx: number, delta: number) => {
+    const currentVote = userVotes[groupIdx] || 0;
+    const newVoteCount = currentVote + delta;
+    
+    // Validation
+    if (newVoteCount < 0) return;
+    if (delta > 0 && votesLeft <= 0) return;
+    if (totalVotesUsed + delta > maxVotes) return;
+    
+    // Update local state
+    const newVotes = { ...userVotes, [groupIdx]: newVoteCount };
+    setUserVotes(newVotes);
+    
+    // Save to localStorage
+    localStorage.setItem(`userVotes_${retroId}_${user?.id}`, JSON.stringify(newVotes));
+    
+    console.log('🗳️ Vote updated:', { groupIdx, delta, newVoteCount, votesLeft: votesLeft - delta });
+    
+    // Send vote to server via API
+    if (user) {
+      const groupLabel = Object.keys(labellingItems)[groupIdx];
+      if (groupLabel) {
+        try {
+          await apiService.submitUserVote(retroId, user.id, groupLabel, newVoteCount);
+          console.log('✅ Vote submitted to API:', { groupLabel, voteCount: newVoteCount });
+        } catch (error) {
+          console.error('❌ Failed to submit vote to API:', error);
+        }
+      }
+    }
+    
+    // Send vote to server via WebSocket
+    if (socket && isConnected && user) {
+      const groupLabel = Object.keys(labellingItems)[groupIdx];
+      if (groupLabel) {
+        socket.emit('user-vote', {
+          retroId: retroId,
+          userId: user.id,
+          groupLabel: groupLabel,
+          voteCount: newVoteCount
+        });
+        console.log('📡 Vote sent via WebSocket:', { groupLabel, voteCount: newVoteCount });
+      }
+    }
   };
 
-  const VotingPhase = useMemo(() => (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Header */}
-      <RetroHeader
-        retro={retro}
-        participants={participants}
-        user={user}
-        currentUserRole={currentUserRole}
-        showShareModal={showShareModal}
-        setShowShareModal={setShowShareModal}
-        handleLogout={handleLogout}
-      />
-      {/* Group Board */}
-      <div className="flex-1 flex flex-col items-center justify-start w-full">
-        <div className="flex flex-row gap-8 mt-8 w-full justify-center">
-          {Object.entries(labellingItems).map(([label, groupItems], idx) => (
-            <div key={label} className="bg-white border rounded-lg shadow-sm min-w-[350px] max-w-[400px] w-full p-4">
-              <div className="mb-2 flex items-center justify-between">
-                <span className="text-lg font-semibold text-gray-400">{label}</span>
-                <div className="flex items-center gap-2">
-                    <div className="relative flex items-center">
-                      <div className="bg-teal-400 text-white font-bold pl-4 pr-2 py-1 rounded-lg relative select-none text-left" style={{fontSize: '1rem', minWidth: '90px'}}>
-                        <span className="relative z-10">Vote! &gt; &gt; </span>
-                      </div>
-                    </div>
-                  <Button
-                    size="icon"
-                    variant="outline"
-                    className="h-7 w-7 px-0"
-                    onClick={() => handleVote(idx, -1)}
-                    disabled={(userVotes[idx] || 0) <= 0}
-                  >
-                    -
-                  </Button>
-                  <Button
-                    size="icon"
-                    variant="outline"
-                    className="h-7 w-7 px-0"
-                    onClick={() => handleVote(idx, 1)}
-                    disabled={votesLeft <= 0}
-                  >
-                    +
-                  </Button>
-                  <span className="w-5 text-center font-semibold">{userVotes[idx] || 0}</span>
-                </div>
-              </div>
-              <div className="flex flex-col gap-2">
-                {groupItems.map((item) => (
-                  <div key={item.id} className="flex items-center gap-2 text-base">
-                   <span>{item.content}</span>
-                    </div>
-                ))}
+  const VotingPhase = useMemo(() => {
+    console.log('🎯 Rendering VotingPhase');
+    console.log('📊 Current state:', {
+      isLoadingLabellingData,
+      labellingItemsKeys: Object.keys(labellingItems),
+      labellingItems,
+      userVotes,
+      votesLeft,
+      phase
+    });
+    
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col">
+        {/* Header */}
+        <RetroHeader
+          retro={retro}
+          participants={participants}
+          user={user}
+          currentUserRole={currentUserRole}
+          showShareModal={showShareModal}
+          setShowShareModal={setShowShareModal}
+          handleLogout={handleLogout}
+        />
+        {/* Group Board */}
+        <div className="flex-1 flex flex-col items-center justify-start w-full">
+          {isLoadingLabellingData ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading voting data...</p>
               </div>
             </div>
-          ))}
-        </div>
-      </div>
-      {/* Footer sticky ala submit phase */}
-      <div className="fixed bottom-0 left-0 w-full bg-white border-t z-40 rounded-t-xl shadow-lg">
-        <div className="container mx-auto px-4 py-4 flex flex-row items-center justify-between">
-          {/* Kiri: Voting: X Votes Left */}
-          <div className="flex flex-col items-start justify-center">
-            <div className="text-xl font-semibold">Voting: {votesLeft} Votes Left</div>
-          </div>
-          {/* Tengah: Avatar peserta */}
-          <div className="flex flex-row items-center gap-4">
-            {participants.map((p) => {
-              const isCurrentUser = user && p.user.id === user.id;
-              const isCurrentFacilitator = participants.find(x => x.role)?.user.id === user?.id;
-              return (
-                <div key={p.id} className="flex flex-col items-center relative">
-                  <div className="relative">
-                    <Avatar
-                      className={`h-14 w-14 border-2 ${p.role ? 'border-blue-500' : 'border-gray-200'} group-hover:border-indigo-500 transition`}
-                      title={`${p.user.name} ${p.role ? '(Facilitator)' : '(Participant)'}`}
-                    >
-                      {typeof (p.user as any)["image_url"] === "string" ? (
-                        <AvatarImage src={(p.user as any)["image_url"]} alt={p.user.name} />
-                      ) : (
-                        <AvatarFallback>
-                          {p.user.name?.charAt(0)?.toUpperCase() || <User className="h-4 w-4" />}
-                        </AvatarFallback>
-                      )}
-                    </Avatar>
-                    {isCurrentFacilitator && !isCurrentUser && (
-                      <span className="absolute -top-2 -right-2 bg-white rounded-full p-1 shadow border cursor-pointer" title="Promote to Facilitator">
-                        <Pen className="h-4 w-4 text-indigo-600" />
-                      </span>
-                    )}
+          ) : Object.keys(labellingItems).length === 0 ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="text-center">
+                <p className="text-gray-600 mb-4">No groups available for voting</p>
+                <p className="text-sm text-gray-500">Please ensure the grouping phase has been completed</p>
+                <p className="text-xs text-gray-400 mt-2">Debug: {Object.keys(labellingItems).length} groups found</p>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-row gap-8 mt-8 w-full justify-center">
+              {Object.entries(labellingItems).map(([label, groupItems], idx) => (
+                <div key={label} className="bg-white border rounded-lg shadow-sm min-w-[350px] max-w-[400px] w-full p-4">
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="text-lg font-semibold text-gray-400">{label}</span>
+                    <div className="flex items-center gap-2">
+                      <div className="relative flex items-center">
+                        <div className="bg-teal-400 text-white font-bold pl-4 pr-2 py-1 rounded-lg relative select-none text-left" style={{fontSize: '1rem', minWidth: '90px'}}>
+                          <span className="relative z-10">Vote! &gt; &gt; </span>
+                        </div>
+                      </div>
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        className="h-7 w-7 px-0"
+                        onClick={() => handleVote(idx, -1)}
+                        disabled={(userVotes[idx] || 0) <= 0}
+                      >
+                        -
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        className="h-7 w-7 px-0"
+                        onClick={() => handleVote(idx, 1)}
+                        disabled={votesLeft <= 0}
+                      >
+                        +
+                      </Button>
+                      <span className="w-5 text-center font-semibold">{userVotes[idx] || 0}</span>
+                    </div>
                   </div>
-                  <span className="text-xs text-gray-900 mt-1 font-medium">{p.user.name}</span>
-                  <span className="text-[11px] text-gray-500">{p.role ? 'Facilitator' : 'Participant'}</span>
+                  <div className="flex flex-col gap-2">
+                    {groupItems.map((item) => (
+                      <div key={item.id} className="flex items-center gap-2 text-base">
+                        <span>{item.content}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              );
-            })}
+              ))}
+            </div>
+          )}
+        </div>
+        {/* Footer sticky ala submit phase */}
+        <div className="fixed bottom-0 left-0 w-full bg-white border-t z-40 rounded-t-xl shadow-lg">
+          <div className="container mx-auto px-4 py-4 flex flex-row items-center justify-between">
+            {/* Kiri: Voting: X Votes Left */}
+            <div className="flex flex-col items-start justify-center">
+              <div className="text-xl font-semibold">Voting: {votesLeft} Votes Left</div>
+            </div>
+            {/* Tengah: Avatar peserta */}
+            <div className="flex flex-row items-center gap-4">
+              {participants.map((p) => {
+                const isCurrentUser = user && p.user.id === user.id;
+                const isCurrentFacilitator = participants.find(x => x.role)?.user.id === user?.id;
+                return (
+                  <div key={p.id} className="flex flex-col items-center relative">
+                    <div className="relative">
+                      <Avatar
+                        className={`h-14 w-14 border-2 ${p.role ? 'border-blue-500' : 'border-gray-200'} group-hover:border-indigo-500 transition`}
+                        title={`${p.user.name} ${p.role ? '(Facilitator)' : '(Participant)'}`}
+                      >
+                        {typeof (p.user as any)["image_url"] === "string" ? (
+                          <AvatarImage src={(p.user as any)["image_url"]} alt={p.user.name} />
+                        ) : (
+                          <AvatarFallback>
+                            {p.user.name?.charAt(0)?.toUpperCase() || <User className="h-4 w-4" />}
+                          </AvatarFallback>
+                        )}
+                      </Avatar>
+                      {isCurrentFacilitator && !isCurrentUser && (
+                        <span className="absolute -top-2 -right-2 bg-white rounded-full p-1 shadow border cursor-pointer" title="Promote to Facilitator">
+                          <Pen className="h-4 w-4 text-indigo-600" />
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-xs text-gray-900 mt-1 font-medium">{p.user.name}</span>
+                    <span className="text-[11px] text-gray-500">{p.role ? 'Facilitator' : 'Participant'}</span>
+                  </div>
+                );
+              })}
+            </div>
+            {/* Kanan: Tombol Action Items */}
+            {isCurrentFacilitator && currentUserParticipant?.role ? (
+            <Button
+              variant="secondary"
+              className="px-8 py-2 rounded text-base font-semibold"
+              style={{ minWidth: 180 }}
+              onClick={async () => {
+                    setIsPhaseChanging(true);
+                    try {
+                      console.log('📊 Submitting all votes for retro:', retroId);
+                      // Submit all votes to database
+                      await apiService.submitAllVotes(retroId, user.id);
+                      console.log('✅ Votes submitted successfully');
+                      // Change phase to Action Items
+                      await broadcastPhaseChange('ActionItems');
+                      console.log('✅ Phase changed to Action Items');
+                    } catch (error) {
+                      console.error('❌ Failed to submit votes or change phase:', error);
+                      setError('Failed to submit votes. Please try again.');
+                    } finally {
+                      setIsPhaseChanging(false);
+                    }
+                  }}
+            >
+              {isPhaseChanging ? 'Processing...' : 'Action Items'}
+            </Button>
+          ) : (
+            <div
+              className="px-8 py-2 rounded text-base font-semibold"
+              style={{ minWidth: 180 }}
+            >
+            </div>
+          )}
           </div>
-          {/* Kanan: Tombol Action Items */}
-          <Button
-            variant="secondary"
-            className="px-8 py-2 rounded text-base font-semibold"
-            style={{ minWidth: 180 }}
-            onClick={() => setPhase('ActionItems')}
-            disabled={votesLeft !== 0}
-          >
-            Action Items
-          </Button>
         </div>
       </div>
-    </div>
-  ), [retro, participants, user, currentUserRole, showShareModal, setShowShareModal, handleLogout, setPhase, groupLabels, userVotes, votesLeft]);
+    );
+  }, [retro, participants, user, currentUserRole, showShareModal, setShowShareModal, handleLogout, setPhase, groupLabels, userVotes, votesLeft, isLoadingLabellingData, labellingItems, labelsGroups]);
 
   // PHASE 5: Action Items (template)
-  const ActionItemsPhase = useMemo(() => (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Header */}
-      <RetroHeader
-        retro={retro}
-        participants={participants}
-        user={user}
-        currentUserRole={currentUserRole}
-        showShareModal={showShareModal}
-        setShowShareModal={setShowShareModal}
-        handleLogout={handleLogout}
-      />
-      {/* Main Content */}
-      <div className="w-full flex flex-row">
-        {/* Card group kiri */}
-        <div className="flex flex-row gap-6 p-8 items-start flex-1">
-          {[0, 1].map((groupIdx) => (
-            <div key={groupIdx} className="bg-white border rounded-lg shadow-sm w-auto min-w-[220px] max-w-[350px] px-4 py-3">
-              <div className="mb-2 flex items-center justify-between">
-                <span className="text-lg font-semibold text-gray-400">{groupLabels[groupIdx]?.trim() || 'Unlabeled'}</span>
-                <div className="flex items-center gap-2">
-                  <div className="bg-gray-100 text-gray-700 font-bold px-3 py-1 rounded select-none text-center" style={{fontSize: '1rem', minWidth: '60px'}}>
-                    Votes {userVotes[groupIdx] || 0}
-                  </div>
+  const [isAddingActionItem, setIsAddingActionItem] = useState(false);
+  const handleAddActionItem = useCallback(async () => {
+    if (!actionItem.trim()) return;
+    setIsAddingActionItem(true);
+    try {
+      await apiService.createAction({
+        retro_id: retroId,
+        action_item: actionItem.trim(),
+      });
+      setActionItem('');
+      // (Opsional) Refresh list action item di panel kanan jika ingin
+    } catch (err) {
+      setError('Failed to add action item');
+    } finally {
+      setIsAddingActionItem(false);
+    }
+  }, [actionItem, retroId]);
+  const handleActionItemKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && !isAddingActionItem) {
+      handleAddActionItem();
+    }
+  }, [handleAddActionItem, isAddingActionItem]);
+  const ActionItemsPhase = useMemo(() => {
+    console.log('🚀 Rendering ActionItemsPhase');
+    console.log('📊 Labels groups:', labelsGroups);
+    console.log('🗂️ Labelling items:', labellingItems);
+    
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col">
+        {/* Header */}
+        <RetroHeader
+          retro={retro}
+          participants={participants}
+          user={user}
+          currentUserRole={currentUserRole}
+          showShareModal={showShareModal}
+          setShowShareModal={setShowShareModal}
+          handleLogout={handleLogout}
+        />
+        {/* Main Content */}
+        <div className="w-full flex flex-row">
+          {/* Card group kiri */}
+          <div className="flex flex-row gap-6 p-8 items-start flex-1">
+            {isLoadingLabellingData ? (
+              <div className="flex items-center justify-center w-full h-64">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+                  <p className="text-gray-600">Loading action items data...</p>
                 </div>
               </div>
-              <div className="flex flex-col gap-2">
-                {groupIdx === 0 ? (
-                  <>
-                    <div className="flex items-center gap-2 text-base">
-                      <span role="img" aria-label="happy">😀</span>
-                      <span>vxvf</span>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="flex items-center gap-2 text-base">
-                      <span role="img" aria-label="happy">😀</span>
-                      <span>asdasd Sasasdsadsad</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-base">
-                      <span role="img" aria-label="sad">😢</span>
-                      <span>asdasdczvxcv</span>
-                    </div>
-                  </>
-                )}
+            ) : Object.keys(labellingItems).length === 0 ? (
+              <div className="flex items-center justify-center w-full h-64">
+                <div className="text-center">
+                  <p className="text-gray-600 mb-4">No groups available for action items</p>
+                  <p className="text-sm text-gray-500">Please ensure the voting phase has been completed</p>
+                  <p className="text-xs text-gray-400 mt-2">Debug: {Object.keys(labellingItems).length} groups found</p>
+                </div>
               </div>
+            ) : (
+              Object.entries(labellingItems).map(([label, groupItems], idx) => {
+                // Get vote count from labelsGroups
+                const labelGroup = labelsGroups.find(lg => lg.label === label);
+                const voteCount = labelGroup?.votes || 0;
+                
+                console.log(`📊 Group ${label}:`, { labelGroup, voteCount });
+                
+                return (
+                  <div key={label} className="bg-white border rounded-lg shadow-sm w-auto min-w-[220px] max-w-[350px] px-4 py-3">
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="text-lg font-semibold text-gray-400">{label}</span>
+                      <div className="flex items-center gap-2">
+                        <div className="bg-gray-100 text-gray-700 font-bold px-3 py-1 rounded select-none text-center" style={{fontSize: '1rem', minWidth: '60px'}}>
+                          Votes {voteCount}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      {groupItems.map((item) => (
+                        <div key={item.id} className="flex items-center gap-2">
+                          {/* <span role="img" aria-label="happy">😀</span> */}
+                          <span>{item.content}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+          {/* Panel Action Items sticky kanan */}
+          <div className="w-[400px] border-l bg-white flex flex-col p-6 sticky top-0 self-start overflow-y-auto" style={{ height: 'calc(100vh - 80px)', right: 0 }}>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-2xl">🚀</span>
+              <span className="text-xl font-semibold">Action Items</span>
             </div>
-          ))}
-        </div>
-        {/* Panel Action Items sticky kanan */}
-        <div className="w-[400px] border-l bg-white flex flex-col p-6 sticky top-0 self-start overflow-y-auto" style={{ height: 'calc(100vh - 80px)', right: 0 }}>
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-2xl">🚀</span>
-            <span className="text-xl font-semibold">Action Items</span>
+            <hr className="mb-4" />
+            {/* List action items kosong (dummy) */}
           </div>
-          <hr className="mb-4" />
-          {/* List action items kosong (dummy) */}
+        </div>
+        {/* Footer ala submit/ideation */}
+        <div className="fixed bottom-0 left-0 w-full bg-white border-t z-40">
+          <div className="container mx-auto px-4 py-4 flex flex-col md:flex-row items-center gap-2 md:gap-4 w-full">
+            {/* Dropdown assignee */}
+            <div className="flex items-center gap-2 w-full md:w-auto">
+              <label className="font-medium mr-2 mb-1">Assignee:</label>
+              <select className="w-64 px-3 pr-8 py-2 rounded-md border text-base">
+                {participants.length > 0 ? (
+                  participants.map((p) => (
+                    <option key={p.user.id} value={p.user.id}>{p.user.name}</option>
+                  ))
+                ) : (
+                  <option>No participants</option>
+                )}
+              </select>
+            </div>
+            {/* Input action item */}
+            <input
+              type="text"
+              placeholder="Ex. automate the linting process"
+              className="border rounded px-2 py-1 flex-1"
+              value={actionItem}
+              onChange={e => setActionItem(e.target.value)}
+              onKeyDown={handleActionItemKeyDown}
+              disabled={isAddingActionItem}
+            />
+            {/* Tombol Submit dan Send Action Items */}
+            <Button
+              className="px-4 py-1 bg-teal-200 text-white hover:bg-teal-300"
+              style={{ minWidth: 100 }}
+              onClick={handleAddActionItem}
+              disabled={isAddingActionItem || !actionItem.trim()}
+            >
+              {isAddingActionItem ? 'Adding...' : 'Submit'}
+            </Button>
+            <Button
+              variant="secondary"
+              className="ml-2 bg-blue-300 text-white hover:bg-blue-400"
+              style={{ minWidth: 180 }}
+              disabled
+            >
+              Send Action Items
+            </Button>
+          </div>
         </div>
       </div>
-      {/* Footer ala submit/ideation */}
-      <div className="fixed bottom-0 left-0 w-full bg-white border-t z-40">
-        <div className="container mx-auto px-4 py-4 flex flex-col md:flex-row items-center gap-2 md:gap-4 w-full">
-          {/* Dropdown assignee */}
-          <div className="flex items-center gap-2 w-full md:w-auto">
-            <label className="font-medium mr-2 mb-1">Assignee:</label>
-            <select className="w-64 px-3 pr-8 py-2 rounded-md border text-base">
-              {participants.length > 0 ? (
-                participants.map((p) => (
-                  <option key={p.user.id} value={p.user.id}>{p.user.name}</option>
-                ))
-              ) : (
-                <option>No participants</option>
-              )}
-            </select>
-          </div>
-          {/* Input action item */}
-          <input
-            type="text"
-            placeholder="Ex. automate the linting process"
-            className="border rounded px-2 py-1 flex-1"
-          />
-          {/* Tombol Submit dan Send Action Items */}
-          <Button
-            className="px-4 py-1 bg-teal-200 text-white hover:bg-teal-300"
-            style={{ minWidth: 100 }}
-          >
-            Submit
-          </Button>
-          <Button
-            variant="secondary"
-            className="ml-2 bg-blue-300 text-white hover:bg-blue-400"
-            style={{ minWidth: 180 }}
-            disabled
-          >
-            Send Action Items
-          </Button>
-        </div>
-      </div>
-    </div>
-  ), [retro, participants, user, currentUserRole, showShareModal, setShowShareModal, handleLogout, setPhase, groupLabels, userVotes]);
+    );
+  }, [retro, participants, user, currentUserRole, showShareModal, setShowShareModal, handleLogout, setPhase, groupLabels, userVotes, isLoadingLabellingData, labellingItems, labelsGroups]);
 
   // PHASE 6: Final (read only, retro selesai)
   const FinalPhase = useMemo(() => (
