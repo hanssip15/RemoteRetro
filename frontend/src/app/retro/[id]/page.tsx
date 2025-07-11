@@ -52,6 +52,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import Draggable from 'react-draggable';
+import { Label } from "recharts"
 
 export default function RetroPage() {
   const params = useParams()
@@ -1342,6 +1343,7 @@ export default function RetroPage() {
         <div className="flex flex-row gap-8 mt-8 w-full justify-center">
           {Object.entries(labellingItems).map(([label, groupItems], idx) => (
             <div key={label} className="bg-white border rounded-lg shadow-sm min-w-[350px] max-w-[400px] w-full p-4">
+              {/* Tombol Voting di kanan */}
               <div className="mb-2">
                 <input
                   className="w-full text-center text-gray-500 font-semibold bg-gray-100 rounded px-2 py-1 mb-2 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-200"
@@ -1402,15 +1404,32 @@ export default function RetroPage() {
               );
             })}
           </div>
-          {/* Tombol Voting di kanan */}
+        {/* Tombol Voting di kanan */}
+        {isCurrentFacilitator && currentUserParticipant?.role ? (
           <Button
             variant="secondary"
             className="px-8 py-2 rounded text-base font-semibold"
             style={{ minWidth: 180 }}
-            onClick={() => setPhase('voting')}
+            onClick={async () => {
+                  setIsPhaseChanging(true);
+                  try {
+                    await broadcastPhaseChange('voting');
+                  } catch (error) {
+                    console.error('Failed to change phase:', error);
+                  } finally {
+                    setIsPhaseChanging(false);
+                  }
+                }}
           >
             Voting
           </Button>
+        ) : (
+          <div
+            className="px-8 py-2 rounded text-base font-semibold"
+            style={{ minWidth: 180 }}
+          >
+          </div>
+        )}
         </div>
       </div>
     </div>
@@ -1450,10 +1469,10 @@ export default function RetroPage() {
       {/* Group Board */}
       <div className="flex-1 flex flex-col items-center justify-start w-full">
         <div className="flex flex-row gap-8 mt-8 w-full justify-center">
-          {[0, 1].map((groupIdx) => (
-            <div key={groupIdx} className="bg-white border rounded-lg shadow-sm min-w-[350px] max-w-[400px] w-full p-4">
+          {Object.entries(labellingItems).map(([label, groupItems], idx) => (
+            <div key={label} className="bg-white border rounded-lg shadow-sm min-w-[350px] max-w-[400px] w-full p-4">
               <div className="mb-2 flex items-center justify-between">
-                <span className="text-lg font-semibold text-gray-400">{groupLabels[groupIdx]?.trim() || 'Unlabeled'}</span>
+                <span className="text-lg font-semibold text-gray-400">{label}</span>
                 <div className="flex items-center gap-2">
                     <div className="relative flex items-center">
                       <div className="bg-teal-400 text-white font-bold pl-4 pr-2 py-1 rounded-lg relative select-none text-left" style={{fontSize: '1rem', minWidth: '90px'}}>
@@ -1464,43 +1483,29 @@ export default function RetroPage() {
                     size="icon"
                     variant="outline"
                     className="h-7 w-7 px-0"
-                    onClick={() => handleVote(groupIdx, -1)}
-                    disabled={(userVotes[groupIdx] || 0) <= 0}
+                    onClick={() => handleVote(idx, -1)}
+                    disabled={(userVotes[idx] || 0) <= 0}
                   >
-                    –
+                    -
                   </Button>
                   <Button
                     size="icon"
                     variant="outline"
                     className="h-7 w-7 px-0"
-                    onClick={() => handleVote(groupIdx, 1)}
+                    onClick={() => handleVote(idx, 1)}
                     disabled={votesLeft <= 0}
                   >
                     +
                   </Button>
-                  <span className="w-5 text-center font-semibold">{userVotes[groupIdx] || 0}</span>
+                  <span className="w-5 text-center font-semibold">{userVotes[idx] || 0}</span>
                 </div>
               </div>
               <div className="flex flex-col gap-2">
-                {groupIdx === 0 ? (
-                  <>
-                    <div className="flex items-center gap-2 text-base">
-                      <span role="img" aria-label="happy">😀</span>
-                      <span>asdasd Sasasdsadsad</span>
+                {groupItems.map((item) => (
+                  <div key={item.id} className="flex items-center gap-2 text-base">
+                   <span>{item.content}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-base">
-                      <span role="img" aria-label="sad">😢</span>
-                      <span>asdasdczvxcv</span>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="flex items-center gap-2 text-base">
-                      <span role="img" aria-label="happy">😀</span>
-                      <span>vxvf</span>
-                    </div>
-                  </>
-                )}
+                ))}
               </div>
             </div>
           ))}
