@@ -106,7 +106,7 @@ export const useRetroSocket = ({
     };
 
     const handleGroupingUpdate = (data: { itemGroups: { [itemId: string]: string }; signatureColors: { [signature: string]: string }; userId: string }) => {
-      console.log('🎨 Grouping update via WebSocket:', data);
+      // console.log('🎨 Grouping update via WebSocket:', data);
       callbacks.onGroupingUpdate?.(data);
     };
 

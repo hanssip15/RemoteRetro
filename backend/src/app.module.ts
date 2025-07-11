@@ -9,11 +9,14 @@ import { Retro } from './entities/retro.entity';
 import { RetroItem } from './entities/retro-item.entity';
 import { Participant } from './entities/participant.entity';
 import { User } from './entities/user.entity';
+import { LabelsGroup } from './entities/group.entity';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './module/user.module';
 import { RetroItemsModule } from './module/item.module';
 import { RetroItemsService } from './services/item.service';
 import { ParticipantGateway } from './gateways/participant.gateways';
+import { GroupModule } from './module/group.module';
+import { LabelsGroupModule } from './modules/labels-group.module';
 
 @Module({
   imports: [
@@ -31,11 +34,13 @@ import { ParticipantGateway } from './gateways/participant.gateways';
       } : false,
       logging: false, // Disable SQL logging
     }),
-    TypeOrmModule.forFeature([RetroItem, Retro, Participant]),
+    TypeOrmModule.forFeature([RetroItem, Retro, Participant, LabelsGroup]),
     RetroModule, // ← TAMBAHKAN INI!
     AuthModule,
     UsersModule,
     RetroItemsModule,
+    GroupModule,
+    LabelsGroupModule,
   ],
   controllers: [AppController, DashboardController],
   providers: [AppService, RetroItemsService, ParticipantGateway],

@@ -48,7 +48,7 @@ export class RetroService {
       order: { joinedAt: 'ASC' },
     });
 
-    console.log('🔍 Participants with user data:', JSON.stringify(participants, null, 2));
+    // console.log('🔍 Participants with user data:', JSON.stringify(participants, null, 2));
 
     return { retro, participants };
   }

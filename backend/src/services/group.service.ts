@@ -1,16 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
+import { CreateGroupDto } from '../dto/create-group.dto'; // Adjust the import path as necessary
 
 @Injectable()
 export class LabelsGroupService {
   constructor(private prisma: PrismaService) {}
 
-  async createLabelGroup(label: string, retroId: string, itemId: string) {
+  async createLabelGroup(createGroupDto: CreateGroupDto) {
     return this.prisma.labelsGroup.create({
       data: {
-        label,
-        retro_id: retroId,
-        item_id: itemId,
+        label: createGroupDto.label,
+        retro_id: createGroupDto.retro_id,
+        item_id: createGroupDto.item_id,
       },
     });
   }

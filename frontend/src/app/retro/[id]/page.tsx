@@ -6,30 +6,22 @@ import { Badge } from "@/components/ui/badge"
 import { FeedbackCard } from "@/components/feedback-card"
 import { ArrowLeft, Users, Clock, Share2 } from "lucide-react"
 import { Link } from "react-router-dom"
-import { apiService, Retro, RetroItem, Participant } from "@/services/api"
+import { apiService, Retro, RetroItem, Participant, LabelsGroup } from "@/services/api"
 
 // Interface untuk data grup
 interface GroupData {
   groups: Array<{
-    id: string;
-    name: string;
-    color: string;
+    groupId: string;
     itemIds: string[];
-    createdAt: string;
   }>;
-  lastUpdated: string;
 }
 
 interface DatabaseGroupData {
   retroId: string;
   groups: Array<{
     groupId: string;
-    groupName: string;
-    groupColor: string;
     itemIds: string[];
-    createdAt: string;
-  }>;
-  lastUpdated: string;
+  }>; 
 }
 
 interface GroupedItem {
@@ -60,6 +52,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import Draggable from 'react-draggable';
+import { Label } from "recharts"
 
 export default function RetroPage() {
   const params = useParams()
@@ -96,13 +89,15 @@ export default function RetroPage() {
   // Data structure untuk menyimpan grup yang bisa dimasukkan ke database
   const [groupData, setGroupData] = useState<GroupData>({
     groups: [],
-    lastUpdated: new Date().toISOString()
   });
 
   // Promote to Facilitator Confirmation
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [selectedParticipant, setSelectedParticipant] = useState<Participant | null>(null);
   const [isPromoting, setIsPromoting] = useState(false);
+
+  const [labelsGroups, setLabelsGroups] = useState<LabelsGroup[]>([]);
+  const [labellingItems, setLabellingItems] = useState<{ [label: string]: RetroItem[] }>({});
 
   // Helper warna random konsisten
   function getNextColor(used: string[]): string {
@@ -231,42 +226,42 @@ export default function RetroPage() {
 
     // Konversi ke format yang bisa disimpan ke database
     const groups = Array.from(groupsMap.entries()).map(([signature, itemIds], index) => {
-      const color = signatureColors[signature] || getNextColor([]);
       return {
-        id: `group_${signature}_${Date.now()}_${index}`,
-        name: `Group ${index + 1}`,
-        color: color,
+        groupId: `group_${signature}_${Date.now()}_${index}`,
         itemIds: itemIds,
-        createdAt: new Date().toISOString()
       };
     });
 
     return {
       groups: groups,
-      lastUpdated: new Date().toISOString()
     };
   }, [itemGroups, signatureColors]);
 
-  // Fungsi untuk menyimpan data grup (akan diimplementasikan untuk database)
-  const saveGroupData = useCallback((): DatabaseGroupData => {
+  // Fungsi untuk menyimpan data grup ke database (kirim satu per satu)
+  const saveGroupData = useCallback(async () => {
     const dataToSave = convertGroupsToDatabaseFormat();
     setGroupData(dataToSave);
-    
-    // Data yang siap untuk disimpan ke database
-    const databaseData: DatabaseGroupData = {
-      retroId: retroId,
-      groups: dataToSave.groups.map(group => ({
-        groupId: group.id,
-        groupName: group.name,
-        groupColor: group.color,
-        itemIds: group.itemIds,
-        createdAt: group.createdAt
-      })),
-      lastUpdated: dataToSave.lastUpdated
-    };
+    console.log('💾 Data grup yang akan disimpan:', dataToSave);
 
-    return databaseData;
+    for (const [groupIndex, group] of dataToSave.groups.entries()) {
+      for (const itemId of group.itemIds) {
+        const payload = {
+          retro_id: retroId,
+          label: `Group ${groupIndex + 1}`,
+          item_id: itemId,
+        };
+        console.log('📤 Sending to API:', payload);
+        try {
+          await apiService.createLabelGroup(retroId, payload);
+          console.log('✅ Data berhasil dikirim:', payload);
+        } catch (error) {
+          console.error('❌ Gagal mengirim data:', payload, error);
+        }
+      }
+    }
   }, [convertGroupsToDatabaseFormat, retroId]);
+
+
 
   // Fungsi untuk mendapatkan data grup yang sudah dikelompokkan
   const getGroupedItems = useCallback((): GroupedItem[] => {
@@ -293,6 +288,7 @@ export default function RetroPage() {
         groupsMap.get('ungrouped')!.items.push(item);
       }
     });
+
 
     return Array.from(groupsMap.entries()).map(([signature, data], index) => ({
       groupId: signature,
@@ -416,7 +412,22 @@ export default function RetroPage() {
     console.log('Render SubmitPhase');
   }, [retro?.currentPhase]);
 
-  
+  useEffect(() => {
+    if (phase === 'labelling') {
+      apiService.getLabelsByRetro(retroId).then((groups) => {
+        setLabelsGroups(groups);
+        // Kelompokkan item per group label
+        const groupMap: { [label: string]: RetroItem[] } = {};
+        groups.forEach((g) => {
+          const label = g.label || `Group`;
+          if (!groupMap[label]) groupMap[label] = [];
+          const item = items.find((it: RetroItem) => it.id === (g as any).item_id);
+          if (item) groupMap[label].push(item);
+        });
+        setLabellingItems(groupMap);
+      });
+    }
+  }, [phase, retroId, items]);
 
   const currentUserRole = participants.find(p => p.user.id === user?.id)?.role || false;
   
@@ -1247,35 +1258,25 @@ export default function RetroPage() {
           </div>
           {/* Tombol kanan */}
           <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              className="text-gray-600 border-gray-300"
-              onClick={() => {
-                const data = saveGroupData();
-                // Data siap untuk disimpan ke database
-                console.log('Data grup yang siap disimpan:', data);
-              }}
-            >
-              Save Groups
-            </Button>
             {isCurrentFacilitator && currentUserParticipant?.role && (
-            <Button 
-              className="bg-gray-400 text-white px-8 py-2 rounded" 
-              style={{ minWidth: 180 }} 
-              disabled={isPhaseChanging}
-              onClick={async () => {
-                setIsPhaseChanging(true);
-                try {
-                  await broadcastPhaseChange('labelling');
-                } catch (error) {
-                  console.error('Failed to change phase:', error);
-                } finally {
-                  setIsPhaseChanging(false);
-                }
-              }}
-            >
-              {isPhaseChanging ? 'Moving to Labelling...' : 'Group Labeling'}
-            </Button>
+              <Button
+                className="bg-gray-400 text-white px-8 py-2 rounded"
+                style={{ minWidth: 180 }}
+                disabled={isPhaseChanging}
+                onClick={async () => {
+                  setIsPhaseChanging(true);
+                  try {
+                    await saveGroupData();
+                    await broadcastPhaseChange('labelling');
+                  } catch (error) {
+                    console.error('Failed to save groups or change phase:', error);
+                  } finally {
+                    setIsPhaseChanging(false);
+                  }
+                }}
+              >
+                {isPhaseChanging ? 'Processing...' : 'Group Labeling'}
+              </Button>
             )}
           </div>
         </div>
@@ -1300,44 +1301,24 @@ export default function RetroPage() {
       {/* Group Board */}
       <div className="flex-1 flex flex-col items-center justify-start w-full">
         <div className="flex flex-row gap-8 mt-8 w-full justify-center">
-          {[0, 1].map((groupIdx) => (
-            <div key={groupIdx} className="bg-white border rounded-lg shadow-sm min-w-[350px] max-w-[400px] w-full p-4">
+          {Object.entries(labellingItems).map(([label, groupItems], idx) => (
+            <div key={label} className="bg-white border rounded-lg shadow-sm min-w-[350px] max-w-[400px] w-full p-4">
+              {/* Tombol Voting di kanan */}
               <div className="mb-2">
                 <input
                   className="w-full text-center text-gray-500 font-semibold bg-gray-100 rounded px-2 py-1 mb-2 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-200"
                   placeholder="Optional Group Label"
                   maxLength={20}
-                  value={groupLabels[groupIdx] || ""}
-                  onChange={e => {
-                    const val = e.target.value;
-                    setGroupLabels(prev => {
-                      const arr = [...prev];
-                      arr[groupIdx] = val;
-                      return arr;
-                    });
-                  }}
+                  value={label}
+                  readOnly
                 />
               </div>
               <div className="flex flex-col gap-2">
-                {groupIdx === 0 ? (
-                  <>
-                    <div className="flex items-center gap-2 text-base">
-                      <span role="img" aria-label="happy">😀</span>
-                      <span>asdasd Sasasdsadsad</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-base">
-                      <span role="img" aria-label="sad">😢</span>
-                      <span>asdasdczvxcv</span>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="flex items-center gap-2 text-base">
-                      <span role="img" aria-label="happy">😀</span>
-                      <span>vxvf</span>
-                    </div>
-                  </>
-                )}
+                {groupItems.map((item) => (
+                  <div key={item.id} className="flex items-center gap-2 text-base">
+                    <span>{item.content}</span>
+                  </div>
+                ))}
               </div>
             </div>
           ))}
@@ -1433,10 +1414,10 @@ export default function RetroPage() {
       {/* Group Board */}
       <div className="flex-1 flex flex-col items-center justify-start w-full">
         <div className="flex flex-row gap-8 mt-8 w-full justify-center">
-          {[0, 1].map((groupIdx) => (
-            <div key={groupIdx} className="bg-white border rounded-lg shadow-sm min-w-[350px] max-w-[400px] w-full p-4">
+          {Object.entries(labellingItems).map(([label, groupItems], idx) => (
+            <div key={label} className="bg-white border rounded-lg shadow-sm min-w-[350px] max-w-[400px] w-full p-4">
               <div className="mb-2 flex items-center justify-between">
-                <span className="text-lg font-semibold text-gray-400">{groupLabels[groupIdx]?.trim() || 'Unlabeled'}</span>
+                <span className="text-lg font-semibold text-gray-400">{label}</span>
                 <div className="flex items-center gap-2">
                     <div className="relative flex items-center">
                       <div className="bg-teal-400 text-white font-bold pl-4 pr-2 py-1 rounded-lg relative select-none text-left" style={{fontSize: '1rem', minWidth: '90px'}}>
@@ -1447,43 +1428,29 @@ export default function RetroPage() {
                     size="icon"
                     variant="outline"
                     className="h-7 w-7 px-0"
-                    onClick={() => handleVote(groupIdx, -1)}
-                    disabled={(userVotes[groupIdx] || 0) <= 0}
+                    onClick={() => handleVote(idx, -1)}
+                    disabled={(userVotes[idx] || 0) <= 0}
                   >
-                    –
+                    -
                   </Button>
                   <Button
                     size="icon"
                     variant="outline"
                     className="h-7 w-7 px-0"
-                    onClick={() => handleVote(groupIdx, 1)}
+                    onClick={() => handleVote(idx, 1)}
                     disabled={votesLeft <= 0}
                   >
                     +
                   </Button>
-                  <span className="w-5 text-center font-semibold">{userVotes[groupIdx] || 0}</span>
+                  <span className="w-5 text-center font-semibold">{userVotes[idx] || 0}</span>
                 </div>
               </div>
               <div className="flex flex-col gap-2">
-                {groupIdx === 0 ? (
-                  <>
-                    <div className="flex items-center gap-2 text-base">
-                      <span role="img" aria-label="happy">😀</span>
-                      <span>asdasd Sasasdsadsad</span>
+                {groupItems.map((item) => (
+                  <div key={item.id} className="flex items-center gap-2 text-base">
+                   <span>{item.content}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-base">
-                      <span role="img" aria-label="sad">😢</span>
-                      <span>asdasdczvxcv</span>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="flex items-center gap-2 text-base">
-                      <span role="img" aria-label="happy">😀</span>
-                      <span>vxvf</span>
-                    </div>
-                  </>
-                )}
+                ))}
               </div>
             </div>
           ))}
@@ -2125,3 +2092,5 @@ function RetroHeader({
     </div>
   );
 }
+
+// Fetch labels_group data saat masuk fase labelling

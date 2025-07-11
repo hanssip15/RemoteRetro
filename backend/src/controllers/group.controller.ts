@@ -1,13 +1,14 @@
-import { Controller, Post, Body, Get, Param, Put, Delete } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, Put, Delete, HttpStatus, HttpCode } from '@nestjs/common';
 import { LabelsGroupService } from '../services/group.service';
-
+import { CreateGroupDto } from '../dto/create-group.dto'; // Adjust the import path as necessary
 @Controller('labels-group')
 export class LabelsGroupController {
   constructor(private readonly labelsGroupService: LabelsGroupService) {}
 
   @Post()
-  async create(@Body() body: { label: string, retroId: string, itemId: string }) {
-    return this.labelsGroupService.createLabelGroup(body.label, body.retroId, body.itemId);
+  @HttpCode(HttpStatus.CREATED) 
+  async create(@Body() createGroupDto: CreateGroupDto) {
+    return this.labelsGroupService.createLabelGroup(createGroupDto);
   }
 
   @Get(':retroId')
