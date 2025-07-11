@@ -1,12 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
-  output   = "../generated/prisma"
 }
 
 datasource db {
@@ -14,81 +7,123 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  name      String
-  imageUrl  String?  @map("image_url")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+enum retro_status {
+  draft
+  ongoing
+  completed
+}
 
-  // Relations
-  retros     Retro[]     @relation("RetroCreator")
-  items      RetroItem[] @relation("ItemCreator")
+enum retro_formats {
+  happy_sad_confused
+  start_stop_continue
+}
+
+enum retro_phases {
+  submit
+  grouping
+  labelling
+  voting
+  final
+  ActionItems
+}
+
+enum retro_format_types {
+  format_1
+  format_2
+  format_3
+}
+
+model User {
+  id        String         @id @default(uuid())
+  email     String         @unique
+  name      String
+  image_url String?
+
+  // Relasi ke Retro (sebagai creator)
+  retros    Retro[]        @relation("CreatedRetros")
+
+  // Relasi ke RetroItem (sebagai creator)
+  items     RetroItem[]    @relation("CreatedItems")
+
+  // Relasi ke Participant
   participants Participant[]
 
   @@map("users")
 }
 
 model Retro {
-  id        String   @id @default(uuid())
-  title     String
-  status    String   @default("draft")
-  currentPhase String @default("submit") @map("current_phase")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-  createdBy String   @map("created_by")
+  id            String         @id
+  title         String
+  created_at    DateTime       @default(now())
+  updated_at    DateTime       @updatedAt
+  created_by    String?
+  status        retro_status
+  format        retro_formats
+  current_phase retro_phases?
 
-  // Relations
-  creator      User          @relation("RetroCreator", fields: [createdBy], references: [id])
-  participants Participant[]
-  items        RetroItem[]
+  // Relasi ke User (creator)
+  creator       User?          @relation("CreatedRetros", fields: [created_by], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  // Relasi ke RetroItem
+  items         RetroItem[]
+
+  // Relasi ke Participant
+  participants  Participant[]
+
+  // Relasi ke LabelsGroup
+  labelsGroups  LabelsGroup[]
 
   @@map("retros")
 }
 
-model Participant {
-  id      Int      @id @default(autoincrement())
-  retroId String   @map("retro_id")
-  userId  String   @map("user_id")
-  role    Boolean  @default(false)
-  joinedAt DateTime @default(now()) @map("joined_at")
-
-  // Relations
-  retro Retro @relation(fields: [retroId], references: [id], onDelete: Cascade)
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("participants")
-}
-
 model RetroItem {
-  id        Int         @id @default(autoincrement())
-  retroId   String      @map("retro_id")
-  type      String      // 'went_well' | 'improve' | 'action_item'
-  content   String
-  votes     Int         @default(0)
-  positionX Float?      @map("position_x")
-  positionY Float?      @map("position_y")
-  createdAt DateTime    @default(now()) @map("created_at")
-  createdBy String?     @map("created_by")
+  id          String         @id @default(uuid())
+  content     String
+  retro_id    String
+  created_by  String?
+  format_type retro_format_types
+  is_edited   Boolean        @default(false)
 
-  // Relations
-  retro   Retro @relation(fields: [retroId], references: [id], onDelete: Cascade)
-  creator User? @relation("ItemCreator", fields: [createdBy], references: [id], onDelete: SetNull)
+  // Relasi ke Retro
+  retro       Retro          @relation(fields: [retro_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  // Relasi ke User
+  creator     User?          @relation("CreatedItems", fields: [created_by], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  // Relasi ke LabelsGroup
+  labels      LabelsGroup[]  @relation("ItemLabels")
 
   @@map("retro_items")
 }
 
-model LabelsGroup {
-  id       Int      @id @default(autoincrement())
-  label    String?
-  retro_id String
-  item_id  String
+model Participant {
+  id        Int       @id @default(autoincrement())
+  role      Boolean   @default(false)
+  joined_at DateTime  @default(now())
+  retro_id  String
+  user_id   String
 
-  retro    Retro     @relation(fields: [retro_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  item     RetroItem @relation(fields: [item_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  // Relasi ke Retro
+  retro     Retro     @relation(fields: [retro_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  // Relasi ke User
+  user      User      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([retro_id, user_id], name: "uniquq_retro_user")
+  @@map("participants")
+}
+
+model LabelsGroup {
+  id        Int         @id @default(autoincrement())
+  label     String?
+  retro_id  String?
+  item_id   String?
+
+  // Relasi ke Retro
+  retro     Retro?      @relation(fields: [retro_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  // Relasi ke RetroItem
+  item      RetroItem?  @relation("ItemLabels", fields: [item_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@map("labels_group")
 }
-
-

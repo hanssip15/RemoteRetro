@@ -77,6 +77,27 @@ export interface addParticipantData {
   userId: string;
 }
 
+export interface LabelsGroup {
+  label: string;
+  itemIds: string[];
+  groups: string[];
+  votes: number;
+}
+
+export interface CreateLabelsGroupData {
+  retro_id: string;
+  groups: Array<{
+    groupId: string;
+    itemIds: string[];
+  }>;
+}
+
+export interface CreateLabelGroupSingle {
+  retro_id: string;
+  label: string;
+  item_id: string;
+}
+
 class ApiService {
   async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`;
@@ -133,6 +154,25 @@ class ApiService {
       throw error;
     }
   }
+
+  async createLabelGroup(retro_id: string, data: CreateLabelGroupSingle): Promise<LabelsGroup> {
+    return this.request<LabelsGroup>('/labels-group', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getLabelsByRetro(retro_id: string): Promise<LabelsGroup[]> {
+    return this.request<LabelsGroup[]>(`/labels-group/${retro_id}`);
+  }
+
+  async updateLabel(id: number, label: string): Promise<LabelsGroup> {
+    return this.request<LabelsGroup>(`/labels-group/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ label }),
+    });
+  }
+  
 
   // Retro endpoints
   async getRetros(): Promise<Retro[]> {

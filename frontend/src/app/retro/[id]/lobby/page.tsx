@@ -90,48 +90,7 @@ export default function RetroLobbyPage() {
     }
   }, [currentUser, retroId, participants, fetchLobbyData]);
 
-  // Initialize socket connection
-  // useEffect(() => {
-  //   if (!retroId) return;
-
-  //   console.log('🔌 Initializing socket connection...');
-  //   const newSocket = io('http://localhost:3001', {
-  //     transports: ['websocket', 'polling'],
-  //     timeout: 10000,
-  //   });
-
-  //   newSocket.on('connect', () => {
-  //     console.log('✅ Socket connected:', newSocket.id);
-  //   });
-
-  //   newSocket.on('connect_error', (error) => {
-  //     console.error('❌ Socket connection error:', error);
-  //   });
-
-  //   newSocket.on('disconnect', (reason) => {
-  //     console.log('🔌 Socket disconnected:', reason);
-  //   });
-
-  //   setSocket(newSocket);
-
-  //   return () => {
-  //     console.log('🔌 Cleaning up socket connection...');
-  //     newSocket.disconnect();
-  //   };
-  // }, [retroId]);
-
-  // useEffect(() => {
-  //   if (!socket || !retroId) return;
-  //   const updateHandler = () => {
-  //     console.log('🔁 Participants update received, refreshing data...');
-  //     fetchLobbyData();
-  //   };
-  //   socket.on(`participants-update:${retroId}`, updateHandler);
-  //     return () => {
-  //     socket.off(`participants-update:${retroId}`, updateHandler);
-  //   };
-  // }, [socket, retroId]);
-
+  
   useEffect(() => {
     if (!loading && retro && participants.length > 0) {
       checkAndJoinParticipant();
