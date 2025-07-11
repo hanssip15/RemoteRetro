@@ -1,0 +1,100 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String
+  imageUrl  String?  @map("image_url")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  retros     Retro[]     @relation("RetroCreator")
+  items      RetroItem[] @relation("ItemCreator")
+  participants Participant[]
+
+  @@map("users")
+}
+
+model Retro {
+  id        String   @id @default(uuid())
+  title     String
+  status    String   @default("draft")
+  currentPhase String @default("submit") @map("current_phase")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  createdBy String   @map("created_by")
+
+  // Relations 
+  creator      User          @relation("RetroCreator", fields: [createdBy], references: [id])
+  participants Participant[]
+  items        RetroItem[]
+  labelsGroup LabelsGroup[]
+
+
+  @@map("retros")
+}
+
+model Participant {
+  id      Int      @id @default(autoincrement())
+  retroId String   @map("retro_id")
+  userId  String   @map("user_id")
+  role    Boolean  @default(false)
+  joinedAt DateTime @default(now()) @map("joined_at")
+
+  // Relations
+  retro Retro @relation(fields: [retroId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("participants")
+}
+
+model RetroItem {
+  id        Int         @id @default(autoincrement())
+  retroId   String      @map("retro_id")
+  type      String      // 'went_well' | 'improve' | 'action_item'
+  content   String
+  votes     Int         @default(0)
+  positionX Float?      @map("position_x")
+  positionY Float?      @map("position_y")
+  createdAt DateTime    @default(now()) @map("created_at")
+  createdBy String?     @map("created_by")
+
+  // Relations
+  retro   Retro @relation(fields: [retroId], references: [id], onDelete: Cascade)
+  creator User? @relation("ItemCreator", fields: [createdBy], references: [id], onDelete: SetNull)
+
+  labelsGroup LabelsGroup[]
+
+  @@map("retro_items")
+}
+
+model LabelsGroup {
+  id       Int        @id @default(autoincrement())
+  label    String
+  retro_id String     @db.VarChar
+  item_id  String     @db.Uuid
+  votes    Int
+
+  /// Relasi ke tabel Retro
+  retro    Retro      @relation(fields: [retro_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  /// Relasi ke tabel RetroItem
+  item     RetroItem  @relation(fields: [item_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+}
+
+
