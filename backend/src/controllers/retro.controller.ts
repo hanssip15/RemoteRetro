@@ -12,10 +12,7 @@ export class RetroController {
   @Get()
   @UseGuards(AuthGuard('jwt'))
   async findAll(@Req() req: Request) {
-    console.log('📋 === GET /retros ===');
-    console.log('👤 User from JWT:', req.user);
     const retros = await this.retroService.findAll();
-    console.log('📊 Retros fetched:', retros.length);
     return retros;
   }
 
@@ -55,7 +52,6 @@ export class RetroController {
 
   @Get(':id')
   async findOne(@Param('id') id: string) {
-    console.log(`=== GET /retros/${id} ===`);
     const { retro, participants } = await this.retroService.findOne(id);
     return { retro, participants };
   }
@@ -98,6 +94,14 @@ export class RetroController {
   async update(@Param('id') id: string, @Body() updateRetroDto: UpdateRetroDto) {
     console.log(`=== PUT /retros/${id} ===`);
     const retro = await this.retroService.updateStatus(id, updateRetroDto);
+    return retro;
+  }
+
+  @Put(':id/phase')
+  async updatePhase(@Param('id') id: string, @Body() body: { phase: string; facilitatorId: string }) {
+    console.log(`=== PUT /retros/${id}/phase ===`);
+    console.log('📝 Phase update request:', body);
+    const retro = await this.retroService.updatePhase(id, body.phase, body.facilitatorId);
     return retro;
   }
 

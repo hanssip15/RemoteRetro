@@ -9,6 +9,9 @@ interface UseRetroSocketOptions {
   onItemsUpdate?: (items: any[]) => void;
   onParticipantUpdate?: () => void;
   onRetroStarted?: () => void;
+  onPhaseChange?: (phase: 'submit' | 'grouping' | 'labelling' | 'voting' | 'final' | 'ActionItems') => void;
+  onItemPositionUpdate?: (data: { itemId: string; position: { x: number; y: number }; userId: string }) => void;
+  onGroupingUpdate?: (data: { itemGroups: { [itemId: string]: string }; signatureColors: { [signature: string]: string }; userId: string }) => void;
 }
 
 export const useRetroSocket = ({
@@ -19,6 +22,9 @@ export const useRetroSocket = ({
   onItemsUpdate,
   onParticipantUpdate,
   onRetroStarted,
+  onPhaseChange,
+  onItemPositionUpdate,
+  onGroupingUpdate,
 }: UseRetroSocketOptions) => {
   const { socket, isConnected, joinRoom, leaveRoom } = useSocketContext();
 
@@ -30,7 +36,10 @@ export const useRetroSocket = ({
     onItemsUpdate,
     onParticipantUpdate,
     onRetroStarted,
-  }), [onItemAdded, onItemUpdated, onItemDeleted, onItemsUpdate, onParticipantUpdate, onRetroStarted]);
+    onPhaseChange,
+    onItemPositionUpdate,
+    onGroupingUpdate,
+  }), [onItemAdded, onItemUpdated, onItemDeleted, onItemsUpdate, onParticipantUpdate, onRetroStarted, onPhaseChange, onItemPositionUpdate, onGroupingUpdate]);
 
   // Join room when component mounts or retroId changes
   useEffect(() => {
@@ -87,6 +96,20 @@ export const useRetroSocket = ({
       callbacks.onRetroStarted?.();
     };
 
+    const handlePhaseChange = (data: { phase: 'submit' | 'grouping' | 'labelling' | 'voting' | 'final' | 'ActionItems' }) => {
+      console.log('🔄 Phase change via WebSocket:', data.phase);
+      callbacks.onPhaseChange?.(data.phase);
+    };
+
+    const handleItemPositionUpdate = (data: { itemId: string; position: { x: number; y: number }; userId: string }) => {
+      callbacks.onItemPositionUpdate?.(data);
+    };
+
+    const handleGroupingUpdate = (data: { itemGroups: { [itemId: string]: string }; signatureColors: { [signature: string]: string }; userId: string }) => {
+      console.log('🎨 Grouping update via WebSocket:', data);
+      callbacks.onGroupingUpdate?.(data);
+    };
+
     // Add event listeners
     socket.on(`item-added:${retroId}`, handleItemAdded);
     socket.on(`item-updated:${retroId}`, handleItemUpdated);
@@ -94,6 +117,9 @@ export const useRetroSocket = ({
     socket.on(`items-update:${retroId}`, handleItemsUpdate);
     socket.on(`participants-update:${retroId}`, handleParticipantUpdate);
     socket.on(`retro-started:${retroId}`, handleRetroStarted);
+    socket.on(`phase-change:${retroId}`, handlePhaseChange);
+    socket.on(`item-position-update:${retroId}`, handleItemPositionUpdate);
+    socket.on(`grouping-update:${retroId}`, handleGroupingUpdate);
 
     // Test event to verify listeners are working
     console.log('✅ Event listeners set up for retro:', retroId);
@@ -107,6 +133,9 @@ export const useRetroSocket = ({
       socket.off(`items-update:${retroId}`, handleItemsUpdate);
       socket.off(`participants-update:${retroId}`, handleParticipantUpdate);
       socket.off(`retro-started:${retroId}`, handleRetroStarted);
+      socket.off(`phase-change:${retroId}`, handlePhaseChange);
+      socket.off(`item-position-update:${retroId}`, handleItemPositionUpdate);
+      socket.off(`grouping-update:${retroId}`, handleGroupingUpdate);
     };
   }, [socket, retroId, callbacks]);
 

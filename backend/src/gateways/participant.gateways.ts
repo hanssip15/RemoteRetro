@@ -8,6 +8,15 @@ import {
   } from '@nestjs/websockets';
   import { Server, Socket } from 'socket.io';
   
+  // Tambahkan di luar class (atau static property jika ingin lebih rapi)
+  const retroState: {
+    [retroId: string]: {
+      itemPositions: { [itemId: string]: { x: number; y: number } },
+      itemGroups: { [itemId: string]: string },
+      signatureColors: { [signature: string]: string }
+    }
+  } = {};
+  
   @WebSocketGateway({
     cors: {
       origin: '*',
@@ -52,6 +61,14 @@ import {
       this.server.to(`retro:${retroId}`).emit(`retro-started:${retroId}`);
     }
 
+    broadcastPhaseChange(retroId: string, phase: string) {
+      console.log(`🔄 Broadcasting phase change to room: ${retroId}`, phase);
+      this.server.to(`retro:${retroId}`).emit(`phase-change:${retroId}`, {
+        phase: phase,
+        timestamp: new Date().toISOString()
+      });
+    }
+
     broadcastItemAdded(retroId: string, item: any) {
       console.log(`📝 Broadcasting item added to room: ${retroId}`, item);
       this.server.to(`retro:${retroId}`).emit(`item-added:${retroId}`, item);
@@ -77,5 +94,66 @@ import {
       console.log(`📋 Broadcasting items update to room: ${retroId}`, items.length, 'items');
       this.server.to(`retro:${retroId}`).emit(`items-update:${retroId}`, items);
     }
+
+    // Handle phase change from facilitator
+    @SubscribeMessage('phase-change')
+    handlePhaseChange(client: Socket, data: { retroId: string; phase: string; facilitatorId: string }) {
+      console.log(`🔄 Phase change request from facilitator:`, data);
+      
+      // Broadcast phase change to all participants in the retro
+      this.server.to(`retro:${data.retroId}`).emit(`phase-change:${data.retroId}`, {
+        phase: data.phase,
+        facilitatorId: data.facilitatorId,
+        timestamp: new Date().toISOString()
+      });
+      
+      console.log(`📡 Phase change broadcasted to room: ${data.retroId}`);
+    }
+
+    // Handle item position updates during dragging
+    @SubscribeMessage('item-position-update')
+    handleItemPositionUpdate(client: Socket, data: { retroId: string; itemId: string; position: { x: number; y: number }; userId: string }) {
+      // Update in-memory state
+      if (!retroState[data.retroId]) retroState[data.retroId] = { itemPositions: {}, itemGroups: {}, signatureColors: {} };
+      retroState[data.retroId].itemPositions[data.itemId] = data.position;
+      // Broadcast position update to all participants in the retro
+      this.server.to(`retro:${data.retroId}`).emit(`item-position-update:${data.retroId}`, {
+        itemId: data.itemId,
+        position: data.position,
+        userId: data.userId,
+        timestamp: new Date().toISOString()
+      });
+      console.log(`📡 Item position broadcasted to room: ${data.retroId}`);
+    }
+
+    // Handle grouping updates
+    @SubscribeMessage('grouping-update')
+    handleGroupingUpdate(client: Socket, data: { 
+      retroId: string; 
+      itemGroups: { [itemId: string]: string }; 
+      signatureColors: { [signature: string]: string };
+      userId: string 
+    }) {
+      if (!retroState[data.retroId]) retroState[data.retroId] = { itemPositions: {}, itemGroups: {}, signatureColors: {} };
+      retroState[data.retroId].itemGroups = data.itemGroups;
+      retroState[data.retroId].signatureColors = data.signatureColors;
+      // Broadcast grouping update to all participants in the retro
+      this.server.to(`retro:${data.retroId}`).emit(`grouping-update:${data.retroId}`, {
+        itemGroups: data.itemGroups,
+        signatureColors: data.signatureColors,
+        userId: data.userId,
+        timestamp: new Date().toISOString()
+      });
+      console.log(`🎨 Grouping update broadcasted to room: ${data.retroId}`);
+    }
+
+    // Handler baru: user minta state terkini
+    @SubscribeMessage('request-retro-state')
+    handleRequestRetroState(client: Socket, data: { retroId: string }) {
+      const state = retroState[data.retroId] || { itemPositions: {}, itemGroups: {}, signatureColors: {} };
+      client.emit(`retro-state:${data.retroId}`, state);
+      console.log(`📦 Sent retro state to client ${client.id} for retro ${data.retroId}`);
+    }
+
   }
   

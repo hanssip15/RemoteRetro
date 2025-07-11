@@ -48,6 +48,8 @@ export class RetroService {
       order: { joinedAt: 'ASC' },
     });
 
+    console.log('🔍 Participants with user data:', JSON.stringify(participants, null, 2));
+
     return { retro, participants };
   }
 
@@ -83,6 +85,30 @@ export class RetroService {
     console.log('🔁 Retro status updated:', JSON.stringify(retro, null, 2));
 
     this.participantGateway.broadcastRetroStarted(id);
+    return this.retroRepository.save(retro);
+  }
+
+  async updatePhase(id: string, phase: string, facilitatorId: string): Promise<Retro> {
+    const retro = await this.retroRepository.findOne({ where: { id } });
+    if (!retro) {
+      throw new NotFoundException(`Retro with ID ${id} not found`);
+    }
+
+    // Verify that the user is a facilitator
+    const participant = await this.participantRepository.findOne({
+      where: { retroId: id, userId: facilitatorId, role: true }
+    });
+
+    if (!participant) {
+      throw new NotFoundException('Only facilitators can change phases');
+    }
+
+    retro.currentPhase = phase;
+    console.log('🔄 Phase updated:', JSON.stringify(retro, null, 2));
+
+    // Broadcast phase change to all participants
+    this.participantGateway.broadcastPhaseChange(id, phase);
+    
     return this.retroRepository.save(retro);
   }
 
