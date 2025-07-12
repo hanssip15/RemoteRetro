@@ -1,0 +1,210 @@
+import React from 'react';
+import RetroFooter from './RetroFooter';
+import { Button } from '@/components/ui/button';
+import RetroHeader from '../RetroHeader';
+import { Pencil, Trash2 } from 'lucide-react';
+
+export default function ActionItemsPhase({
+  retro,
+  participants,
+  user,
+  currentUserRole,
+  showShareModal,
+  setShowShareModal,
+  handleLogout,
+  groupLabels,
+  userVotes,
+  actionItems,
+  actionInput,
+  actionAssignee,
+  setActionInput,
+  setActionAssignee,
+  handleAddActionItem,
+  isCurrentFacilitator,
+  setPhase,
+  typingParticipants,
+  setShowRoleModal,
+  setSelectedParticipant,
+  editingActionIdx,
+  editActionInput,
+  editActionAssignee,
+  setEditingActionIdx,
+  setEditActionInput,
+  setEditActionAssignee,
+  handleEditActionItem,
+  handleSaveEditActionItem,
+  handleDeleteActionItem,
+  broadcastPhaseChange
+}: any) {
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <RetroHeader
+        retro={retro}
+        participants={participants}
+        user={user}
+        currentUserRole={currentUserRole}
+        showShareModal={showShareModal}
+        setShowShareModal={setShowShareModal}
+        handleLogout={handleLogout}
+      />
+      <div className="w-full flex flex-row">
+        {/* Card group kiri */}
+        <div className="flex flex-row gap-6 p-8 items-start flex-1">
+          {[0, 1].map((groupIdx: number) => (
+            <div key={groupIdx} className="bg-white border rounded-lg shadow-sm w-auto min-w-[220px] max-w-[350px] px-4 py-3">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-lg font-semibold text-gray-400">{groupLabels[groupIdx]?.trim() || 'Unlabeled'}</span>
+                <div className="flex items-center gap-2">
+                  <div className="bg-gray-100 text-gray-700 font-bold px-3 py-1 rounded select-none text-center" style={{fontSize: '1rem', minWidth: '60px'}}>
+                    Votes {userVotes[groupIdx] || 0}
+                  </div>
+                </div>
+              </div>
+              <div className="flex flex-col gap-2">
+                {/* TODO: Render items per group if needed */}
+              </div>
+            </div>
+          ))}
+        </div>
+        {/* Panel Action Items sticky kanan */}
+        <div className="w-[400px] border-l bg-white flex flex-col p-6 sticky top-0 self-start overflow-y-auto" style={{ height: 'calc(100vh - 80px)', right: 0 }}>
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-2xl">🚀</span>
+            <span className="text-xl font-semibold">Action Items</span>
+          </div>
+          <hr className="mb-4" />
+          {/* List action items */}
+          <div className="flex flex-col gap-2">
+            {actionItems.length === 0 && <span className="text-gray-400 text-sm">No action items yet.</span>}
+            {actionItems.map((item: any, idx: number) => (
+              <div key={idx} className="bg-gray-50 border rounded px-3 py-2 text-sm flex items-center justify-between gap-2">
+                {editingActionIdx === idx ? (
+                  <>
+                    <div className="flex-1 flex flex-col gap-1">
+                      <div className="flex gap-2">
+                        <select
+                          className="w-32 px-2 py-1 rounded-md border text-sm"
+                          value={editActionAssignee}
+                          onChange={e => setEditActionAssignee(e.target.value)}
+                        >
+                          {participants.map((p: any) => (
+                            <option key={p.user.id} value={p.user.id}>{p.user.name}</option>
+                          ))}
+                        </select>
+                        <input
+                          type="text"
+                          className="border rounded px-2 py-1 flex-1 text-sm"
+                          value={editActionInput}
+                          onChange={e => setEditActionInput(e.target.value)}
+                        />
+                      </div>
+                      <div className="flex gap-2 mt-1">
+                        <button
+                          className="px-2 py-1 bg-gray-400 text-white rounded text-xs hover:bg-gray-500"
+                          onClick={() => handleSaveEditActionItem(idx)}
+                          type="button"
+                        >
+                          Save
+                        </button>
+                        <button
+                          className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs border hover:bg-gray-200"
+                          onClick={() => setEditingActionIdx(null)}
+                          type="button"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex-1 flex flex-col">
+                      <span>
+                        {item.task} <span className="text-gray-700">({item.assigneeName})</span>
+                        {item.edited && <span className="ml-2 text-xs text-gray-500 font-semibold">(edited)</span>}
+                      </span>
+                    </div>
+                    <div className="flex gap-1">
+                      <button
+                        className="p-1 hover:bg-gray-200 rounded"
+                        title="Edit"
+                        onClick={() => handleEditActionItem(idx)}
+                        type="button"
+                      >
+                        <Pencil className="h-4 w-4 text-gray-600" />
+                      </button>
+                      <button
+                        className="p-1 hover:bg-red-100 rounded"
+                        title="Delete"
+                        onClick={() => handleDeleteActionItem(idx)}
+                        type="button"
+                      >
+                        <Trash2 className="h-4 w-4 text-red-500" />
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      <RetroFooter
+        title={null}
+        center={null}
+        right={isCurrentFacilitator && actionItems.length > 0 && (
+          <Button
+            onClick={() => broadcastPhaseChange ? broadcastPhaseChange('final') : setPhase && setPhase('final')}
+            className="px-8 py-2 rounded text-base font-semibold"
+            variant="secondary"
+          >
+            Next: Final
+          </Button>
+        )}
+        participants={participants}
+        typingParticipants={typingParticipants}
+        isCurrentFacilitator={isCurrentFacilitator}
+        user={user}
+        setShowRoleModal={setShowRoleModal}
+        setSelectedParticipant={setSelectedParticipant}
+      >
+        <div className="w-full bg-white border-t">
+          <div className="container mx-auto px-4 py-4 flex flex-row items-center gap-2">
+            <div className="flex items-center gap-2 w-full md:w-auto">
+              <label className="font-medium mr-2 mb-1">Assignee:</label>
+              <select
+                className="w-64 px-3 pr-8 py-2 rounded-md border text-base"
+                value={actionAssignee}
+                onChange={e => setActionAssignee(e.target.value)}
+              >
+                {participants.length > 0 ? (
+                  participants.map((p: any) => (
+                    <option key={p.user.id} value={p.user.id}>{p.user.name}</option>
+                  ))
+                ) : (
+                  <option>No participants</option>
+                )}
+              </select>
+            </div>
+            <input
+              type="text"
+              placeholder="Ex. automate the linting process"
+              className="border rounded px-2 py-1 flex-1"
+              value={actionInput}
+              onChange={e => setActionInput(e.target.value)}
+            />
+            <Button
+              className="px-4 py-1 bg-gray-400 text-white hover:bg-gray-500"
+              style={{ minWidth: 100 }}
+              onClick={handleAddActionItem}
+              disabled={!actionInput.trim() || !actionAssignee}
+              type="submit"
+            >
+              Add
+            </Button>
+          </div>
+        </div>
+      </RetroFooter>
+    </div>
+  );
+} 

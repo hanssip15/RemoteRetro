@@ -53,6 +53,13 @@ import {
 } from '@/components/ui/dropdown-menu';
 import Draggable from 'react-draggable';
 import { Label } from "recharts"
+import SubmitPhase from './phases/SubmitPhase';
+import GroupingPhase from './phases/GroupingPhase';
+import LabellingPhase from './phases/LabellingPhase';
+import VotingPhase from './phases/VotingPhase';
+import ActionItemsPhase from './phases/ActionItemsPhase';
+import FinalPhase from './phases/FinalPhase';
+import RetroHeader from './RetroHeader';
 
 export default function RetroPage() {
   const params = useParams()
@@ -98,6 +105,9 @@ export default function RetroPage() {
 
   const [labelsGroups, setLabelsGroups] = useState<LabelsGroup[]>([]);
   const [labellingItems, setLabellingItems] = useState<{ [label: string]: RetroItem[] }>({});
+
+  // 1. State for typing participants
+  const [typingParticipants, setTypingParticipants] = useState<string[]>([]);
 
   // Helper warna random konsisten
   function getNextColor(used: string[]): string {
@@ -837,702 +847,51 @@ export default function RetroPage() {
     }
   }, [socket, isConnected, retroId]);
 
-  // PHASE 1: Submit an Idea (existing)
-  const SubmitPhase = useMemo(() => {
-    if (loading) {
-      return (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading retrospective...</p>
-          </div>
-        </div>
-      )
+  // 2. Listen for typing events from socket
+  useEffect(() => {
+    if (!socket) return;
+    const handleTyping = (data: { userId: string }) => {
+      setTypingParticipants((prev) => {
+        if (prev.includes(data.userId)) return prev;
+        return [...prev, data.userId];
+      });
+      // Remove after 2s
+      setTimeout(() => {
+        setTypingParticipants((prev) => prev.filter((id) => id !== data.userId));
+      }, 2000);
+    };
+    socket.on('typing', handleTyping);
+    return () => { socket.off('typing', handleTyping); };
+  }, [socket]);
+
+  // 3. Emit typing event when user types in input (contoh untuk inputText)
+  const handleInputTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInputText(e.target.value);
+    if (socket && user) {
+      socket.emit('typing', { retroId, userId: user.id });
     }
-    if (error || !retro) {
-      return (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">{error || "Retrospective not found"}</h1>
-            <Link to="/dashboard">
-              <Button>Back to Dashboard</Button>
-            </Link>
-          </div>
-        </div>
-      )
-    }
-    return (
-      <div className="min-h-screen bg-gray-50 flex flex-col">
-        {/* Header */}
-        <div className="bg-white border-b">
-          <div className="container mx-auto px-4 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <Link to="/dashboard">
-                  <Button variant="ghost" size="sm">
-                    <ArrowLeft className="h-4 w-4 mr-2" />
-                    Back
-                  </Button>
-                </Link>
-                <div>
-                  <h1 className="text-2xl font-bold text-gray-900">{retro?.title ?? ''}</h1>
-                  <div className="flex items-center space-x-4 mt-1">
-                    <Badge variant="secondary" className="flex items-center space-x-1">
-                      <Users className="h-3 w-3" />
-                      <span>{participants.length} participants</span>
-                    </Badge>
-                    {retro && (retro as any).duration && (
-                      <Badge variant="secondary" className="flex items-center space-x-1">
-                        <Clock className="h-3 w-3" />
-                        <span>{(retro as any).duration} min</span>
-                      </Badge>
-                    )}
-                    <Badge variant={retro?.status === "draft" ? "default" : "secondary"}>{retro?.status ?? ''}</Badge>
-                    {currentUserParticipant?.role && (
-                      <Badge variant="default" className="bg-blue-500">
-                        Facilitator
-                      </Badge>
-                    )}
+  };
 
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Button variant="outline" onClick={() => setShowShareModal(true)}>
-                  <Share2 className="h-4 w-4 mr-2" />
-                  Share
-                </Button>
-                {user && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                        <Avatar className="h-10 w-10">
-                          <AvatarImage src={typeof (user as any)["image_url"] === "string" ? (user as any)["image_url"] : undefined} alt={user.name} />
-                          <AvatarFallback>
-                            {user.name?.charAt(0)?.toUpperCase() || <User className="h-4 w-4" />}
-                          </AvatarFallback>
-                        </Avatar>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-56" align="end" forceMount>
-                      <DropdownMenuLabel className="font-normal">
-                        <div className="flex flex-col space-y-1">
-                          <p className="text-sm font-medium leading-none">{user.name}</p>
-                          <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
-                        </div>
-                      </DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={handleLogout}>
-                        <LogOut className="mr-2 h-4 w-4" />
-                        <span>Log out</span>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Phase Change Notification */}
-        {isPhaseChanging && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-              <h3 className="text-lg font-semibold mb-2">Phase Change in Progress</h3>
-              <p className="text-gray-600">Facilitator is moving to the next phase...</p>
-            </div>
-          </div>
-        )}
-
-        {/* Promote to Facilitator Modal */}
-        {showRoleModal && selectedParticipant && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-              <h3 className="text-lg font-semibold mb-4">Promote to Facilitator?</h3>
-              <p className="text-gray-600 mb-6">
-                Are you sure you want to promote <strong>{selectedParticipant.user.name}</strong> to facilitator? 
-                You will no longer be the facilitator.
-              </p>
-              <div className="flex justify-end space-x-3">
-                <Button 
-                  variant="outline" 
-                  onClick={() => {
-                    setShowRoleModal(false);
-                    setSelectedParticipant(null);
-                  }}
-                  disabled={isPromoting}
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  onClick={() => {
-                    setIsPromoting(true);
-                    handlePromoteToFacilitator(selectedParticipant.id).finally(() => {
-                      setIsPromoting(false);
-                      setShowRoleModal(false);
-                      setSelectedParticipant(null);
-                    });
-                  }}
-                  disabled={isPromoting}
-                >
-                  {isPromoting ? 'Promoting...' : 'Promote to Facilitator'}
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Retro Board */}
-        <div className="container mx-auto px-4 py-8 flex-1 pb-56">
-          <div className="grid lg:grid-cols-3 gap-6">
-            {/* Happy */}
-            <Card className="h-fit">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <span role="img" aria-label="happy">😀</span> {getCategoryDisplayName(format[0])}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-4 space-y-4 min-h-[200px]">
-                {getItemsByCategory(format[0]).map((item) => (
-                  <FeedbackCard
-                    key={`${item.id}-${item.category}`}
-                    item={{ ...item, author: item.author || "Anonymous" }}
-                    currentUser={user}
-                    userRole={currentUserRole}
-                    onUpdate={handleUpdateItem}
-                    onDelete={handleDeleteItem}
-                    getCategoryDisplayName={getCategoryDisplayName}
-                    isUpdating={updatingItemId === item.id}
-                  />
-                ))}
-              </CardContent>
-            </Card>
-            {/* Sad */}
-            <Card className="h-fit">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <span role="img" aria-label="sad">😢</span> {getCategoryDisplayName(format[1])}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-4 space-y-4 min-h-[200px]">
-                {getItemsByCategory(format[1]).map((item) => (
-                  <FeedbackCard
-                    key={`${item.id}-${item.category}`}
-                    item={{ ...item, author: item.author || "Anonymous" }}
-                    currentUser={user}
-                    userRole={currentUserRole}
-                    onUpdate={handleUpdateItem}
-                    onDelete={handleDeleteItem}
-                    getCategoryDisplayName={getCategoryDisplayName}
-                    isUpdating={updatingItemId === item.id}
-                  />
-                ))}
-              </CardContent>
-            </Card>
-            {/* Confused */}
-            <Card className="h-fit">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <span role="img" aria-label="confused">🤔</span> {getCategoryDisplayName(format[2])}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-4 space-y-4 min-h-[200px]">
-                {getItemsByCategory(format[2]).map((item) => (
-                  <FeedbackCard
-                    key={`${item.id}-${item.category}`}
-                    item={{ ...item, author: item.author || "Anonymous" }}
-                    currentUser={user}
-                    userRole={currentUserRole}
-                    onUpdate={handleUpdateItem}
-                    onDelete={handleDeleteItem}
-                    getCategoryDisplayName={getCategoryDisplayName}
-                    isUpdating={updatingItemId === item.id}
-                  />
-                ))}
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-        
-
-
-        {/* Input bawah sticky */}
-        <div className="fixed bottom-0 left-0 w-full z-40">
-          {/* Avatar bar: tanpa background putih */}
-            {participants.length > 0 && (
-            <div className="w-full flex justify-center pb-1">
-              <div className="flex flex-row items-end gap-6">
-                {participants.map((p) => (
-                    <div key={p.id} className="flex flex-col items-center relative">
-                      <div className="relative">
-                        <Avatar
-                          className={`h-14 w-14 border-2 ${p.role ? 'border-blue-500' : 'border-gray-200'} group-hover:border-indigo-500 transition`}
-                          title={`${p.user.name} ${p.role ? '(Facilitator)' : '(Participant)'}`}
-                        >
-                          <AvatarImage 
-                            src={p.user.imageUrl || p.user.image_url || undefined} 
-                            alt={p.user.name} 
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).style.display = 'none';
-                            }}
-                          />
-                          <AvatarFallback>
-                            {p.user.name?.charAt(0)?.toUpperCase() || <User className="h-4 w-4" />}
-                          </AvatarFallback>
-                        </Avatar>
-                      </div>
-                    <span className="text-xs text-gray-900 mt-1 font-medium">{p.user.name}{p.role ? ' (Facilitator)' : ''}</span>
-                    </div>
-                ))}
-              </div>
-                </div>
-          )}
-          {/* Card putih hanya untuk form input ide dan tombol */}
-          <div className="w-full bg-white border-t">
-            <div className="container mx-auto px-4 py-4 flex flex-col md:flex-row items-center gap-2 md:gap-4">
-              {/* Dropdown assignee */}
-              <div className="flex items-center gap-2 w-full md:w-auto">
-                  <label className="font-medium mr-2 mb-1">Category:</label>
-                  <select
-                    className="w-32 px-3 pr-8 py-2 rounded-md border text-base"
-                    value={inputCategory}
-                    onChange={e => setInputCategory(e.target.value)}
-                    disabled={isAddingItem}
-                  >
-                    <option value="format_1">{getCategoryDisplayName("format_1")}</option>
-                    <option value="format_2">{getCategoryDisplayName("format_2")}</option>
-                    <option value="format_3">{getCategoryDisplayName("format_3")}</option>
-                  </select>
-              </div>
-                  <input
-                    type="text"
-                    placeholder="Ex. we have a linter!"
-                    className="border rounded px-2 py-1 flex-1"
-                    value={inputText}
-                    onChange={e => setInputText(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    disabled={isAddingItem}
-                  />
-                  <Button
-                    onClick={handleAdd}
-                    disabled={isAddingItem || !inputText.trim()}
-                    className="px-4 py-1"
-                    type="submit"
-                  >
-                    {isAddingItem ? "Adding..." : "Submit"}
-                  </Button>
-                  {isCurrentFacilitator && currentUserParticipant?.role && (
-                  <Button
-                    variant="secondary"
-                    className="ml-2"
-                    disabled={items.length === 0 || isPhaseChanging}
-                    onClick={async () => {
-                      setIsPhaseChanging(true);
-                      try {
-                        await broadcastPhaseChange('grouping');
-                      } catch (error) {
-                        console.error('Failed to change phase:', error);
-                      } finally {
-                        setIsPhaseChanging(false);
-                      }
-                    }}
-                  >
-                    {isPhaseChanging ? 'Starting Grouping...' : 'Grouping'}
-                  </Button>
-                  )}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }, [loading, error, retro, participants, user, currentUserRole, showShareModal, showRoleModal, selectedParticipant, isPromoting, isPhaseChanging, format, items, inputCategory, inputText, isAddingItem, isConnected, getCategoryDisplayName, getItemsByCategory, handleUpdateItem, handleDeleteItem, handleAdd, handleKeyDown, handleLogout, handlePromoteToFacilitator, broadcastPhaseChange]);
-
-  
-  // PHASE 2: Grouping (template)
-  const GroupingPhase = useMemo(() => (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Header */}
-      <RetroHeader
-        retro={retro}
-        participants={participants}
-        user={user}
-        currentUserRole={currentUserRole}
-        showShareModal={showShareModal}
-        setShowShareModal={setShowShareModal}
-        handleLogout={handleLogout}
-      />
-      {/* Area utama untuk grouping */}
-      <div ref={areaRef} className="flex-1 relative bg-white overflow-hidden" style={{ minHeight: 'calc(100vh - 120px)' }}>
-        {/* Render item sebagai card kecil draggable */}
-        {items.map((item, idx) => {
-          const signature = itemGroups[item.id];
-          const groupSize = signature ? Object.values(itemGroups).filter(sig => sig === signature).length : 0;
-          let borderColor = highContrast ? '#000000' : '#e5e7eb';
-          if (!highContrast && signature && groupSize > 1 && signatureColors[signature]) {
-            borderColor = signatureColors[signature];
-          }
-          const pos = itemPositions[item.id] || { x: 200 + (idx % 3) * 220, y: 100 + Math.floor(idx / 3) * 70 };
-          const isBeingDraggedByOthers = draggingByOthers[item.id];
-          const draggingUser = participants.find(p => p.user.id === isBeingDraggedByOthers);
-          
-          return (
-            // @ts-ignore
-            <Draggable
-              key={item.id}
-              position={pos}
-              onDrag={(e: any, data: any) => handleDrag(item.id, e, data)}
-              onStop={(e: any, data: any) => handleStop(item.id, e, data)}
-              bounds="parent"
-            >
-              <div
-                id={'group-item-' + item.id}
-                className={`px-3 py-2 bg-white border rounded shadow text-sm cursor-move select-none relative ${
-                  isBeingDraggedByOthers ? 'ring-2 ring-blue-500 ring-opacity-50' : ''
-                }`}
-                style={{
-                  minWidth: 80,
-                  textAlign: 'center',
-                  zIndex: isBeingDraggedByOthers ? 10 : 2,
-                  border: `4px solid ${borderColor}`,
-                  transition: 'border-color 0.2s',
-                  position: 'absolute',
-                }}
-              >
-                {item.content}
-                {/* Indicator jika item sedang di-drag oleh user lain */}
-                {isBeingDraggedByOthers && draggingUser && (
-                  <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 bg-blue-500 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
-                    {draggingUser.user.name} is dragging
-                  </div>
-                )}
-              </div>
-            </Draggable>
-          );
-        })}
-        {/* High Contrast toggle kiri bawah (fixed) */}
-        <div className="fixed left-4 bottom-4 flex items-center gap-2 z-10 bg-white border rounded px-2 py-1 shadow">
-          <span className="text-gray-700 text-lg">
-            <svg width="22" height="22" fill="none" viewBox="0 0 20 20"><path d="M10 2a8 8 0 100 16V2z" fill="#222"/><circle cx="10" cy="10" r="8" stroke="#888" strokeWidth="2"/></svg>
-          </span>
-          <span className="text-base text-gray-900 font-medium">High Contrast</span>
-          <label className="ml-2 relative inline-flex items-center cursor-pointer">
-            <input 
-              type="checkbox" 
-              className="sr-only peer" 
-              checked={highContrast}
-              onChange={(e) => setHighContrast(e.target.checked)}
-            />
-            <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:bg-green-500 transition-colors"></div>
-            <div className="absolute left-1 top-1 bg-white w-3 h-3 rounded-full transition-all peer-checked:translate-x-4"></div>
-          </label>
-        </div>
-        {/* Label bawah dan tombol kanan bawah */}
-        <div className="absolute bottom-0 left-0 w-full flex items-center justify-between px-8 py-4 bg-white border-t z-20">
-          {/* Toggle High Contrast di kiri */}
-          <div className="flex items-center gap-2">
-            <span className="text-gray-700 text-lg">
-              <svg width="22" height="22" fill="none" viewBox="0 0 20 20"><path d="M10 2a8 8 0 100 16V2z" fill="#222"/><circle cx="10" cy="10" r="8" stroke="#888" strokeWidth="2"/></svg>
-            </span>
-            <span className="text-base text-gray-900 font-medium">High Contrast</span>
-            <label className="ml-2 relative inline-flex items-center cursor-pointer">
-              <input 
-                type="checkbox" 
-                className="sr-only peer" 
-                checked={highContrast}
-                onChange={(e) => setHighContrast(e.target.checked)}
-              />
-              <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:bg-green-500 transition-colors"></div>
-              <div className="absolute left-1 top-1 bg-white w-3 h-3 rounded-full transition-all peer-checked:translate-x-4"></div>
-            </label>
-          </div>
-          {/* Label tengah */}
-          <div className="flex flex-col items-center">
-            <div className="text-lg font-semibold">Grouping</div>
-            <div className="text-xs text-gray-500">
-              {(() => {
-                const summary = getGroupSummary();
-                return `${summary.totalGroups} groups, ${summary.totalGroupedItems} items grouped`;
-              })()}
-            </div>
-          </div>
-          {/* Tombol kanan */}
-          <div className="flex gap-2">
-            {isCurrentFacilitator && currentUserParticipant?.role && (
-              <Button
-                className="bg-gray-400 text-white px-8 py-2 rounded"
-                style={{ minWidth: 180 }}
-                disabled={isPhaseChanging}
-                onClick={async () => {
-                  setIsPhaseChanging(true);
-                  try {
-                    await saveGroupData();
-                    await broadcastPhaseChange('labelling');
-                  } catch (error) {
-                    console.error('Failed to save groups or change phase:', error);
-                  } finally {
-                    setIsPhaseChanging(false);
-                  }
-                }}
-              >
-                {isPhaseChanging ? 'Processing...' : 'Group Labeling'}
-              </Button>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-    
-  ), [retro, participants, user, currentUserRole, showShareModal, setShowShareModal, handleLogout, items, itemPositions, highContrast, itemGroups, signatureColors, handleDrag, handleStop, getGroupSummary, saveGroupData, isPhaseChanging, broadcastPhaseChange, draggingByOthers]);
-
-  // PHASE 3: Labelling (template, sesuai gambar)
-  const LabellingPhase = useMemo(() => (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Header */}
-      <RetroHeader
-        retro={retro}
-        participants={participants}
-        user={user}
-        currentUserRole={currentUserRole}
-        showShareModal={showShareModal}
-        setShowShareModal={setShowShareModal}
-        handleLogout={handleLogout}
-      />
-      {/* Group Board */}
-      <div className="flex-1 flex flex-col items-center justify-start w-full">
-        <div className="flex flex-row gap-8 mt-8 w-full justify-center">
-          {Object.entries(labellingItems).map(([label, groupItems], idx) => (
-            <div key={label} className="bg-white border rounded-lg shadow-sm min-w-[350px] max-w-[400px] w-full p-4">
-              {/* Tombol Voting di kanan */}
-              <div className="mb-2">
-                <input
-                  className="w-full text-center text-gray-500 font-semibold bg-gray-100 rounded px-2 py-1 mb-2 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                  placeholder="Optional Group Label"
-                  maxLength={20}
-                  value={label}
-                  readOnly
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                {groupItems.map((item) => (
-                  <div key={item.id} className="flex items-center gap-2 text-base">
-                    <span>{item.content}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-      {/* Footer sticky ala submit phase */}
-      <div className="fixed bottom-0 left-0 w-full z-40">
-        {/* Avatar bar: tanpa background putih */}
-        {participants.length > 0 && (
-          <div className="w-full flex justify-center pb-1">
-            <div className="flex flex-row items-end gap-6">
-              {participants.map((p) => (
-                <div key={p.id} className="flex flex-col items-center relative">
-                  <div className="relative">
-                    <Avatar
-                      className={`h-14 w-14 border-2 ${p.role ? 'border-blue-500' : 'border-gray-200'} group-hover:border-indigo-500 transition`}
-                      title={`${p.user.name} ${p.role ? '(Facilitator)' : '(Participant)'}`}
-                    >
-                      <AvatarImage 
-                        src={p.user.imageUrl || p.user.image_url || undefined} 
-                        alt={p.user.name} 
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = 'none';
-                        }}
-                      />
-                      <AvatarFallback>
-                        {p.user.name?.charAt(0)?.toUpperCase() || <User className="h-4 w-4" />}
-                      </AvatarFallback>
-                    </Avatar>
-                  </div>
-                  <span className="text-xs text-gray-900 mt-1 font-medium">{p.user.name}{p.role ? ' (Facilitator)' : ''}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-        {/* Card putih hanya untuk baris title, tombol, dan space kosong di tengah */}
-        <div className="w-full bg-white border-t rounded-t-xl shadow-lg">
-          <div className="container mx-auto px-4 py-4 flex flex-row items-center justify-between">
-            {/* Kiri: Title dan deskripsi */}
-            <div className="flex flex-col items-start justify-center">
-              <div className="text-2xl font-semibold mb-1">Labelling</div>
-              <div className="text-gray-500">Arrive at sensible group labels</div>
-            </div>
-            {/* Tengah: Space kosong */}
-            <div className="flex flex-row items-center gap-4" style={{ minHeight: '56px' }}></div>
-            {/* Kanan: Tombol Voting */}
-            <Button
-              variant="secondary"
-              className="px-8 py-2 rounded text-base font-semibold"
-              style={{ minWidth: 180 }}
-              onClick={() => setPhase('voting')}
-            >
-              Voting
-            </Button>
-          </div>
-        </div>
-      </div>
-    </div>
-  ), [retro, participants, user, currentUserRole, showShareModal, setShowShareModal, handleLogout, setPhase, groupLabels, setGroupLabels]);
-
-  // PHASE 4: Voting (template)
   const [userVotes, setUserVotes] = useState<{ [groupIdx: number]: number }>({});
   const maxVotes = 3;
   const totalVotesUsed = Object.values(userVotes).reduce((a, b) => a + b, 0);
   const votesLeft = maxVotes - totalVotesUsed;
-
   const handleVote = (groupIdx: number, delta: number) => {
     setUserVotes(prev => {
       const current = prev[groupIdx] || 0;
       let next = current + delta;
-      // Tidak boleh kurang dari 0, tidak boleh lebih dari sisa vote
       if (next < 0) next = 0;
       if (delta > 0 && votesLeft <= 0) return prev;
-      // Tidak boleh lebih dari maxVotes per user
       if (totalVotesUsed + delta > maxVotes) return prev;
       return { ...prev, [groupIdx]: next };
     });
   };
-
-  const VotingPhase = useMemo(() => (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Header */}
-      <RetroHeader
-        retro={retro}
-        participants={participants}
-        user={user}
-        currentUserRole={currentUserRole}
-        showShareModal={showShareModal}
-        setShowShareModal={setShowShareModal}
-        handleLogout={handleLogout}
-      />
-      {/* Group Board */}
-      <div className="flex-1 flex flex-col items-center justify-start w-full">
-        <div className="flex flex-row gap-8 mt-8 w-full justify-center">
-          {Object.entries(labellingItems).map(([label, groupItems], idx) => (
-            <div key={label} className="bg-white border rounded-lg shadow-sm min-w-[350px] max-w-[400px] w-full p-4">
-              <div className="mb-2 flex items-center justify-between">
-                <span className="text-lg font-semibold text-gray-400">{label}</span>
-                <div className="flex items-center gap-2">
-                    <div className="relative flex items-center">
-                      <div className="bg-teal-400 text-white font-bold pl-4 pr-2 py-1 rounded-lg relative select-none text-left" style={{fontSize: '1rem', minWidth: '90px'}}>
-                        <span className="relative z-10">Vote! &gt; &gt; </span>
-                      </div>
-                    </div>
-                  <Button
-                    size="icon"
-                    variant="outline"
-                    className="h-7 w-7 px-0"
-                    onClick={() => handleVote(idx, -1)}
-                    disabled={(userVotes[idx] || 0) <= 0}
-                  >
-                    -
-                  </Button>
-                  <Button
-                    size="icon"
-                    variant="outline"
-                    className="h-7 w-7 px-0"
-                    onClick={() => handleVote(idx, 1)}
-                    disabled={votesLeft <= 0}
-                  >
-                    +
-                  </Button>
-                  <span className="w-5 text-center font-semibold">{userVotes[idx] || 0}</span>
-                </div>
-              </div>
-              <div className="flex flex-col gap-2">
-                {groupItems.map((item) => (
-                  <div key={item.id} className="flex items-center gap-2 text-base">
-                   <span>{item.content}</span>
-                    </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-      {/* Footer sticky ala submit phase */}
-      <div className="fixed bottom-0 left-0 w-full z-40">
-        {/* Avatar bar: tanpa background putih */}
-        {participants.length > 0 && (
-          <div className="w-full flex justify-center pb-1">
-            <div className="flex flex-row items-end gap-6">
-              {participants.map((p) => (
-                <div key={p.id} className="flex flex-col items-center relative">
-                  <div className="relative">
-                    <Avatar
-                      className={`h-14 w-14 border-2 ${p.role ? 'border-blue-500' : 'border-gray-200'} group-hover:border-indigo-500 transition`}
-                      title={`${p.user.name} ${p.role ? '(Facilitator)' : '(Participant)'}`}
-                    >
-                      <AvatarImage 
-                        src={p.user.imageUrl || p.user.image_url || undefined} 
-                        alt={p.user.name} 
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = 'none';
-                        }}
-                      />
-                      <AvatarFallback>
-                        {p.user.name?.charAt(0)?.toUpperCase() || <User className="h-4 w-4" />}
-                      </AvatarFallback>
-                    </Avatar>
-                  </div>
-                  <span className="text-xs text-gray-900 mt-1 font-medium">{p.user.name}{p.role ? ' (Facilitator)' : ''}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-        {/* Card putih hanya untuk baris info voting, tombol, dan space kosong di tengah */}
-        <div className="w-full bg-white border-t rounded-t-xl shadow-lg">
-          <div className="container mx-auto px-4 py-4 flex flex-row items-center justify-between">
-            {/* Kiri: Info voting */}
-            <div className="flex flex-col items-start justify-center">
-              <div className="text-xl font-semibold">Voting: {votesLeft} Votes Left</div>
-            </div>
-            {/* Tengah: Space kosong */}
-            <div className="flex flex-row items-center gap-4" style={{ minHeight: '56px' }}></div>
-            {/* Kanan: Tombol Action Items */}
-            <Button
-              variant="secondary"
-              className="px-8 py-2 rounded text-base font-semibold"
-              style={{ minWidth: 180 }}
-              onClick={() => setPhase('ActionItems')}
-              disabled={votesLeft !== 0}
-            >
-              Action Items
-            </Button>
-          </div>
-        </div>
-      </div>
-    </div>
-  ), [retro, participants, user, currentUserRole, showShareModal, setShowShareModal, handleLogout, setPhase, groupLabels, userVotes, votesLeft]);
-
-  // PHASE 5: Action Items (template)
   const [actionItems, setActionItems] = useState<{ assignee: string; assigneeName: string; task: string; edited?: boolean }[]>([]);
   const [actionInput, setActionInput] = useState('');
   const [actionAssignee, setActionAssignee] = useState(participants[0]?.user.id || '');
   const [editingActionIdx, setEditingActionIdx] = useState<number | null>(null);
   const [editActionInput, setEditActionInput] = useState('');
   const [editActionAssignee, setEditActionAssignee] = useState('');
-
-  // Pastikan actionAssignee selalu valid jika participants berubah
-  useEffect(() => {
-    if (participants.length > 0) {
-      setActionAssignee(prev => {
-        // Jika assignee sebelumnya tidak ada di participants, set ke peserta pertama
-        if (!participants.find(p => p.user.id === prev)) {
-          return participants[0].user.id;
-        }
-        return prev;
-      });
-    }
-  }, [participants]);
-
   const handleAddActionItem = () => {
     if (!actionInput.trim() || !actionAssignee) return;
     const assigneeObj = participants.find(p => p.user.id === actionAssignee);
@@ -1545,21 +904,13 @@ export default function RetroPage() {
       },
     ]);
     setActionInput('');
-    // Debug log
-    console.log('Action item added:', {
-      assignee: actionAssignee,
-      assigneeName: assigneeObj ? assigneeObj.user.name : 'Unknown',
-      task: actionInput.trim(),
-    });
   };
-
   const handleEditActionItem = (idx: number) => {
     const item = actionItems[idx];
     setEditingActionIdx(idx);
     setEditActionInput(item.task);
     setEditActionAssignee(item.assignee);
   };
-
   const handleSaveEditActionItem = (idx: number) => {
     if (!editActionInput.trim() || !editActionAssignee) return;
     const assigneeObj = participants.find(p => p.user.id === editActionAssignee);
@@ -1576,352 +927,10 @@ export default function RetroPage() {
     ));
     setEditingActionIdx(null);
   };
-
   const handleDeleteActionItem = (idx: number) => {
     setActionItems(prev => prev.filter((_, i) => i !== idx));
   };
 
-  const ActionItemsPhase = useMemo(() => (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Header */}
-      <RetroHeader
-        retro={retro}
-        participants={participants}
-        user={user}
-        currentUserRole={currentUserRole}
-        showShareModal={showShareModal}
-        setShowShareModal={setShowShareModal}
-        handleLogout={handleLogout}
-      />
-      {/* Main Content */}
-      <div className="w-full flex flex-row">
-        {/* Card group kiri */}
-        <div className="flex flex-row gap-6 p-8 items-start flex-1">
-          {[0, 1].map((groupIdx) => (
-            <div key={groupIdx} className="bg-white border rounded-lg shadow-sm w-auto min-w-[220px] max-w-[350px] px-4 py-3">
-              <div className="mb-2 flex items-center justify-between">
-                <span className="text-lg font-semibold text-gray-400">{groupLabels[groupIdx]?.trim() || 'Unlabeled'}</span>
-                <div className="flex items-center gap-2">
-                  <div className="bg-gray-100 text-gray-700 font-bold px-3 py-1 rounded select-none text-center" style={{fontSize: '1rem', minWidth: '60px'}}>
-                    Votes {userVotes[groupIdx] || 0}
-                  </div>
-                </div>
-              </div>
-              <div className="flex flex-col gap-2">
-                {groupIdx === 0 ? (
-                  <>
-                    <div className="flex items-center gap-2 text-base">
-                      <span role="img" aria-label="happy">😀</span>
-                      <span>vxvf</span>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="flex items-center gap-2 text-base">
-                      <span role="img" aria-label="happy">😀</span>
-                      <span>asdasd Sasasdsadsad</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-base">
-                      <span role="img" aria-label="sad">😢</span>
-                      <span>asdasdczvxcv</span>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-        {/* Panel Action Items sticky kanan */}
-        <div className="w-[400px] border-l bg-white flex flex-col p-6 sticky top-0 self-start overflow-y-auto" style={{ height: 'calc(100vh - 80px)', right: 0 }}>
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-2xl">🚀</span>
-            <span className="text-xl font-semibold">Action Items</span>
-          </div>
-          <hr className="mb-4" />
-          {/* List action items */}
-          <div className="flex flex-col gap-2">
-            {actionItems.length === 0 && <span className="text-gray-400 text-sm">No action items yet.</span>}
-            {actionItems.map((item, idx) => (
-              <div key={idx} className="bg-gray-50 border rounded px-3 py-2 text-sm flex items-center justify-between gap-2">
-                {editingActionIdx === idx ? (
-                  <>
-                    <div className="flex-1 flex flex-col gap-1">
-                      <div className="flex gap-2">
-                        <select
-                          className="w-32 px-2 py-1 rounded-md border text-sm"
-                          value={editActionAssignee}
-                          onChange={e => setEditActionAssignee(e.target.value)}
-                        >
-                          {participants.map((p) => (
-                            <option key={p.user.id} value={p.user.id}>{p.user.name}</option>
-                          ))}
-                        </select>
-                        <input
-                          type="text"
-                          className="border rounded px-2 py-1 flex-1 text-sm"
-                          value={editActionInput}
-                          onChange={e => setEditActionInput(e.target.value)}
-                        />
-                      </div>
-                      <div className="flex gap-2 mt-1">
-                        <button
-                          className="px-2 py-1 bg-gray-400 text-white rounded text-xs hover:bg-gray-500"
-                          onClick={() => handleSaveEditActionItem(idx)}
-                          type="button"
-                        >
-                          Save
-                        </button>
-                        <button
-                          className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs border hover:bg-gray-200"
-                          onClick={() => setEditingActionIdx(null)}
-                          type="button"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="flex-1 flex flex-col">
-                      <span>
-                        {item.task} <span className="text-gray-700">({item.assigneeName})</span>
-                        {item.edited && <span className="ml-2 text-xs text-gray-500 font-semibold">(edited)</span>}
-                      </span>
-                    </div>
-                    <div className="flex gap-1">
-                      <button
-                        className="p-1 hover:bg-gray-200 rounded"
-                        title="Edit"
-                        onClick={() => handleEditActionItem(idx)}
-                        type="button"
-                      >
-                        <Pencil className="h-4 w-4 text-gray-600" />
-                      </button>
-                      <button
-                        className="p-1 hover:bg-red-100 rounded"
-                        title="Delete"
-                        onClick={() => handleDeleteActionItem(idx)}
-                        type="button"
-                      >
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-      {/* Footer ala submit/ideation */}
-      <div className="fixed bottom-0 left-0 w-full z-40">
-        {/* Avatar bar: tanpa background putih */}
-        {participants.length > 0 && (
-          <div className="w-full flex justify-center pb-1">
-            <div className="flex flex-row items-end gap-6">
-              {participants.map((p) => (
-                <div key={p.id} className="flex flex-col items-center relative">
-                  <div className="relative">
-                    <Avatar
-                      className={`h-14 w-14 border-2 ${p.role ? 'border-blue-500' : 'border-gray-200'} group-hover:border-indigo-500 transition`}
-                      title={`${p.user.name} ${p.role ? '(Facilitator)' : '(Participant)'}`}
-                    >
-                      <AvatarImage 
-                        src={p.user.imageUrl || p.user.image_url || undefined} 
-                        alt={p.user.name} 
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = 'none';
-                        }}
-                      />
-                      <AvatarFallback>
-                        {p.user.name?.charAt(0)?.toUpperCase() || <User className="h-4 w-4" />}
-                      </AvatarFallback>
-                    </Avatar>
-                  </div>
-                  <span className="text-xs text-gray-900 mt-1 font-medium">{p.user.name}{p.role ? ' (Facilitator)' : ''}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-        {/* Card putih hanya untuk form input ide dan tombol */}
-        <div className="w-full bg-white border-t">
-          <div className="container mx-auto px-4 py-4 flex flex-col md:flex-row items-center gap-2 md:gap-4">
-          {/* Dropdown assignee */}
-          <div className="flex items-center gap-2 w-full md:w-auto">
-            <label className="font-medium mr-2 mb-1">Assignee:</label>
-              <select
-                className="w-64 px-3 pr-8 py-2 rounded-md border text-base"
-                value={actionAssignee}
-                onChange={e => setActionAssignee(e.target.value)}
-              >
-              {participants.length > 0 ? (
-                participants.map((p) => (
-                  <option key={p.user.id} value={p.user.id}>{p.user.name}</option>
-                ))
-              ) : (
-                <option>No participants</option>
-              )}
-            </select>
-          </div>
-          {/* Input action item */}
-          <input
-            type="text"
-            placeholder="Ex. automate the linting process"
-            className="border rounded px-2 py-1 flex-1"
-              value={actionInput}
-              onChange={e => setActionInput(e.target.value)}
-          />
-          {/* Tombol Submit dan Send Action Items */}
-          <Button
-              className="px-4 py-1 bg-gray-400 text-white hover:bg-gray-500"
-            style={{ minWidth: 100 }}
-              onClick={handleAddActionItem}
-              disabled={!actionInput.trim() || !actionAssignee}
-          >
-            Submit
-          </Button>
-          <Button
-              className="ml-2 bg-gray-100 text-gray-400"
-            style={{ minWidth: 180 }}
-            disabled={actionItems.length === 0}
-            onClick={() => setPhase('final')}
-          >
-            Send Action Items
-          </Button>
-        </div>
-      </div>
-    </div>
-    </div>
-  ), [retro, participants, user, currentUserRole, showShareModal, setShowShareModal, handleLogout, setPhase, groupLabels, userVotes, actionItems, actionInput, actionAssignee, setActionInput, setActionAssignee, editingActionIdx, editActionInput, editActionAssignee]);
-
-  // PHASE 6: Final (read only, retro selesai)
-  const FinalPhase = useMemo(() => (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Header */}
-      <RetroHeader
-        retro={retro}
-        participants={participants}
-        user={user}
-        currentUserRole={currentUserRole}
-        showShareModal={showShareModal}
-        setShowShareModal={setShowShareModal}
-        handleLogout={handleLogout}
-      />
-      {/* Main Content: Group cards kiri, Action Items kanan (read-only) */}
-      <div className="w-full flex flex-row">
-        {/* Card group kiri (copy dari ActionItemsPhase, read-only) */}
-        <div className="flex flex-row gap-6 p-8 items-start flex-1">
-          {[0, 1].map((groupIdx) => (
-            <div key={groupIdx} className="bg-white border rounded-lg shadow-sm w-auto min-w-[220px] max-w-[350px] px-4 py-3">
-              <div className="mb-2 flex items-center justify-between">
-                <span className="text-lg font-semibold text-gray-400">{groupLabels[groupIdx]?.trim() || 'Unlabeled'}</span>
-                <div className="flex items-center gap-2">
-                  <div className="bg-gray-100 text-gray-700 font-bold px-3 py-1 rounded select-none text-center" style={{fontSize: '1rem', minWidth: '60px'}}>
-                    Votes {userVotes[groupIdx] || 0}
-                  </div>
-                </div>
-              </div>
-              <div className="flex flex-col gap-2">
-                {groupIdx === 0 ? (
-                  <>
-                    <div className="flex items-center gap-2 text-base">
-                      <span role="img" aria-label="happy">😀</span>
-                      <span>vxvf</span>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="flex items-center gap-2 text-base">
-                      <span role="img" aria-label="happy">😀</span>
-                      <span>asdasd Sasasdsadsad</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-base">
-                      <span role="img" aria-label="sad">😢</span>
-                      <span>asdasdczvxcv</span>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-        {/* Panel Action Items kanan (read-only) */}
-        <div className="w-[400px] border-l bg-white flex flex-col p-6 sticky top-0 self-start overflow-y-auto" style={{ height: 'calc(100vh - 80px)', right: 0 }}>
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-2xl">🚀</span>
-            <span className="text-xl font-semibold">Action Items</span>
-          </div>
-          <hr className="mb-4" />
-          {/* List action items (read-only) */}
-          <div className="flex flex-col gap-2">
-            {actionItems.length === 0 && <span className="text-gray-400 text-sm">No action items yet.</span>}
-            {actionItems.map((item, idx) => (
-              <div key={idx} className="bg-gray-50 border rounded px-3 py-2 text-sm flex items-center justify-between gap-2">
-                <div className="flex-1 flex flex-col">
-                  <span>
-                    {item.task} <span className="text-gray-700">({item.assigneeName})</span>
-                    {item.edited && <span className="ml-2 text-xs text-gray-500 font-semibold">(edited)</span>}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-      {/* Footer ala ActionItems, dengan avatar bar di atas card putih */}
-      <div className="fixed bottom-0 left-0 w-full z-40">
-        {/* Avatar bar: tanpa background putih */}
-        {participants.length > 0 && (
-          <div className="w-full flex justify-center pb-1">
-            <div className="flex flex-row items-end gap-6">
-              {participants.map((p) => (
-                <div key={p.id} className="flex flex-col items-center relative">
-                  <div className="relative">
-                    <Avatar
-                      className={`h-14 w-14 border-2 ${p.role ? 'border-blue-500' : 'border-gray-200'} group-hover:border-indigo-500 transition`}
-                      title={`${p.user.name} ${p.role ? '(Facilitator)' : '(Participant)'}`}
-                    >
-                      <AvatarImage 
-                        src={p.user.imageUrl || p.user.image_url || undefined} 
-                        alt={p.user.name} 
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = 'none';
-                        }}
-                      />
-                      <AvatarFallback>
-                        {p.user.name?.charAt(0)?.toUpperCase() || <User className="h-4 w-4" />}
-                      </AvatarFallback>
-                    </Avatar>
-                  </div>
-                  <span className="text-xs text-gray-900 mt-1 font-medium">{p.user.name}{p.role ? ' (Facilitator)' : ''}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-        {/* Card putih footer */}
-        <div className="w-full bg-white border-t rounded-t-xl shadow-lg">
-          <div className="container mx-auto px-4 py-4 flex flex-row items-center justify-between">
-            {/* Kiri: Judul */}
-            <div className="text-xl font-semibold">This retro is all wrapped up!</div>
-            {/* Tengah: Teks read only */}
-            <div className="text-gray-600">Contents are read-only.</div>
-            {/* Kanan: Button dashboard */}
-            <Button
-              className="px-8 py-2 rounded text-base font-semibold bg-gray-200 text-gray-700 hover:bg-gray-300"
-              style={{ minWidth: 180 }}
-              onClick={() => window.location.href = '/dashboard'}
-            >
-              Visit your dashboard
-              <span className="ml-2">&rarr;</span>
-            </Button>
-          </div>
-        </div>
-      </div>
-    </div>
-  ), [retro, participants, user, currentUserRole, showShareModal, setShowShareModal, handleLogout, groupLabels, userVotes, actionItems]);
 
   // Phase switching
   if (phase === 'submit') return (
@@ -1931,7 +940,34 @@ export default function RetroPage() {
         onClose={() => setShowShareModal(false)}
         shareUrl={typeof window !== 'undefined' ? window.location.href : ''}
       />
-      {SubmitPhase}
+      <SubmitPhase
+        retro={retro}
+        participants={participants}
+        user={user}
+        currentUserRole={currentUserRole}
+        showShareModal={showShareModal}
+        setShowShareModal={setShowShareModal}
+        handleLogout={handleLogout}
+        isCurrentFacilitator={isCurrentFacilitator}
+        currentUserParticipant={currentUserParticipant}
+        inputCategory={inputCategory}
+        setInputCategory={setInputCategory}
+        inputText={inputText}
+        handleInputTextChange={handleInputTextChange}
+        handleKeyDown={handleKeyDown}
+        isAddingItem={isAddingItem}
+        handleAdd={handleAdd}
+        items={items}
+        getCategoryDisplayName={getCategoryDisplayName}
+        typingParticipants={typingParticipants}
+        setShowRoleModal={setShowRoleModal}
+        setSelectedParticipant={setSelectedParticipant}
+        updatingItemId={updatingItemId}
+        handleUpdateItem={handleUpdateItem}
+        handleDeleteItem={handleDeleteItem}
+        broadcastPhaseChange={broadcastPhaseChange}
+        setPhase={setPhase}
+      />
     </>
   );
   if (phase === 'grouping') return (
@@ -1941,7 +977,33 @@ export default function RetroPage() {
         onClose={() => setShowShareModal(false)}
         shareUrl={typeof window !== 'undefined' ? window.location.href : ''}
       />
-      {GroupingPhase}
+      <GroupingPhase
+        retro={retro}
+        participants={participants}
+        user={user}
+        currentUserRole={currentUserRole}
+        showShareModal={showShareModal}
+        setShowShareModal={setShowShareModal}
+        handleLogout={handleLogout}
+        items={items}
+        itemPositions={itemPositions}
+        highContrast={highContrast}
+        itemGroups={itemGroups}
+        signatureColors={signatureColors}
+        handleDrag={handleDrag}
+        handleStop={handleStop}
+        getGroupSummary={getGroupSummary}
+        saveGroupData={saveGroupData}
+        isPhaseChanging={isPhaseChanging}
+        broadcastPhaseChange={broadcastPhaseChange}
+        draggingByOthers={draggingByOthers}
+        isCurrentFacilitator={isCurrentFacilitator}
+        currentUserParticipant={currentUserParticipant}
+        typingParticipants={typingParticipants}
+        setShowRoleModal={setShowRoleModal}
+        setSelectedParticipant={setSelectedParticipant}
+        setPhase={setPhase}
+      />
     </>
   );
   if (phase === 'labelling') return (
@@ -1951,7 +1013,24 @@ export default function RetroPage() {
         onClose={() => setShowShareModal(false)}
         shareUrl={typeof window !== 'undefined' ? window.location.href : ''}
       />
-      {LabellingPhase}
+      <LabellingPhase
+        retro={retro}
+        participants={participants}
+        user={user}
+        currentUserRole={currentUserRole}
+        showShareModal={showShareModal}
+        setShowShareModal={setShowShareModal}
+        handleLogout={handleLogout}
+        labellingItems={labellingItems}
+        isCurrentFacilitator={isCurrentFacilitator}
+        typingParticipants={typingParticipants}
+        setShowRoleModal={setShowRoleModal}
+        setSelectedParticipant={setSelectedParticipant}
+        setPhase={setPhase}
+        broadcastPhaseChange={broadcastPhaseChange}
+        groupLabels={groupLabels}
+        setGroupLabels={setGroupLabels}
+      />
     </>
   );
   if (phase === 'voting') return (
@@ -1961,7 +1040,26 @@ export default function RetroPage() {
         onClose={() => setShowShareModal(false)}
         shareUrl={typeof window !== 'undefined' ? window.location.href : ''}
       />
-      {VotingPhase}
+      <VotingPhase
+        retro={retro}
+        participants={participants}
+        user={user}
+        currentUserRole={currentUserRole}
+        showShareModal={showShareModal}
+        setShowShareModal={setShowShareModal}
+        handleLogout={handleLogout}
+        labellingItems={labellingItems}
+        isCurrentFacilitator={isCurrentFacilitator}
+        typingParticipants={typingParticipants}
+        setShowRoleModal={setShowRoleModal}
+        setSelectedParticipant={setSelectedParticipant}
+        setPhase={setPhase}
+        broadcastPhaseChange={broadcastPhaseChange}
+        groupLabels={groupLabels}
+        userVotes={userVotes}
+        votesLeft={votesLeft}
+        handleVote={handleVote}
+      />
     </>
   );
   if (phase === 'ActionItems') return (
@@ -1971,7 +1069,38 @@ export default function RetroPage() {
         onClose={() => setShowShareModal(false)}
         shareUrl={typeof window !== 'undefined' ? window.location.href : ''}
       />
-      {ActionItemsPhase}
+      <ActionItemsPhase
+        retro={retro}
+        participants={participants}
+        user={user}
+        currentUserRole={currentUserRole}
+        showShareModal={showShareModal}
+        setShowShareModal={setShowShareModal}
+        handleLogout={handleLogout}
+        groupLabels={groupLabels}
+        userVotes={userVotes}
+        actionItems={actionItems}
+        actionInput={actionInput}
+        actionAssignee={actionAssignee}
+        setActionInput={setActionInput}
+        setActionAssignee={setActionAssignee}
+        handleAddActionItem={handleAddActionItem}
+        isCurrentFacilitator={isCurrentFacilitator}
+        setPhase={setPhase}
+        broadcastPhaseChange={broadcastPhaseChange}
+        typingParticipants={typingParticipants}
+        setShowRoleModal={setShowRoleModal}
+        setSelectedParticipant={setSelectedParticipant}
+        editingActionIdx={editingActionIdx}
+        editActionInput={editActionInput}
+        editActionAssignee={editActionAssignee}
+        setEditingActionIdx={setEditingActionIdx}
+        setEditActionInput={setEditActionInput}
+        setEditActionAssignee={setEditActionAssignee}
+        handleEditActionItem={handleEditActionItem}
+        handleSaveEditActionItem={handleSaveEditActionItem}
+        handleDeleteActionItem={handleDeleteActionItem}
+      />
     </>
   );
   if (phase === 'final') return (
@@ -1981,10 +1110,24 @@ export default function RetroPage() {
         onClose={() => setShowShareModal(false)}
         shareUrl={typeof window !== 'undefined' ? window.location.href : ''}
       />
-      {FinalPhase}
+      <FinalPhase
+        retro={retro}
+        participants={participants}
+        user={user}
+        currentUserRole={currentUserRole}
+        showShareModal={showShareModal}
+        setShowShareModal={setShowShareModal}
+        handleLogout={handleLogout}
+        groupLabels={groupLabels}
+        userVotes={userVotes}
+        actionItems={actionItems}
+        typingParticipants={typingParticipants}
+        isCurrentFacilitator={isCurrentFacilitator}
+        setShowRoleModal={setShowRoleModal}
+        setSelectedParticipant={setSelectedParticipant}
+      />
     </>
   );
-   
   // Fallback loading
   return (
     <>
@@ -1993,104 +1136,12 @@ export default function RetroPage() {
         onClose={() => setShowShareModal(false)}
         shareUrl={typeof window !== 'undefined' ? window.location.href : ''}
       />
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-        <p className="text-gray-600">Loading retrospective...</p>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading retrospective...</p>
+        </div>
       </div>
-    </div>
     </>
   );
 }
-
-// Komponen header reusable
-function RetroHeader({
-  retro,
-  participants,
-  user,
-  currentUserRole,
-  showShareModal,
-  setShowShareModal,
-  handleLogout,
-}: {
-  retro: Retro | null;
-  participants: Participant[];
-  user: any;
-  currentUserRole: boolean;
-  showShareModal: boolean;
-  setShowShareModal: (v: boolean) => void;
-  handleLogout: () => void;
-}) {
-  return (
-    <div className="bg-white border-b">
-      <div className="container mx-auto px-4 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <Link to="/dashboard">
-              <Button variant="ghost" size="sm">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back
-              </Button>
-            </Link>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">{retro?.title ?? ''}</h1>
-              <div className="flex items-center space-x-4 mt-1">
-                <Badge variant="secondary" className="flex items-center space-x-1">
-                  <Users className="h-3 w-3" />
-                  <span>{participants.length} participants</span>
-                </Badge>
-                {retro && (retro as any).duration && (
-                  <Badge variant="secondary" className="flex items-center space-x-1">
-                    <Clock className="h-3 w-3" />
-                    <span>{(retro as any).duration} min</span>
-                  </Badge>
-                )}
-                <Badge variant={retro?.status === "draft" ? "default" : "secondary"}>{retro?.status ?? ''}</Badge>
-                {currentUserRole && (
-                  <Badge variant="default" className="bg-blue-500">
-                    Facilitator
-                  </Badge>
-                )}
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Button variant="outline" onClick={() => setShowShareModal(true)}>
-              <Share2 className="h-4 w-4 mr-2" />
-              Share
-            </Button>
-            {user && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                    <Avatar className="h-10 w-10">
-                      <AvatarImage src={typeof (user as any)["image_url"] === "string" ? (user as any)["image_url"] : undefined} alt={user.name} />
-                      <AvatarFallback>
-                        {user.name?.charAt(0)?.toUpperCase() || <User className="h-4 w-4" />}
-                      </AvatarFallback>
-                    </Avatar>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56" align="end" forceMount>
-                  <DropdownMenuLabel className="font-normal">
-                    <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">{user.name}</p>
-                      <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
-                    </div>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Log out</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Fetch labels_group data saat masuk fase labelling

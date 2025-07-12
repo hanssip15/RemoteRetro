@@ -155,5 +155,13 @@ import {
       console.log(`📦 Sent retro state to client ${client.id} for retro ${data.retroId}`);
     }
 
+    @SubscribeMessage('typing')
+    handleTyping(client: Socket, data: { retroId: string; userId: string }) {
+      // Broadcast ke semua client di room retro
+      this.server.to(`retro:${data.retroId}`).emit('typing', { userId: data.userId });
+      // Opsional: log
+      console.log(`✏️ Typing event from user ${data.userId} in retro ${data.retroId}`);
+    }
+
   }
   
