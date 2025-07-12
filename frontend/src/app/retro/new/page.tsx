@@ -69,10 +69,14 @@ export default function NewRetroPage() {
     console.log("=== TITLE ===", title)
     console.log("=== SELECTED FORMAT ===", selectedFormat)
 
-    // Check if title is empty
-    if (!title.trim()) {
-      alert("Please enter a retrospective title")
-      return
+    // Jika title kosong, isi dengan tanggal
+    let finalTitle = title.trim();
+    if (!finalTitle) {
+      const now = new Date();
+      const yyyy = now.getFullYear();
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const dd = String(now.getDate()).padStart(2, '0');
+      finalTitle = `Retro ${yyyy}-${mm}-${dd}`;
     }
 
     // Check if format is valid (not just default)
@@ -90,7 +94,7 @@ export default function NewRetroPage() {
       console.log("=== CREATING RETRO ===")
 
       const retro = await apiService.createRetro({
-        title: title.trim(),
+        title: finalTitle,
         format: selectedFormat,
       })
 

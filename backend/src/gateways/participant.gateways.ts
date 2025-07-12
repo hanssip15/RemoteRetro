@@ -155,34 +155,12 @@ import {
       console.log(`📦 Sent retro state to client ${client.id} for retro ${data.retroId}`);
     }
 
-    // Voting handlers
-    @SubscribeMessage('user-vote')
-    handleUserVote(client: Socket, data: { 
-      retroId: string; 
-      userId: string; 
-      groupLabel: string; 
-      voteCount: number 
-    }) {
-      console.log(`🗳️ User vote received:`, data);
-      // Broadcast vote to all participants
-      this.server.to(`retro:${data.retroId}`).emit(`user-vote:${data.retroId}`, {
-        userId: data.userId,
-        groupLabel: data.groupLabel,
-        voteCount: data.voteCount,
-        timestamp: new Date().toISOString()
-      });
-    }
-
-    // Broadcast vote update
-    broadcastVoteUpdate(retroId: string, voteData: any) {
-      console.log(`🗳️ Broadcasting vote update to room: ${retroId}`, voteData);
-      this.server.to(`retro:${retroId}`).emit(`vote-update:${retroId}`, voteData);
-    }
-
-    // Broadcast vote submission
-    broadcastVoteSubmission(retroId: string, submissionData: any) {
-      console.log(`📊 Broadcasting vote submission to room: ${retroId}`, submissionData);
-      this.server.to(`retro:${retroId}`).emit(`vote-submission:${retroId}`, submissionData);
+    @SubscribeMessage('typing')
+    handleTyping(client: Socket, data: { retroId: string; userId: string }) {
+      // Broadcast ke semua client di room retro
+      this.server.to(`retro:${data.retroId}`).emit('typing', { userId: data.userId });
+      // Opsional: log
+      console.log(`✏️ Typing event from user ${data.userId} in retro ${data.retroId}`);
     }
 
   }
