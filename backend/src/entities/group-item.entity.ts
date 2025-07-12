@@ -3,25 +3,24 @@ import { Retro } from './retro.entity';
 import { RetroItem } from './retro-item.entity';
 import { Group, GroupItem } from '@prisma/client';
 
-@Entity('group')
-export class GroupEntity {
+@Entity('group_item')
+export class GroupItemEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
   @Column({ type: 'varchar' })
   label: string;
 
+  @Column({ type: 'uuid' })
+  item_id: string;
 
-  @Column({ type: 'varchar' })
-  retro_id: string;
+  @Column({ type: 'int' })
+  group_id: number;
 
-  @ManyToOne(() => Retro, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
-  @JoinColumn({ name: 'retro_id' })
-  retro: Retro;
+  // item?: RetroItem;
+  // group?: Group;
 
-  // Optional if you want to include relational data
-
-  constructor(partial: Partial<GroupEntity>) {
+  constructor(partial: Partial<GroupItemEntity>) {
     Object.assign(this, partial);
   }
 }

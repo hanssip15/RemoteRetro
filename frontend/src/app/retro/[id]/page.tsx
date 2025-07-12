@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { FeedbackCard } from "@/components/feedback-card"
 import { ArrowLeft, Users, Clock, Share2 } from "lucide-react"
 import { Link } from "react-router-dom"
-import { apiService, Retro, RetroItem, Participant, LabelsGroup } from "@/services/api"
+import { apiService, Retro, RetroItem, Participant, GroupsData } from "@/services/api"
 
 // Interface untuk data grup
 interface GroupData {
@@ -103,7 +103,7 @@ export default function RetroPage() {
   const [selectedParticipant, setSelectedParticipant] = useState<Participant | null>(null);
   const [isPromoting, setIsPromoting] = useState(false);
 
-  const [labelsGroups, setLabelsGroups] = useState<LabelsGroup[]>([]);
+  const [groupsData, setGroupsData] = useState<GroupsData[]>([]);
   const [labellingItems, setLabellingItems] = useState<{ [label: string]: RetroItem[] }>({});
 
   // 1. State for typing participants
@@ -253,22 +253,40 @@ export default function RetroPage() {
     setGroupData(dataToSave);
     console.log('💾 Data grup yang akan disimpan:', dataToSave);
 
-    for (const [groupIndex, group] of dataToSave.groups.entries()) {
-      for (const itemId of group.itemIds) {
-        const payload = {
-          retro_id: retroId,
-          label: `Group ${groupIndex + 1}`,
-          item_id: itemId,
-        };
-        console.log('📤 Sending to API:', payload);
-        try {
-          await apiService.createLabelGroup(retroId, payload);
-          console.log('✅ Data berhasil dikirim:', payload);
-        } catch (error) {
-          console.error('❌ Gagal mengirim data:', payload, error);
+    // 1. Buat semua group dulu di backend
+    // const createdGroups = [];
+    for (const group of dataToSave.groups) {
+      try {
+        const createdGroup = await apiService.createGroup(retroId, {
+          label: 'unlabeled',
+          votes: 0,
+        }) as any;
+        console.log('✅ Group created:', createdGroup);
+        for (const itemId of group.itemIds) {
+          const createdGroupItem = await apiService.createGroupItem(createdGroup.id, itemId) as any;
+          console.log('✅ Group item created:', createdGroupItem);
         }
+        // createdGroups.push({ ...createdGroup, items: group.itemIds });
+      } catch (error) {
+        console.error('❌ Gagal membuat group:', group, error);
       }
     }
+
+    // 2. Setelah semua group dibuat, insert semua group-item
+    // for (const group of createdGroups) {
+    //   for (const itemId of group.items) {
+    //     const payload = {
+    //       item_id: itemId,
+    //     };
+    //     console.log('📤 Sending group-item to API:', payload);
+    //     try {
+    //       await apiService.createGroupItem(payload);
+    //       console.log('✅ Group-item berhasil dikirim:', payload);
+    //     } catch (error) {
+    //       console.error('❌ Gagal mengirim group-item:', payload, error);
+    //     }
+    //   }
+    // }
   }, [convertGroupsToDatabaseFormat, retroId]);
 
 
@@ -425,7 +443,7 @@ export default function RetroPage() {
   useEffect(() => {
     if (phase === 'labelling') {
       apiService.getLabelsByRetro(retroId).then((groups) => {
-        setLabelsGroups(groups);
+        setGroupsData(groups);
         // Kelompokkan item per group label
         const groupMap: { [label: string]: RetroItem[] } = {};
         groups.forEach((g) => {
@@ -573,6 +591,13 @@ export default function RetroPage() {
     }
 
     try {
+      // Jika phase berubah ke labelling, simpan data grouping terlebih dahulu
+      if (newPhase === 'labelling') {
+        console.log('💾 Saving group data before phase change...');
+        await saveGroupData();
+        console.log('✅ Group data saved successfully');
+      }
+
       console.log('📡 Updating phase via API:', newPhase);
       await apiService.updatePhase(retroId, newPhase, user.id);
       
@@ -582,7 +607,7 @@ export default function RetroPage() {
       console.error('❌ Failed to update phase:', error);
       setError('Failed to change phase. Please try again.');
     }
-  }, [retroId, user?.id]);
+  }, [retroId, user?.id, saveGroupData]);
 
   const fetchRetroData = useCallback(async () => {
     try {

@@ -77,14 +77,14 @@ export interface addParticipantData {
   userId: string;
 }
 
-export interface LabelsGroup {
+export interface GroupsData {
   label: string;
   itemIds: string[];
   groups: string[];
   votes: number;
 }
 
-export interface CreateLabelsGroupData {
+export interface CreateGroupData {
   retro_id: string;
   groups: Array<{
     groupId: string;
@@ -93,9 +93,8 @@ export interface CreateLabelsGroupData {
 }
 
 export interface CreateLabelGroupSingle {
-  retro_id: string;
   label: string;
-  item_id: string;
+  votes: number;
 }
 export interface CreateActionData {
   retro_id: string;
@@ -168,15 +167,24 @@ class ApiService {
     });
   }
 
-  async createLabelGroup(retro_id: string, data: CreateLabelGroupSingle): Promise<LabelsGroup> {
-    return this.request<LabelsGroup>('/labels-group', {
+
+
+  async createGroup(retro_id: string, data: CreateLabelGroupSingle): Promise<GroupsData> {
+    console.log("=== API . TS ===", data)
+    return this.request<GroupsData>(`/group/${retro_id}`, {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
-  async getLabelsByRetro(retro_id: string): Promise<LabelsGroup[]> {
-    return this.request<LabelsGroup[]>(`/labels-group/${retro_id}`);
+  async createGroupItem(groupId: string, itemId: string): Promise<GroupsData> {
+    return this.request<GroupsData>(`/group-item/${groupId}/${itemId}`, {
+      method: 'POST',
+    });
+  }
+
+  async getLabelsByRetro(retro_id: string): Promise<GroupsData[]> {
+    return this.request<GroupsData[]>(`/group/${retro_id}`);
   }
 
   // Voting methods
@@ -202,16 +210,16 @@ class ApiService {
     });
   }
 
-  async getVoteResults(retroId: string): Promise<LabelsGroup[]> {
-    return this.request<LabelsGroup[]>(`/voting/results/${retroId}`);
+  async getVoteResults(retroId: string): Promise<GroupsData[]> {
+    return this.request<GroupsData[]>(`/voting/results/${retroId}`);
   }
 
   async getUserVotes(retroId: string): Promise<any> {
     return this.request<any>(`/voting/user-votes/${retroId}`);
   }
 
-  async updateLabel(id: number, label: string): Promise<LabelsGroup> {
-    return this.request<LabelsGroup>(`/labels-group/${id}`, {
+  async updateLabel(id: number, label: string): Promise<GroupsData> {
+    return this.request<GroupsData>(`/group/${id}`, {
       method: 'PUT',
       body: JSON.stringify({ label }),
     });

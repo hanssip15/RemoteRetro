@@ -1,37 +1,84 @@
+// src/group/group.service.ts
+
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from './prisma.service';
-import { CreateGroupDto } from '../dto/create-group.dto'; // Adjust the import path as necessary
+import { PrismaService } from '../services/prisma.service';
+import { Prisma, Group } from '@prisma/client';
+import { GroupEntity } from 'src/entities/group.entity';
+import { Repository } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
+import { CreateGroupDto } from 'src/dto/create-group.dto';
 
 @Injectable()
-export class LabelsGroupService {
-  constructor(private prisma: PrismaService) {}
+export class GroupService {
+  constructor(
+    @InjectRepository(GroupEntity)
+    private groupRepository: Repository<GroupEntity>,
+    // private prisma: PrismaService,
+  ) 
+  {}
 
-  async createLabelGroup(createGroupDto: CreateGroupDto) {
-    return this.prisma.labelsGroup.create({
-      data: {
-        label: createGroupDto.label,
-        retro_id: createGroupDto.retro_id,
-        item_id: createGroupDto.item_id,
-      },
-    });
+  async create(createGroupDto: CreateGroupDto ) {
+    const group = this.groupRepository.create(createGroupDto);
+    return this.groupRepository.save(group);
   }
 
-  async getLabelsByRetro(retroId: string) {
-    return this.prisma.labelsGroup.findMany({
-      where: { retro_id: retroId },
-    });
-  }
+  // async findAll() {
+  //   return this.prisma.group.findMany({
+  //     include: {
+  //       groupItems: true,
+  //       retro: true,
+  //     },
+  //   });
+  // }
 
-  async updateLabel(id: number, label: string) {
-    return this.prisma.labelsGroup.update({
-      where: { id },
-      data: { label },
-    });
-  }
+  // async findOne(id: number) {
+  //   return this.prisma.group.findUnique({
+  //     where: { id },
+  //     include: {
+  //       groupItems: true,
+  //     },
+  //   });
+  // }
 
-  async deleteLabel(id: number) {
-    return this.prisma.labelsGroup.delete({
-      where: { id },
-    });
-  }
+  // async update(id: number, data: Prisma.GroupUpdateInput) {
+  //   return this.prisma.group.update({
+  //     where: { id },
+  //     data,
+  //   });
+  // }
+
+  // async remove(id: number) {
+  //   return this.prisma.group.delete({
+  //     where: { id },
+  //   });
+  // }
+
+  // // Method untuk mencari group berdasarkan retro_id dan label
+  // async findByRetroAndLabel(retroId: string, label: string) {
+  //   return this.prisma.group.findFirst({
+  //     where: {
+  //       retro_id: retroId,
+  //       label: label,
+  //     },
+  //     include: {
+  //       groupItems: true,
+  //     },
+  //   });
+  // }
+
+  // Method untuk mencari semua group berdasarkan retro_id
+  // async findByRetroId(retroId: string) {
+  //   return this.prisma.group.findMany({
+  //     where: {
+  //       retro_id: retroId,
+  //     },
+  //     include: {
+  //       groupItems: {
+  //         include: {
+  //           item: true,
+  //         },
+  //       },
+  //     },
+  //   });
+  // }
 }

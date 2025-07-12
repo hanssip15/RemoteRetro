@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsUUID, IsString } from 'class-validator';
+import { IsNotEmpty, IsUUID, IsString, IsNumber } from 'class-validator';
 
 export class CreateGroupDto {
   @IsNotEmpty()
@@ -6,11 +6,11 @@ export class CreateGroupDto {
   label: string;
 
   @IsNotEmpty()
-  @IsUUID()
+  @IsString()
   retro_id: string;
 
   @IsNotEmpty()
-  @IsUUID()
-  item_id: string;
+  @IsNumber()
+  votes: number;
 
 }

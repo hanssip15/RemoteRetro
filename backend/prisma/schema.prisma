@@ -61,18 +61,11 @@ model Retro {
   format        retro_formats
   current_phase retro_phases?
 
-  // Relasi ke User (creator)
-  creator User? @relation("CreatedRetros", fields: [created_by], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
-  // Relasi ke RetroItem
-  items RetroItem[]
-
-  // Relasi ke Participant
+  creator      User?         @relation("CreatedRetros", fields: [created_by], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  items        RetroItem[]
   participants Participant[]
-
-  // Relasi ke LabelsGroup
-  labelsGroups LabelsGroup[]
-  ActionItems  ActionItems[]
+  groups       Group[] // FIXED: previously labelsGroups
+  actionItems  ActionItem[]
 
   @@map("retros")
 }
@@ -85,14 +78,10 @@ model RetroItem {
   format_type retro_format_types
   is_edited   Boolean            @default(false)
 
-  // Relasi ke Retro
-  retro Retro @relation(fields: [retro_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
-  // Relasi ke User
+  retro   Retro @relation(fields: [retro_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
   creator User? @relation("CreatedItems", fields: [created_by], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-  // Relasi ke LabelsGroup
-  labels LabelsGroup[] @relation("ItemLabels")
+  groupItems GroupItem[] // FIXED
 
   @@map("retro_items")
 }
@@ -110,27 +99,36 @@ model Participant {
   // Relasi ke User
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-  @@unique([retro_id, user_id], name: "uniquq_retro_user")
+  @@unique([retro_id, user_id], name: "unique_retro_user")
   @@map("participants")
 }
 
-model LabelsGroup {
-  id       Int     @id @default(autoincrement())
-  label    String?
-  retro_id String?
-  item_id  String?
-  votes    Int?    @default(0)
+model Group {
+  id       Int    @id @default(autoincrement())
+  label    String @db.VarChar(20)
+  votes    Int
+  retro_id String
 
-  // Relasi ke Retro
-  retro Retro? @relation(fields: [retro_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  retro      Retro       @relation(fields: [retro_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  groupItems GroupItem[]
 
-  // Relasi ke RetroItem
-  item RetroItem? @relation("ItemLabels", fields: [item_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
-  @@map("labels_group")
+  @@map("group") // <--- ini membuat nama tabel di DB adalah "group"
 }
 
-model ActionItems {
+model GroupItem {
+  id       Int    @id @default(autoincrement())
+  label    String @default("unlabeled")
+  item_id  String
+  group_id Int
+
+  // Relasi ke RetroItem
+  item RetroItem @relation(fields: [item_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  // Relasi ke Group
+  group Group @relation(fields: [group_id], references: [id])
+}
+
+model ActionItem {
   id        Int     @id @default(autoincrement())
   retro_id  String
   assign_to String?
