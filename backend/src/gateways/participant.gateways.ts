@@ -163,5 +163,26 @@ import {
       console.log(`✏️ Typing event from user ${data.userId} in retro ${data.retroId}`);
     }
 
+    // Handle label updates from facilitator
+    @SubscribeMessage('label-update')
+    handleLabelUpdate(client: Socket, data: { 
+      retroId: string; 
+      groupId: number; 
+      label: string; 
+      userId: string 
+    }) {
+      console.log(`🏷️ Label update from facilitator:`, data);
+      
+      // Broadcast label update to all participants in the retro
+      this.server.to(`retro:${data.retroId}`).emit(`label-update:${data.retroId}`, {
+        groupId: data.groupId,
+        label: data.label,
+        userId: data.userId,
+        timestamp: new Date().toISOString()
+      });
+      
+      console.log(`📡 Label update broadcasted to room: ${data.retroId}`);
+    }
+
   }
   

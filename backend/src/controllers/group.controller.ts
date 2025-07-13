@@ -53,15 +53,15 @@ export class GroupController {
     // return groupItem;
   }
 
-  // @Get('group/:retroId')
-  // async getLabelsByRetro(@Param('retroId') retroId: string) {
-  //   console.log('📋 Getting labels for retro:', retroId);
-  //   return this.groupService.findByRetroId(retroId);
-  // }
+  @Get('group/:retroId')
+  async getLabelsByRetro(@Param('retroId') retroId: string) {
+    console.log('📋 Getting labels for retro:', retroId);
+    return this.groupService.findByRetroId(retroId);
+  }
 
   @Put('group/:id')
   async updateLabel(@Param('id') id: string, @Body() data: { label: string }) {
     console.log('✏️ Updating label:', id, data);
-    return this.groupItemService.updateLabel(+id, data.label);
+    return this.groupService.updateLabel(+id, data.label);
   }
 }

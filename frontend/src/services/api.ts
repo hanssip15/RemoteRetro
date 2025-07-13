@@ -21,6 +21,14 @@ export interface Retro {
   createdBy: string;
 }
 
+export interface GroupItemEntity {
+  id: number;
+  label: string;
+  item_id: string;
+  group_id: number;
+  item: RetroItem;
+}
+
 export interface RetroFormat {
   name: string;
 }
@@ -78,10 +86,10 @@ export interface addParticipantData {
 }
 
 export interface GroupsData {
+  id: number;
   label: string;
-  itemIds: string[];
-  groups: string[];
-  votes: number;
+  retro_id: string;
+  group_items: GroupItemEntity[];
 }
 
 export interface CreateGroupData {

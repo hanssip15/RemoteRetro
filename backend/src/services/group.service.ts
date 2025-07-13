@@ -22,63 +22,22 @@ export class GroupService {
     return this.groupRepository.save(group);
   }
 
-  // async findAll() {
-  //   return this.prisma.group.findMany({
-  //     include: {
-  //       groupItems: true,
-  //       retro: true,
-  //     },
-  //   });
-  // }
-
-  // async findOne(id: number) {
-  //   return this.prisma.group.findUnique({
-  //     where: { id },
-  //     include: {
-  //       groupItems: true,
-  //     },
-  //   });
-  // }
-
-  // async update(id: number, data: Prisma.GroupUpdateInput) {
-  //   return this.prisma.group.update({
-  //     where: { id },
-  //     data,
-  //   });
-  // }
-
-  // async remove(id: number) {
-  //   return this.prisma.group.delete({
-  //     where: { id },
-  //   });
-  // }
-
-  // // Method untuk mencari group berdasarkan retro_id dan label
-  // async findByRetroAndLabel(retroId: string, label: string) {
-  //   return this.prisma.group.findFirst({
-  //     where: {
-  //       retro_id: retroId,
-  //       label: label,
-  //     },
-  //     include: {
-  //       groupItems: true,
-  //     },
-  //   });
-  // }
+  // Method untuk update label group
+  async updateLabel(id: number, label: string) {
+    await this.groupRepository.update(id, { label });
+    return this.groupRepository.findOne({
+      where: { id },
+      relations: ['group_items', 'group_items.item'],
+    });
+  }
 
   // Method untuk mencari semua group berdasarkan retro_id
-  // async findByRetroId(retroId: string) {
-  //   return this.prisma.group.findMany({
-  //     where: {
-  //       retro_id: retroId,
-  //     },
-  //     include: {
-  //       groupItems: {
-  //         include: {
-  //           item: true,
-  //         },
-  //       },
-  //     },
-  //   });
-  // }
+  async findByRetroId(retroId: string) {
+    return this.groupRepository.find({
+      where: {
+        retro_id: retroId,
+      },
+      relations: ['group_items', 'group_items.item'],
+    });
+  }
 }

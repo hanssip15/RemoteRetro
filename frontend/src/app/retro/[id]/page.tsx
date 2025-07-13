@@ -104,7 +104,7 @@ export default function RetroPage() {
   const [isPromoting, setIsPromoting] = useState(false);
 
   const [groupsData, setGroupsData] = useState<GroupsData[]>([]);
-  const [labellingItems, setLabellingItems] = useState<{ [label: string]: RetroItem[] }>({});
+  const [labellingItems, setLabellingItems] = useState<GroupsData[]>([]);
 
   // 1. State for typing participants
   const [typingParticipants, setTypingParticipants] = useState<string[]>([]);
@@ -443,19 +443,12 @@ export default function RetroPage() {
   useEffect(() => {
     if (phase === 'labelling') {
       apiService.getLabelsByRetro(retroId).then((groups) => {
-        setGroupsData(groups);
-        // Kelompokkan item per group label
-        const groupMap: { [label: string]: RetroItem[] } = {};
-        groups.forEach((g) => {
-          const label = g.label || `Group`;
-          if (!groupMap[label]) groupMap[label] = [];
-          const item = items.find((it: RetroItem) => it.id === (g as any).item_id);
-          if (item) groupMap[label].push(item);
-        });
-        setLabellingItems(groupMap);
+        console.log('🔄 Labelling items:', groups);
+        setLabellingItems(groups);
       });
     }
   }, [phase, retroId, items]);
+  
 
   const currentUserRole = participants.find(p => p.user.id === user?.id)?.role || false;
   
@@ -570,6 +563,25 @@ export default function RetroPage() {
     }
   }, [user?.id]);
 
+  // Handler untuk menerima label update dari facilitator lain
+  const handleLabelUpdate = useCallback((data: { 
+    groupId: number; 
+    label: string; 
+    userId: string 
+  }) => {
+    // Hanya update jika bukan dari user saat ini
+    if (data.userId !== user?.id) {
+      console.log('🏷️ Received label update from other user:', data);
+      setLabellingItems(prev => 
+        prev.map(group => 
+          group.id === data.groupId 
+            ? { ...group, label: data.label }
+            : group
+        )
+      );
+    }
+  }, [user?.id]);
+
   // Initialize WebSocket connection using the stable hook
   const { isConnected, socket } = useRetroSocket({
     retroId,
@@ -581,6 +593,7 @@ export default function RetroPage() {
     onPhaseChange: handlePhaseChange,
     onItemPositionUpdate: handleItemPositionUpdate,
     onGroupingUpdate: handleGroupingUpdate,
+    onLabelUpdate: handleLabelUpdate,
   });
 
   // Fungsi untuk mengirim phase change ke semua partisipan
@@ -1047,6 +1060,7 @@ export default function RetroPage() {
         setShowShareModal={setShowShareModal}
         handleLogout={handleLogout}
         labellingItems={labellingItems}
+        setLabellingItems={setLabellingItems}
         isCurrentFacilitator={isCurrentFacilitator}
         typingParticipants={typingParticipants}
         setShowRoleModal={setShowRoleModal}
@@ -1055,6 +1069,8 @@ export default function RetroPage() {
         broadcastPhaseChange={broadcastPhaseChange}
         groupLabels={groupLabels}
         setGroupLabels={setGroupLabels}
+        socket={socket}
+        isConnected={isConnected}
       />
     </>
   );
