@@ -29,7 +29,8 @@ export default function GroupingPhase({
   typingParticipants,
   setShowRoleModal,
   setSelectedParticipant,
-  setPhase
+  setPhase,
+  getCategoryDisplayName
 }: any) {
   const [showModal, setShowModal] = useState(true);
 
@@ -103,7 +104,7 @@ export default function GroupingPhase({
                   position: 'absolute',
                 }}
               >
-                {item.content}
+                {item.content} <span className="text-xs text-gray-500">({getCategoryDisplayName(item.category)})</span>
                 {isBeingDraggedByOthers && draggingUser && (
                   <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 bg-blue-500 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
                     {draggingUser.user.name} is dragging

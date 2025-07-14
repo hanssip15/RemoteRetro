@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ShareLinkModal } from "@/components/share-link-modal"
 import { ArrowLeft, Users, Clock, Share2, Play, RefreshCw, Crown } from "lucide-react"
+import RetroHeader from '../RetroHeader';
 import { Link } from "react-router-dom"
 import { apiService, Retro, Participant, api } from "@/services/api"
 
@@ -205,43 +206,20 @@ export default function RetroLobbyPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <Link to="/dashboard">
-                <Button variant="ghost" size="sm">
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back
-                </Button>
-              </Link>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">{retro?.title}</h1>
-                <div className="flex items-center space-x-4 mt-1">
-                  <Badge variant="secondary" className="flex items-center space-x-1">
-                    <Users className="h-3 w-3" />
-                    <span>{participants.length} participants</span>
-                  </Badge>
-                  <Badge variant={retro?.status === "draft" ? "default" : "secondary"}>{retro?.status}</Badge>
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Button variant="outline" onClick={() => setShowShareModal(true)}>
-                <Share2 className="h-4 w-4 mr-2" />
-                Share
-              </Button>
-              {isFacilitator && (
-                <Button onClick={() => setShowStartConfirm(true)}>
-                  <Play className="h-4 w-4 mr-2" />
-                  Start Retro
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Header sticky pakai RetroHeader */}
+      <RetroHeader
+        retro={retro}
+        participants={participants}
+        user={currentUser}
+        currentUserRole={isFacilitator}
+        showShareModal={showShareModal}
+        setShowShareModal={setShowShareModal}
+        handleLogout={() => {
+          localStorage.removeItem('auth_token');
+          localStorage.removeItem('user_data');
+          window.location.href = '/login';
+        }}
+      />
 
       {/* Lobby Content */}
       <div className="container mx-auto px-4 py-8">
@@ -301,7 +279,7 @@ export default function RetroLobbyPage() {
               </div>
             </CardContent>
           </Card>
-          {/* Kolom kanan: Stack Retrospective Details + Prime Directive */}
+          {/* Kolom kanan: Stack Retrospective Details (tanpa Prime Directive) */}
           <div className="flex flex-col gap-8">
             <Card>
               <CardHeader>
@@ -319,7 +297,6 @@ export default function RetroLobbyPage() {
                   </div>
                   <div>
                     <h3 className="font-medium text-gray-900">Format</h3>
-
                     <p className="text-gray-600">{retro?.format || "-"}</p>
                   </div>
                 </div>
@@ -329,25 +306,15 @@ export default function RetroLobbyPage() {
                     <p className="text-gray-600">{facilitator.user.name}</p>
                   </div>
                 )}
-              </CardContent>
-            </Card>
-            <Card className="w-full">
-              <CardHeader>
-                <CardTitle className="text-center">The Prime Directive</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-col items-center">
-                  <hr className="my-2 w-full" />
-                  <div className="mt-4 text-base text-gray-800 text-center" style={{ whiteSpace: 'pre-line' }}>
-{`Regardless of what we discover,
-we understand and truly believe
-that everyone did the best job they could,
-given what they knew at the time,
-their skills and abilities,
-the resources available,
-and the situation at hand.`}
+                {/* Tombol Start Retro di bawah Format */}
+                {isFacilitator && (
+                  <div className="mt-4">
+                    <Button onClick={() => setShowStartConfirm(true)} className="w-full">
+                      <Play className="h-4 w-4 mr-2" />
+                      Start Retro
+                    </Button>
                   </div>
-                </div>
+                )}
               </CardContent>
             </Card>
           </div>

@@ -1229,6 +1229,7 @@ export default function RetroPage() {
         setShowRoleModal={setShowRoleModal}
         setSelectedParticipant={setSelectedParticipant}
         setPhase={setPhase}
+        getCategoryDisplayName={getCategoryDisplayName}
       />
     </>
   );
