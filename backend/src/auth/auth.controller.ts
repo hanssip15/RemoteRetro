@@ -20,10 +20,8 @@ export class AuthController {
   async googleCallback(@Req() req: Request, @Res() res: Response) {
     const { name, email, imageUrl } = req.user as { id: string; name: string; email: string; imageUrl: string };
     
-    console.log('Google user data:', { name, email, imageUrl });
     
     let user = await this.usersService.findByEmail(email);
-    console.log('Existing user:', user);
 
     if (!user) {
       // Create new user if not found (id will be auto-generated)
@@ -33,10 +31,8 @@ export class AuthController {
         email, 
         imageUrl: imageUrl || null 
       };
-      console.log('Creating new user with data:', userData);
       
       user = await this.usersService.create(userData);
-      console.log('Created user:', user);
     }
     if (!user) {
       return res.status(500).json({ message: 'Failed to create or retrieve user.' });

@@ -252,7 +252,6 @@ export default function RetroPage() {
   const saveGroupData = useCallback(async () => {
     const dataToSave = convertGroupsToDatabaseFormat();
     setGroupData(dataToSave);
-    console.log('💾 Data grup yang akan disimpan:', dataToSave);
 
     // 1. Buat semua group dulu di backend
     // const createdGroups = [];
@@ -262,10 +261,8 @@ export default function RetroPage() {
           label: 'unlabeled',
           votes: 0,
         }) as any;
-        console.log('✅ Group created:', createdGroup);
         for (const itemId of group.itemIds) {
           const createdGroupItem = await apiService.createGroupItem(createdGroup.id, itemId) as any;
-          console.log('✅ Group item created:', createdGroupItem);
         }
         // createdGroups.push({ ...createdGroup, items: group.itemIds });
       } catch (error) {
@@ -273,21 +270,7 @@ export default function RetroPage() {
       }
     }
 
-    // 2. Setelah semua group dibuat, insert semua group-item
-    // for (const group of createdGroups) {
-    //   for (const itemId of group.items) {
-    //     const payload = {
-    //       item_id: itemId,
-    //     };
-    //     console.log('📤 Sending group-item to API:', payload);
-    //     try {
-    //       await apiService.createGroupItem(payload);
-    //       console.log('✅ Group-item berhasil dikirim:', payload);
-    //     } catch (error) {
-    //       console.error('❌ Gagal mengirim group-item:', payload, error);
-    //     }
-    //   }
-    // }
+ 
   }, [convertGroupsToDatabaseFormat, retroId]);
 
 
@@ -437,19 +420,14 @@ export default function RetroPage() {
         mappedPhase = 'ideation';
       }
       setPhase(mappedPhase as 'prime-directive' | 'ideation' | 'grouping' | 'labelling' | 'voting' | 'final' | 'ActionItems');
-      console.log('🔄 Loaded phase from retro:', mappedPhase);
     } else {
       setPhase('prime-directive');
-      console.log('🔄 Set default phase: prime-directive');
     }
-    console.log('Render RetroPage');
   }, [retro?.currentPhase]);
 
   useEffect(() => {
     if (phase === 'labelling') {
-      console.log('🔄 Fetching labelling items for phase:', phase, 'retroId:', retroId);
       apiService.getLabelsByRetro(retroId).then((groups) => {
-        console.log('🔄 Labelling items received:', groups);
         setLabellingItems(groups);
       }).catch((error) => {
         console.error('❌ Error fetching labelling items:', error);
@@ -461,9 +439,7 @@ export default function RetroPage() {
   // Add useEffect for ActionItems phase to ensure labellingItems are loaded
   useEffect(() => {
     if (phase === 'ActionItems') {
-      console.log('🔄 Fetching labelling items for ActionItems phase, retroId:', retroId);
       apiService.getLabelsByRetro(retroId).then((groups) => {
-        console.log('🔄 Labelling items for ActionItems received:', groups);
         setLabellingItems(groups);
       }).catch((error) => {
         console.error('❌ Error fetching labelling items for ActionItems:', error);
@@ -479,14 +455,11 @@ export default function RetroPage() {
 
   // Memoize WebSocket handlers to prevent unnecessary re-renders
   const handleItemAdded = useCallback((newItem: RetroItem) => {
-    console.log('📝 WebSocket: Item added event received:', newItem);
-    console.log('📝 Current items count before update:', items.length);
     
     setItems(prev => {
       // Check if item already exists to avoid duplicates
       const exists = prev.find(item => item.id === newItem.id);
       if (exists) {
-        console.log('⚠️ Item already exists, skipping:', newItem.id);
         return prev;
       }
       
@@ -498,13 +471,10 @@ export default function RetroPage() {
       );
       
       if (optimisticItem) {
-        console.log('🔄 Replacing optimistic item with real item:', newItem.id);
         return prev.map(item => item.id === optimisticItem.id ? newItem : item);
       }
       
-      console.log('➕ Adding new item to state:', newItem.id);
       const newItems = [...prev, newItem];
-      console.log('📝 New items count after update:', newItems.length);
       return newItems;
     });
   }, [items.length]);
@@ -512,14 +482,12 @@ export default function RetroPage() {
   
 
   const handleItemUpdated = useCallback((updatedItem: RetroItem) => {
-    console.log('✏️ WebSocket: Item updated event received:', updatedItem);
     setItems(prev => prev.map(item => {
       if (item.id === updatedItem.id) {
         // Check if we have an optimistic update for this item
         const optimisticUpdate = optimisticUpdates[updatedItem.id];
         if (optimisticUpdate) {
           // We have an optimistic update, ignore WebSocket update
-          console.log('🔄 Ignoring WebSocket update due to optimistic update');
           return item;
         } else {
           // No optimistic update, use WebSocket data
@@ -531,23 +499,19 @@ export default function RetroPage() {
   }, [optimisticUpdates]);
 
   const handleItemDeleted = useCallback((itemId: string) => {
-    console.log('🗑️ WebSocket: Item deleted event received:', itemId);
     setItems(prev => prev.filter(item => item.id !== itemId));
   }, []);
 
   const handleItemsUpdate = useCallback((newItems: RetroItem[]) => {
-    console.log('📋 WebSocket: Items update event received:', newItems);
     setItems(newItems);
   }, []);
 
   const handleParticipantUpdate = useCallback(() => {
-    console.log('👥 WebSocket: Participant update event received');
     // Refresh participants data
     fetchRetroData();
   }, []);
 
   const handlePhaseChange = useCallback((newPhase: 'prime-directive' | 'ideation' | 'grouping' | 'labelling' | 'voting' | 'final' | 'ActionItems' | 'submit') => {
-    console.log('🔄 WebSocket: Phase change event received:', newPhase);
     setPhase(newPhase);
     // Don't set isPhaseChanging to false here as it's handled by the button
   }, []);
@@ -582,7 +546,6 @@ export default function RetroPage() {
   }) => {
     // Hanya update jika bukan dari user saat ini
     if (data.userId !== user?.id) {
-      console.log('🎨 Received grouping update from other user:', data);
       setItemGroups(data.itemGroups);
       setSignatureColors(data.signatureColors);
     }
@@ -596,7 +559,6 @@ export default function RetroPage() {
   }) => {
     // Hanya update jika bukan dari user saat ini
     if (data.userId !== user?.id) {
-      console.log('🏷️ Received label update from other user:', data);
       setLabellingItems(prev => 
         prev.map(group => 
           group.id === data.groupId 
@@ -615,8 +577,7 @@ export default function RetroPage() {
     userVotes: { [groupId: number]: number };
   }) => {
     // Hanya update jika bukan dari user saat ini
-    if (data.userId !== user?.id) {
-      console.log('🗳️ Received vote update from other user:', data);
+    if (data.userId !== user?.id) { 
       setLabellingItems(prev => 
         prev.map(group => 
           group.id === data.groupId 
@@ -633,7 +594,6 @@ export default function RetroPage() {
     facilitatorId: string; 
     groupVotes: { [groupId: number]: number };
   }) => {
-    console.log('📊 Received vote submission from facilitator:', data);
     // Update semua votes sesuai dengan yang disimpan facilitator
     setLabellingItems(prev => 
       prev.map(group => 
@@ -646,18 +606,16 @@ export default function RetroPage() {
 
   // Handler untuk menerima action items update dari WebSocket
   const handleActionItemsUpdate = useCallback((actionItems: any[]) => {
-    console.log('🚀 Received action items update via WebSocket:', actionItems);
-    console.log('🚀 Current actionItems before update:', actionItems);
-    console.log('🚀 Number of action items received:', actionItems.length);
+    
     
     // Pastikan hanya update dari WebSocket, bukan dari local state
     setActionItems(actionItems);
-    console.log('🚀 Action items updated in state');
+    
   }, []);
 
   // Handler untuk menerima retro state yang berisi action items
   const handleRetroState = useCallback((state: any) => {
-    console.log('📦 Received retro state:', state);
+    
     if (state.actionItems) {
       setActionItems(state.actionItems);
     }
@@ -691,16 +649,16 @@ export default function RetroPage() {
     try {
       // Jika phase berubah ke labelling, simpan data grouping terlebih dahulu
       if (newPhase === 'labelling') {
-        console.log('💾 Saving group data before phase change...');
+        
         await saveGroupData();
-        console.log('✅ Group data saved successfully');
+        
       }
 
-      console.log('📡 Updating phase via API:', newPhase);
+      
       await apiService.updatePhase(retroId, newPhase, user.id);
       
       // Phase change will be broadcasted via WebSocket from the server
-      console.log('✅ Phase updated successfully');
+      
     } catch (error) {
       console.error('❌ Failed to update phase:', error);
       setError('Failed to change phase. Please try again.');
@@ -750,7 +708,7 @@ export default function RetroPage() {
   const fetchItems = useCallback(async () => {
     try {
       const itemsData = await apiService.getItems(retroId)
-      console.log('📦 Items data from API:', itemsData);
+      
       setItems(itemsData)
       
       // Initialize item positions with default layout (no database persistence)
@@ -762,7 +720,7 @@ export default function RetroPage() {
           y: 100 + Math.floor(index / 3) * 70 
         };
       });
-      console.log('🎯 Initial positions object:', positions);
+      
       setItemPositions(positions);
     } catch (error) {
       console.error("Error fetching items:", error)
@@ -802,7 +760,7 @@ export default function RetroPage() {
         item.id === optimisticItem.id ? newItem : item
       ));
 
-      console.log('✅ Item submitted successfully:', newItem);
+
     } catch (error) {
       console.error("Error adding item:", error)
       
@@ -939,15 +897,8 @@ export default function RetroPage() {
   const currentUserParticipant = participants.find(x => x.user.id === user?.id);
   
   const handleAddActionItemWebSocket = () => {
-    console.log('🚀 handleAddActionItemWebSocket called');
-    console.log('🚀 actionInput:', actionInput);
-    console.log('🚀 actionAssignee:', actionAssignee);
-    console.log('🚀 user:', user);
-    console.log('🚀 socket:', socket);
-    console.log('🚀 isConnected:', isConnected);
-    
+
     if (!actionInput.trim() || !actionAssignee || !user?.id) {
-      console.log('❌ Validation failed:', { actionInput, actionAssignee, userId: user?.id });
       return;
     }
 
@@ -963,7 +914,6 @@ export default function RetroPage() {
         assigneeName,
         createdBy: user.id
       });
-      console.log('✅ Action item sent to WebSocket');
     } else {
       console.log('❌ Socket not available or not connected');
     }
@@ -972,6 +922,7 @@ export default function RetroPage() {
     setActionInput('');
     setActionAssignee('');
   };
+  
 
   const handlePromoteToFacilitator = useCallback(async (participantId: number) => {
     if (!user) return;
@@ -996,7 +947,7 @@ export default function RetroPage() {
         setItemPositions(state.itemPositions || {});
         setItemGroups(state.itemGroups || {});
         setSignatureColors(state.signatureColors || {});
-        console.log('🟢 Synced state from server:', state);
+        
       };
       socket.on(`retro-state:${retroId}`, handleRetroState);
 
@@ -1067,7 +1018,7 @@ export default function RetroPage() {
   }, [participants, actionAssignee, setActionAssignee]);
   const handleAddActionItem = () => {
     if (!actionInput.trim() || !actionAssignee || !user?.id) {
-      console.log('❌ Validation failed:', { actionInput, actionAssignee, userId: user?.id });
+      
       return;
     }
     
@@ -1075,13 +1026,7 @@ export default function RetroPage() {
     const assignee = participants.find(p => p.user.id === actionAssignee);
     const assigneeName = assignee?.user.name || 'Unknown';
     
-    console.log('🚀 Adding action item via WebSocket:', {
-      retroId,
-      task: actionInput,
-      assigneeId: actionAssignee,
-      assigneeName,
-      createdBy: user.id
-    });
+    
     
     // Send to WebSocket ONLY - don't update local state
     if (socket && isConnected) {
@@ -1092,9 +1037,9 @@ export default function RetroPage() {
         assigneeName,
         createdBy: user.id
       });
-      console.log('✅ Action item sent to WebSocket');
+      
     } else {
-      console.log('❌ Socket not available or not connected');
+      
     }
     
     // Clear input
@@ -1116,14 +1061,7 @@ export default function RetroPage() {
     const assignee = participants.find(p => p.user.id === editActionAssignee);
     const assigneeName = assignee?.user.name || 'Unknown';
     
-    console.log('✏️ Updating action item via WebSocket:', {
-      retroId,
-      actionItemId: item.id || `temp_${idx}`,
-      task: editActionInput,
-      assigneeId: editActionAssignee,
-      assigneeName,
-      updatedBy: user.id
-    });
+    
     
     // Send to WebSocket
     if (socket && isConnected) {
@@ -1146,10 +1084,7 @@ export default function RetroPage() {
   const handleDeleteActionItem = (idx: number) => {
     const item = actionItems[idx];
     
-    console.log('🗑️ Deleting action item via WebSocket:', {
-      retroId,
-      actionItemId: item.id || `temp_${idx}`
-    });
+    
     
     // Send to WebSocket
     if (socket && isConnected) {

@@ -15,9 +15,7 @@ export default function VotingPhase(props: any) {
   // Function untuk update votes di database dan broadcast via WebSocket
   const updateVotesInDatabase = useCallback(async (groupId: number, newVotes: number) => {
     try {
-      console.log('🔄 Updating votes in database:', { groupId, newVotes });
       await apiService.updateVotes(groupId, newVotes);
-      console.log('✅ Votes updated successfully');
       
       // Broadcast vote update to other participants via WebSocket
       if (socket && isConnected && user) {
@@ -28,7 +26,6 @@ export default function VotingPhase(props: any) {
           userId: user.id,
           userVotes: userVotes
         });
-        console.log('📡 Vote update broadcasted via WebSocket');
       }
     } catch (error) {
       console.error('❌ Failed to update votes:', error);
@@ -156,7 +153,7 @@ export default function VotingPhase(props: any) {
               <div className="mb-2 flex items-center justify-between">
                 <div className="flex flex-col">
                   <span className="text-lg font-semibold text-gray-400">{group.label}</span>
-                  <span className="text-sm text-gray-500">Total Votes: {group.votes || 0}</span>
+                  {/* <span className="text-sm text-gray-500">Total Votes: {group.votes || 0}</span> */}
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="relative flex items-center">

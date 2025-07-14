@@ -8,11 +8,7 @@ import * as dotenv from 'dotenv';
 dotenv.config();
 
 async function bootstrap() {
-  console.log('Starting backend...');
-  console.log('DATABASE_URL:', process.env.DATABASE_URL ? 'SET' : 'NOT SET');
-  console.log('JWT_SECRET:', process.env.JWT_SECRET ? 'SET' : 'NOT SET');
-  console.log('PORT:', process.env.PORT || 3001);
-  console.log('NODE_ENV:', process.env.NODE_ENV || 'development');
+
   
   const app = await NestFactory.create(AppModule);
   
@@ -37,9 +33,6 @@ async function bootstrap() {
   const port = process.env.PORT || 3001; // Use 3001 for backend to avoid conflict with frontend
   await app.listen(port);
   console.log(`Application is running on: http://localhost:${port}`);
-  console.log(`Backend is ready to accept requests on port ${port}`);
-  console.log(`Frontend can proxy requests to: http://localhost:${port}`);
-  console.log(`WebSocket server is ready on: ws://localhost:${port}`);
   
 }
 bootstrap();
