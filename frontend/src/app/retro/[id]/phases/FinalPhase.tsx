@@ -17,7 +17,8 @@ export default function FinalPhase({
   typingParticipants,
   isCurrentFacilitator,
   setShowRoleModal,
-  setSelectedParticipant
+  setSelectedParticipant,
+  labellingItems
 }: any) {
   // Tambahkan state modal
   const [showModal, setShowModal] = useState(true);
@@ -60,21 +61,29 @@ export default function FinalPhase({
       <div className="w-full flex flex-row">
         {/* Card group kiri (read-only) */}
         <div className="flex flex-row gap-6 p-8 items-start flex-1">
-          {[0, 1].map((groupIdx: number) => (
-            <div key={groupIdx} className="bg-white border rounded-lg shadow-sm w-auto min-w-[220px] max-w-[350px] px-4 py-3">
+        {labellingItems && labellingItems.length > 0 ? (
+          labellingItems.sort((a: any, b: any) => b.votes - a.votes).map((group: any, idx: number) => {
+            return (            <div key={group.id} className="bg-white border rounded-lg shadow-sm w-auto min-w-[220px] max-w-[350px] px-4 py-3">
               <div className="mb-2 flex items-center justify-between">
-                <span className="text-lg font-semibold text-gray-400">{groupLabels[groupIdx]?.trim() || 'Unlabeled'}</span>
+                <span className="text-lg font-semibold text-gray-400">{group.label || 'Unlabeled'}</span>
                 <div className="flex items-center gap-2">
                   <div className="bg-gray-100 text-gray-700 font-bold px-3 py-1 rounded select-none text-center" style={{fontSize: '1rem', minWidth: '60px'}}>
-                    Votes {userVotes[groupIdx] || 0}
+                    Votes {group.votes || 0}
                   </div>
                 </div>
               </div>
               <div className="flex flex-col gap-2">
-                {/* TODO: Render items per group if needed */}
-              </div>
+                  {group.group_items.map((item: any, idx: number) => (
+                    <div key={idx} className="bg-gray-50 border rounded px-3 py-2 text-sm flex items-center justify-between gap-2">
+                      <span>{item.item ? item.item.content : 'No item'}</span>
+                    </div>
+                  ))}
+                </div>
             </div>
-          ))}
+          )})
+        ) : (
+          <div className="text-gray-400 text-sm">No items to display.</div>
+        )}
         </div>
         {/* Panel Action Items kanan (read-only) */}
         <div className="w-[400px] border-l bg-white flex flex-col p-6 sticky top-0 self-start overflow-y-auto" style={{ height: 'calc(100vh - 80px)', right: 0 }}>

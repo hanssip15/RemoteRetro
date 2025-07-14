@@ -509,6 +509,8 @@ export default function RetroPage() {
     });
   }, [items.length]);
 
+  
+
   const handleItemUpdated = useCallback((updatedItem: RetroItem) => {
     console.log('✏️ WebSocket: Item updated event received:', updatedItem);
     setItems(prev => prev.map(item => {
@@ -544,7 +546,7 @@ export default function RetroPage() {
     fetchRetroData();
   }, []);
 
-  const handlePhaseChange = useCallback((newPhase: 'prime-directive' | 'ideation' | 'grouping' | 'labelling' | 'voting' | 'final' | 'ActionItems') => {
+  const handlePhaseChange = useCallback((newPhase: 'prime-directive' | 'ideation' | 'grouping' | 'labelling' | 'voting' | 'final' | 'ActionItems' | 'submit') => {
     console.log('🔄 WebSocket: Phase change event received:', newPhase);
     setPhase(newPhase);
     // Don't set isPhaseChanging to false here as it's handled by the button
@@ -625,28 +627,6 @@ export default function RetroPage() {
     }
   }, [user?.id]);
 
-  // const handleAddActionItem = () => {
-  //   if (!actionInput.trim() || !actionAssignee || !user?.id) return;
-  
-  //   // Cari nama assignee
-  //   const assignee = participants.find(p => p.user.id === actionAssignee);
-  //   const assigneeName = assignee?.user.name || 'Unknown';
-  
-  //   // Kirim ke WebSocket
-  //   if (socket && isConnected) {
-  //     socket.emit('action-item-added', {
-  //       retroId,
-  //       task: actionInput,
-  //       assigneeId: actionAssignee,
-  //       assigneeName,
-  //       createdBy: user.id
-  //     });
-  //   }
-  
-  //   // Kosongkan input
-  //   setActionInput('');
-  //   setActionAssignee('');
-  // };
 
   // Handler untuk menerima vote submission dari facilitator
   const handleVoteSubmission = useCallback((data: { 
@@ -666,8 +646,13 @@ export default function RetroPage() {
 
   // Handler untuk menerima action items update dari WebSocket
   const handleActionItemsUpdate = useCallback((actionItems: any[]) => {
-    // console.log('🚀 Received action items update via WebSocket:', actionItems);
+    console.log('🚀 Received action items update via WebSocket:', actionItems);
+    console.log('🚀 Current actionItems before update:', actionItems);
+    console.log('🚀 Number of action items received:', actionItems.length);
+    
+    // Pastikan hanya update dari WebSocket, bukan dari local state
     setActionItems(actionItems);
+    console.log('🚀 Action items updated in state');
   }, []);
 
   // Handler untuk menerima retro state yang berisi action items
@@ -831,6 +816,7 @@ export default function RetroPage() {
     }
   }, [inputText, user, inputCategory, retroId]);
 
+  
   const handleUpdateItem = useCallback(async (itemId: string, content: string, category: string) => {
     if (!user) return;
 
@@ -952,6 +938,41 @@ export default function RetroPage() {
   const isCurrentFacilitator = participants.find(x => x.role)?.user.id === user?.id;
   const currentUserParticipant = participants.find(x => x.user.id === user?.id);
   
+  const handleAddActionItemWebSocket = () => {
+    console.log('🚀 handleAddActionItemWebSocket called');
+    console.log('🚀 actionInput:', actionInput);
+    console.log('🚀 actionAssignee:', actionAssignee);
+    console.log('🚀 user:', user);
+    console.log('🚀 socket:', socket);
+    console.log('🚀 isConnected:', isConnected);
+    
+    if (!actionInput.trim() || !actionAssignee || !user?.id) {
+      console.log('❌ Validation failed:', { actionInput, actionAssignee, userId: user?.id });
+      return;
+    }
+
+    // Cari nama assignee
+    const assignee = participants.find((p: any) => p.user.id === actionAssignee);
+    const assigneeName = assignee?.user.name || 'Unknown';
+    // Kirim ke WebSocket
+    if (socket && isConnected) {
+      socket.emit('action-item-added', {
+        retroId: retro?.id,
+        task: actionInput,
+        assigneeId: actionAssignee,
+        assigneeName,
+        createdBy: user.id
+      });
+      console.log('✅ Action item sent to WebSocket');
+    } else {
+      console.log('❌ Socket not available or not connected');
+    }
+
+    // Kosongkan input
+    setActionInput('');
+    setActionAssignee('');
+  };
+
   const handlePromoteToFacilitator = useCallback(async (participantId: number) => {
     if (!user) return;
     try {
@@ -1045,8 +1066,12 @@ export default function RetroPage() {
     }
   }, [participants, actionAssignee, setActionAssignee]);
   const handleAddActionItem = () => {
-    if (!actionInput.trim() || !actionAssignee || !user?.id) return;
+    if (!actionInput.trim() || !actionAssignee || !user?.id) {
+      console.log('❌ Validation failed:', { actionInput, actionAssignee, userId: user?.id });
+      return;
+    }
     
+    // Find assignee name
     const assignee = participants.find(p => p.user.id === actionAssignee);
     const assigneeName = assignee?.user.name || 'Unknown';
     
@@ -1058,7 +1083,7 @@ export default function RetroPage() {
       createdBy: user.id
     });
     
-    // Send to WebSocket
+    // Send to WebSocket ONLY - don't update local state
     if (socket && isConnected) {
       socket.emit('action-item-added', {
         retroId,
@@ -1067,6 +1092,9 @@ export default function RetroPage() {
         assigneeName,
         createdBy: user.id
       });
+      console.log('✅ Action item sent to WebSocket');
+    } else {
+      console.log('❌ Socket not available or not connected');
     }
     
     // Clear input
@@ -1318,7 +1346,7 @@ export default function RetroPage() {
         actionAssignee={actionAssignee}
         setActionInput={setActionInput}
         setActionAssignee={setActionAssignee}
-        handleAddActionItem={handleAddActionItem}
+        handleAddActionItemWebSocket={handleAddActionItemWebSocket}
         isCurrentFacilitator={isCurrentFacilitator}
         setPhase={setPhase}
         broadcastPhaseChange={broadcastPhaseChange}
@@ -1361,6 +1389,7 @@ export default function RetroPage() {
         isCurrentFacilitator={isCurrentFacilitator}
         setShowRoleModal={setShowRoleModal}
         setSelectedParticipant={setSelectedParticipant}
+        labellingItems={labellingItems}
       />
     </>
   );

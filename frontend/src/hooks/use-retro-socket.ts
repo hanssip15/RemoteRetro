@@ -9,7 +9,7 @@ interface UseRetroSocketOptions {
   onItemsUpdate?: (items: any[]) => void;
   onParticipantUpdate?: () => void;
   onRetroStarted?: () => void;
-  onPhaseChange?: (phase: 'prime-directive' | 'ideation' | 'grouping' | 'labelling' | 'voting' | 'final' | 'ActionItems') => void;
+  onPhaseChange?: (phase: 'prime-directive' | 'ideation' | 'grouping' | 'labelling' | 'voting' | 'final' | 'ActionItems' | 'submit') => void;
   onItemPositionUpdate?: (data: { itemId: string; position: { x: number; y: number }; userId: string }) => void;
   onGroupingUpdate?: (data: { itemGroups: { [itemId: string]: string }; signatureColors: { [signature: string]: string }; userId: string }) => void;
   onVoteUpdate?: (data: { groupId: number; votes: number; userId: string; userVotes: { [groupId: number]: number } }) => void;
@@ -111,7 +111,7 @@ export const useRetroSocket = ({
       callbacks.onRetroStarted?.();
     };
 
-    const handlePhaseChange = (data: { phase: 'prime-directive' | 'ideation' | 'grouping' | 'labelling' | 'voting' | 'final' | 'ActionItems' }) => {
+    const handlePhaseChange = (data: { phase: 'prime-directive' | 'ideation' | 'grouping' | 'labelling' | 'voting' | 'final' | 'ActionItems' | 'submit' }) => {
       console.log('🔄 Phase change via WebSocket:', data.phase);
       callbacks.onPhaseChange?.(data.phase);
     };
@@ -150,7 +150,7 @@ export const useRetroSocket = ({
       callbacks.onRetroState?.(state);
     };
 
-    // Add event listeners
+    // Add event listeners - ensure each is added only once
     socket.on(`item-added:${retroId}`, handleItemAdded);
     socket.on(`item-updated:${retroId}`, handleItemUpdated);
     socket.on(`item-deleted:${retroId}`, handleItemDeleted);
@@ -166,12 +166,9 @@ export const useRetroSocket = ({
     socket.on(`action-items-update:${retroId}`, handleActionItemsUpdate);
     socket.on(`retro-state:${retroId}`, handleRetroState);
 
-    // Test event to verify listeners are working
-    console.log('✅ Event listeners set up for retro:', retroId);
-
-    // Cleanup event listeners
+    // Cleanup function - ensure all listeners are removed
     return () => {
-      console.log('🧹 Cleaning up retro event listeners for:', retroId);
+      console.log('🧹 Cleaning up event listeners for:', retroId);
       socket.off(`item-added:${retroId}`, handleItemAdded);
       socket.off(`item-updated:${retroId}`, handleItemUpdated);
       socket.off(`item-deleted:${retroId}`, handleItemDeleted);
@@ -184,8 +181,8 @@ export const useRetroSocket = ({
       socket.off(`vote-update:${retroId}`, handleVoteUpdate);
       socket.off(`vote-submission:${retroId}`, handleVoteSubmission);
       socket.off(`label-update:${retroId}`, handleLabelUpdate);
-      // socket.off(`action-items-update:${retroId}`, handleActionItemsUpdate);
-      // socket.off(`retro-state:${retroId}`, handleRetroState);
+      socket.off(`action-items-update:${retroId}`, handleActionItemsUpdate);
+      socket.off(`retro-state:${retroId}`, handleRetroState);
     };
   }, [socket, retroId, callbacks]);
 
