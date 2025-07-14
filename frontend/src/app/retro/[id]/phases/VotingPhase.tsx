@@ -1,15 +1,113 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback }, { useEffect, useState } from 'react';
 import RetroFooter from './RetroFooter';
 import { Button } from '@/components/ui/button';
 import RetroHeader from '../RetroHeader';
+import { apiService } from '@/services/api';
 
 export default function VotingPhase(props: any) {
   const {
     retro, participants, user, currentUserRole, showShareModal, setShowShareModal, handleLogout,
     isCurrentFacilitator, setPhase, broadcastPhaseChange, votesLeft,
     labellingItems, typingParticipants, setShowRoleModal, setSelectedParticipant,
-    userVotes, handleVote
+    userVotes, handleVote, socket, isConnected, setLabellingItems
   } = props;
+
+  // Function untuk update votes di database dan broadcast via WebSocket
+  const updateVotesInDatabase = useCallback(async (groupId: number, newVotes: number) => {
+    try {
+      console.log('🔄 Updating votes in database:', { groupId, newVotes });
+      await apiService.updateVotes(groupId, newVotes);
+      console.log('✅ Votes updated successfully');
+      
+      // Broadcast vote update to other participants via WebSocket
+      if (socket && isConnected && user) {
+        socket.emit('vote-update', {
+          retroId: retro.id,
+          groupId: groupId,
+          votes: newVotes,
+          userId: user.id,
+          userVotes: userVotes
+        });
+        console.log('📡 Vote update broadcasted via WebSocket');
+      }
+    } catch (error) {
+      console.error('❌ Failed to update votes:', error);
+    }
+  }, [socket, isConnected, user, retro?.id, userVotes]);
+
+  // Enhanced vote handler that updates database and broadcasts
+  const handleVoteWithBroadcast = useCallback((groupIdx: number, delta: number) => {
+    // Call the original handleVote function
+    handleVote(groupIdx, delta);
+    
+    // Update database and broadcast if vote was successful
+    const group = labellingItems[groupIdx];
+    if (group && group.id) {
+      const currentVotes = group.votes || 0;
+      const newVotes = currentVotes + delta;
+      
+      // Update local state immediately
+      setLabellingItems((prev: any[]) => 
+        prev.map((g: any, idx: number) => 
+          idx === groupIdx 
+            ? { ...g, votes: Math.max(0, newVotes) }
+            : g
+        )
+      );
+      
+      // Update database and broadcast
+      updateVotesInDatabase(group.id, Math.max(0, newVotes));
+    }
+  }, [handleVote, labellingItems, setLabellingItems, updateVotesInDatabase]);
+
+  // Function untuk menyimpan semua votes ke database saat facilitator menekan Action Items
+  const handleSaveVotesAndProceed = useCallback(async () => {
+    try {
+      console.log('💾 Saving all votes to database before proceeding to Action Items...');
+      
+      // Save votes for all groups to database
+      const savePromises = labellingItems.map(async (group: any) => {
+        if (group && group.id) {
+          console.log(`🔄 Saving votes for group ${group.id}: ${group.votes || 0}`);
+          await apiService.updateVotes(group.id, group.votes || 0);
+        }
+      });
+      
+      await Promise.all(savePromises);
+      console.log('✅ All votes saved successfully to database');
+      
+      // Broadcast vote submission to all participants
+      if (socket && isConnected && user) {
+        socket.emit('vote-submission', {
+          retroId: retro.id,
+          facilitatorId: user.id,
+          groupVotes: labellingItems.reduce((acc: any, group: any) => {
+            if (group && group.id) {
+              acc[group.id] = group.votes || 0;
+            }
+            return acc;
+          }, {})
+        });
+        console.log('📡 Vote submission broadcasted via WebSocket');
+      }
+      
+      // Proceed to Action Items phase
+      if (broadcastPhaseChange) {
+        broadcastPhaseChange('ActionItems');
+      } else if (setPhase) {
+        setPhase('ActionItems');
+      }
+      
+    } catch (error) {
+      console.error('❌ Failed to save votes to database:', error);
+      // Still proceed to Action Items even if save fails
+      if (broadcastPhaseChange) {
+        broadcastPhaseChange('ActionItems');
+      } else if (setPhase) {
+        setPhase('ActionItems');
+      }
+    }
+  }, [labellingItems, broadcastPhaseChange, setPhase, socket, isConnected, user, retro?.id]);
   const [showModal, setShowModal] = useState(true);
 
   useEffect(() => {
@@ -53,10 +151,13 @@ export default function VotingPhase(props: any) {
       />
       <div className="flex-1 flex flex-col items-center justify-start w-full">
         <div className="flex flex-row gap-8 mt-8 w-full justify-center">
-          {Object.entries(labellingItems).map(([label, groupItems]: any, idx: number) => (
-            <div key={label} className="bg-white border rounded-lg shadow-sm min-w-[350px] max-w-[400px] w-full p-4">
+        {labellingItems.map((group: any, idx: number) => (
+            <div key={group.id} className="bg-white border rounded-lg shadow-sm min-w-[350px] max-w-[400px] w-full p-4">
               <div className="mb-2 flex items-center justify-between">
-                <span className="text-lg font-semibold text-gray-400">{label}</span>
+                <div className="flex flex-col">
+                  <span className="text-lg font-semibold text-gray-400">{group.label}</span>
+                  <span className="text-sm text-gray-500">Total Votes: {group.votes || 0}</span>
+                </div>
                 <div className="flex items-center gap-2">
                   <div className="relative flex items-center">
                     <div className="bg-teal-400 text-white font-bold pl-4 pr-2 py-1 rounded-lg relative select-none text-left" style={{fontSize: '1rem', minWidth: '90px'}}>
@@ -67,7 +168,7 @@ export default function VotingPhase(props: any) {
                     size="icon"
                     variant="outline"
                     className="h-7 w-7 px-0"
-                    onClick={() => handleVote(idx, -1)}
+                    onClick={() => handleVoteWithBroadcast(idx, -1)}
                     disabled={(userVotes[idx] || 0) <= 0}
                   >
                     -
@@ -76,7 +177,7 @@ export default function VotingPhase(props: any) {
                     size="icon"
                     variant="outline"
                     className="h-7 w-7 px-0"
-                    onClick={() => handleVote(idx, 1)}
+                    onClick={() => handleVoteWithBroadcast(idx, 1)}
                     disabled={votesLeft <= 0}
                   >
                     +
@@ -85,9 +186,9 @@ export default function VotingPhase(props: any) {
                 </div>
               </div>
               <div className="flex flex-col gap-2">
-                {groupItems.map((item: any) => (
+                  {group.group_items.map((item: any) => (
                   <div key={item.id} className="flex items-center gap-2 text-base">
-                    <span>{item.content}</span>
+                    <span>{item.item.content}</span>
                   </div>
                 ))}
               </div>
@@ -98,10 +199,10 @@ export default function VotingPhase(props: any) {
       <RetroFooter
         title={<div className="flex flex-col items-start justify-center"><div className="text-xl font-semibold">Voting: {votesLeft} Votes Left</div></div>}
         center={<div></div>}
-        right={isCurrentFacilitator && votesLeft === 0 && (
+        right={isCurrentFacilitator && (
           <div className="flex flex-row items-center gap-2">
             <Button
-              onClick={() => broadcastPhaseChange ? broadcastPhaseChange('ActionItems') : setPhase && setPhase('ActionItems')}
+              onClick={handleSaveVotesAndProceed}
               className="px-8 py-2 rounded text-base font-semibold"
               variant="secondary"
             >

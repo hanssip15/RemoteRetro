@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import RetroHeader from '../RetroHeader';
 import { Pencil, Trash2 } from 'lucide-react';
 
+
 export default function ActionItemsPhase({
   retro,
   participants,
@@ -34,8 +35,69 @@ export default function ActionItemsPhase({
   handleEditActionItem,
   handleSaveEditActionItem,
   handleDeleteActionItem,
-  broadcastPhaseChange
+  broadcastPhaseChange,
+  labellingItems,
+  socket,
+  isConnected,
 }: any) {
+  // Debug logging
+  console.log('🔍 ActionItemsPhase - actionItems:', actionItems);
+  console.log('🔍 ActionItemsPhase - socket:', socket);
+  console.log('🔍 ActionItemsPhase - isConnected:', isConnected);
+  console.log('🔍 ActionItemsPhase - actionInput:', actionInput);
+  console.log('🔍 ActionItemsPhase - actionAssignee:', actionAssignee);
+  
+  // Handler untuk tombol Add yang mengirim ke WebSocket
+  const handleAddActionItemWebSocket = () => {
+    console.log('🚀 handleAddActionItemWebSocket called');
+    console.log('🚀 actionInput:', actionInput);
+    console.log('🚀 actionAssignee:', actionAssignee);
+    console.log('🚀 user:', user);
+    console.log('🚀 socket:', socket);
+    console.log('🚀 isConnected:', isConnected);
+    
+    if (!actionInput.trim() || !actionAssignee || !user?.id) {
+      console.log('❌ Validation failed:', { actionInput, actionAssignee, userId: user?.id });
+      return;
+    }
+
+    // Cari nama assignee
+    const assignee = participants.find((p: any) => p.user.id === actionAssignee);
+    const assigneeName = assignee?.user.name || 'Unknown';
+
+    console.log('🚀 Sending to WebSocket:', {
+      retroId: retro?.id,
+      task: actionInput,
+      assigneeId: actionAssignee,
+      assigneeName,
+      createdBy: user.id
+    });
+
+    // Kirim ke WebSocket
+    if (socket && isConnected) {
+      socket.emit('action-item-added', {
+        retroId: retro?.id,
+        task: actionInput,
+        assigneeId: actionAssignee,
+        assigneeName,
+        createdBy: user.id
+      });
+      console.log('✅ Action item sent to WebSocket');
+    } else {
+      console.log('❌ Socket not available or not connected');
+    }
+
+    // Kosongkan input
+    setActionInput('');
+    setActionAssignee('');
+  };
+  
+  React.useEffect(() => {
+    if (participants && participants.length > 0 && !actionAssignee) {
+      setActionAssignee(participants[0].user.id);
+    }
+  }, [participants, actionAssignee, setActionAssignee]);
+  
   const [showModal, setShowModal] = useState(true);
 
   useEffect(() => {
@@ -85,21 +147,34 @@ export default function ActionItemsPhase({
       <div className="w-full flex flex-row">
         {/* Card group kiri */}
         <div className="flex flex-row gap-6 p-8 items-start flex-1">
-          {[0, 1].map((groupIdx: number) => (
-            <div key={groupIdx} className="bg-white border rounded-lg shadow-sm w-auto min-w-[220px] max-w-[350px] px-4 py-3">
-              <div className="mb-2 flex items-center justify-between">
-                <span className="text-lg font-semibold text-gray-400">{groupLabels[groupIdx]?.trim() || 'Unlabeled'}</span>
-                <div className="flex items-center gap-2">
-                  <div className="bg-gray-100 text-gray-700 font-bold px-3 py-1 rounded select-none text-center" style={{fontSize: '1rem', minWidth: '60px'}}>
-                    Votes {userVotes[groupIdx] || 0}
+        {labellingItems && labellingItems.length > 0 ? (
+          labellingItems.sort((a: any, b: any) => b.votes - a.votes).map((group: any, idx: number) => {
+            return (
+              <div key={group.id} className="bg-white border rounded-lg shadow-sm w-auto min-w-[220px] max-w-[350px] px-4 py-3">
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="text-lg font-semibold text-gray-400">{group.label}</span>
+                  <div className="flex items-center gap-2">
+                    <div className="bg-gray-100 text-gray-700 font-bold px-3 py-1 rounded select-none text-center" style={{fontSize: '1rem', minWidth: '60px'}}>
+                      Votes {group.votes || 0}
+                    </div>
                   </div>
                 </div>
+                <div className="flex flex-col gap-2">
+                  {group.group_items.map((item: any, idx: number) => (
+                    <div key={idx} className="bg-gray-50 border rounded px-3 py-2 text-sm flex items-center justify-between gap-2">
+                      <span>{item.item ? item.item.content : 'No item'}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="flex flex-col gap-2">
-                {/* TODO: Render items per group if needed */}
-              </div>
-            </div>
-          ))}
+            );
+          })
+        ) : (
+          <div className="text-gray-500 text-center w-full py-8">
+            <p>No labelling items available</p>
+            <p className="text-sm">Debug: labellingItems = {JSON.stringify(labellingItems)}</p>
+          </div>
+        )}
         </div>
         {/* Panel Action Items sticky kanan */}
         <div className="w-[400px] border-l bg-white flex flex-col p-6 sticky top-0 self-start overflow-y-auto" style={{ height: 'calc(100vh - 80px)', right: 0 }}>
@@ -111,8 +186,10 @@ export default function ActionItemsPhase({
           {/* List action items */}
           <div className="flex flex-col gap-2">
             {actionItems.length === 0 && <span className="text-gray-400 text-sm">No action items yet.</span>}
+            {console.log('🚀 actionItems:', actionItems)}
+            {console.log('🚀 current facilitator:', isCurrentFacilitator)}
             {actionItems.map((item: any, idx: number) => (
-              <div key={idx} className="bg-gray-50 border rounded px-3 py-2 text-sm flex items-center justify-between gap-2">
+              <div key={item.id || idx} className="bg-gray-50 border rounded px-3 py-2 text-sm flex items-center justify-between gap-2">
                 {editingActionIdx === idx ? (
                   <>
                     <div className="flex-1 flex flex-col gap-1">
@@ -134,6 +211,7 @@ export default function ActionItemsPhase({
                         />
                       </div>
                       <div className="flex gap-2 mt-1">
+                        
                         <button
                           className="px-2 py-1 bg-gray-400 text-white rounded text-xs hover:bg-gray-500"
                           onClick={() => handleSaveEditActionItem(idx)}
@@ -160,6 +238,8 @@ export default function ActionItemsPhase({
                       </span>
                     </div>
                     <div className="flex gap-1">
+                      {(isCurrentFacilitator || item.createdBy == user.id) && (
+                        <>
                       <button
                         className="p-1 hover:bg-gray-200 rounded"
                         title="Edit"
@@ -176,6 +256,8 @@ export default function ActionItemsPhase({
                       >
                         <Trash2 className="h-4 w-4 text-red-500" />
                       </button>
+                      </>
+                      )}
                     </div>
                   </>
                 )}
@@ -231,8 +313,8 @@ export default function ActionItemsPhase({
             <Button
               className="px-4 py-1 bg-gray-400 text-white hover:bg-gray-500"
               style={{ minWidth: 100 }}
-              onClick={handleAddActionItem}
-              disabled={!actionInput.trim() || !actionAssignee}
+              onClick={handleAddActionItemWebSocket}
+              disabled={!actionInput.trim()}
               type="submit"
             >
               Add

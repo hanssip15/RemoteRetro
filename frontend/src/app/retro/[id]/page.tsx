@@ -447,12 +447,30 @@ export default function RetroPage() {
 
   useEffect(() => {
     if (phase === 'labelling') {
+      console.log('🔄 Fetching labelling items for phase:', phase, 'retroId:', retroId);
       apiService.getLabelsByRetro(retroId).then((groups) => {
-        console.log('🔄 Labelling items:', groups);
+        console.log('🔄 Labelling items received:', groups);
         setLabellingItems(groups);
+      }).catch((error) => {
+        console.error('❌ Error fetching labelling items:', error);
+        setLabellingItems([]);
       });
     }
   }, [phase, retroId, items]);
+
+  // Add useEffect for ActionItems phase to ensure labellingItems are loaded
+  useEffect(() => {
+    if (phase === 'ActionItems') {
+      console.log('🔄 Fetching labelling items for ActionItems phase, retroId:', retroId);
+      apiService.getLabelsByRetro(retroId).then((groups) => {
+        console.log('🔄 Labelling items for ActionItems received:', groups);
+        setLabellingItems(groups);
+      }).catch((error) => {
+        console.error('❌ Error fetching labelling items for ActionItems:', error);
+        setLabellingItems([]);
+      });
+    }
+  }, [phase, retroId]);
   
 
   const currentUserRole = participants.find(p => p.user.id === user?.id)?.role || false;
@@ -587,6 +605,79 @@ export default function RetroPage() {
     }
   }, [user?.id]);
 
+  // Handler untuk menerima vote update dari participant lain
+  const handleVoteUpdate = useCallback((data: { 
+    groupId: number; 
+    votes: number; 
+    userId: string;
+    userVotes: { [groupId: number]: number };
+  }) => {
+    // Hanya update jika bukan dari user saat ini
+    if (data.userId !== user?.id) {
+      console.log('🗳️ Received vote update from other user:', data);
+      setLabellingItems(prev => 
+        prev.map(group => 
+          group.id === data.groupId 
+            ? { ...group, votes: data.votes }
+            : group
+        )
+      );
+    }
+  }, [user?.id]);
+
+  // const handleAddActionItem = () => {
+  //   if (!actionInput.trim() || !actionAssignee || !user?.id) return;
+  
+  //   // Cari nama assignee
+  //   const assignee = participants.find(p => p.user.id === actionAssignee);
+  //   const assigneeName = assignee?.user.name || 'Unknown';
+  
+  //   // Kirim ke WebSocket
+  //   if (socket && isConnected) {
+  //     socket.emit('action-item-added', {
+  //       retroId,
+  //       task: actionInput,
+  //       assigneeId: actionAssignee,
+  //       assigneeName,
+  //       createdBy: user.id
+  //     });
+  //   }
+  
+  //   // Kosongkan input
+  //   setActionInput('');
+  //   setActionAssignee('');
+  // };
+
+  // Handler untuk menerima vote submission dari facilitator
+  const handleVoteSubmission = useCallback((data: { 
+    facilitatorId: string; 
+    groupVotes: { [groupId: number]: number };
+  }) => {
+    console.log('📊 Received vote submission from facilitator:', data);
+    // Update semua votes sesuai dengan yang disimpan facilitator
+    setLabellingItems(prev => 
+      prev.map(group => 
+        group.id && data.groupVotes[group.id] !== undefined
+          ? { ...group, votes: data.groupVotes[group.id] }
+          : group
+      )
+    );
+  }, []);
+
+  // Handler untuk menerima action items update dari WebSocket
+  const handleActionItemsUpdate = useCallback((actionItems: any[]) => {
+    // console.log('🚀 Received action items update via WebSocket:', actionItems);
+    setActionItems(actionItems);
+  }, []);
+
+  // Handler untuk menerima retro state yang berisi action items
+  const handleRetroState = useCallback((state: any) => {
+    console.log('📦 Received retro state:', state);
+    if (state.actionItems) {
+      setActionItems(state.actionItems);
+    }
+  }, []);
+
   // Initialize WebSocket connection using the stable hook
   const { isConnected, socket } = useRetroSocket({
     retroId,
@@ -599,6 +690,10 @@ export default function RetroPage() {
     onItemPositionUpdate: handleItemPositionUpdate,
     onGroupingUpdate: handleGroupingUpdate,
     onLabelUpdate: handleLabelUpdate,
+    onVoteUpdate: handleVoteUpdate,
+    onVoteSubmission: handleVoteSubmission,
+    onActionItemsUpdate: handleActionItemsUpdate,
+    onRetroState: handleRetroState,
   });
 
   // Fungsi untuk mengirim phase change ke semua partisipan
@@ -929,49 +1024,112 @@ export default function RetroPage() {
       return { ...prev, [groupIdx]: next };
     });
   };
-  const [actionItems, setActionItems] = useState<{ assignee: string; assigneeName: string; task: string; edited?: boolean }[]>([]);
+  const [actionItems, setActionItems] = useState<Array<{
+    id?: string;
+    assignee?: string;
+    assigneeId?: string;
+    assigneeName: string;
+    task: string;
+    edited?: boolean;
+    createdBy?: string;
+    createdAt?: string;
+  }>>([]);
   const [actionInput, setActionInput] = useState('');
   const [actionAssignee, setActionAssignee] = useState(participants[0]?.user.id || '');
   const [editingActionIdx, setEditingActionIdx] = useState<number | null>(null);
   const [editActionInput, setEditActionInput] = useState('');
   const [editActionAssignee, setEditActionAssignee] = useState('');
+  useEffect(() => {
+    if (participants.length > 0 && !actionAssignee) {
+      setActionAssignee(participants[0].user.id);
+    }
+  }, [participants, actionAssignee, setActionAssignee]);
   const handleAddActionItem = () => {
-    if (!actionInput.trim() || !actionAssignee) return;
-    const assigneeObj = participants.find(p => p.user.id === actionAssignee);
-    setActionItems(prev => [
-      ...prev,
-      {
-        assignee: actionAssignee,
-        assigneeName: assigneeObj ? assigneeObj.user.name : 'Unknown',
-        task: actionInput.trim(),
-      },
-    ]);
+    if (!actionInput.trim() || !actionAssignee || !user?.id) return;
+    
+    const assignee = participants.find(p => p.user.id === actionAssignee);
+    const assigneeName = assignee?.user.name || 'Unknown';
+    
+    console.log('🚀 Adding action item via WebSocket:', {
+      retroId,
+      task: actionInput,
+      assigneeId: actionAssignee,
+      assigneeName,
+      createdBy: user.id
+    });
+    
+    // Send to WebSocket
+    if (socket && isConnected) {
+      socket.emit('action-item-added', {
+        retroId,
+        task: actionInput,
+        assigneeId: actionAssignee,
+        assigneeName,
+        createdBy: user.id
+      });
+    }
+    
+    // Clear input
     setActionInput('');
+    setActionAssignee('');
   };
   const handleEditActionItem = (idx: number) => {
     const item = actionItems[idx];
     setEditingActionIdx(idx);
     setEditActionInput(item.task);
-    setEditActionAssignee(item.assignee);
+    // Handle both old format (assignee) and new format (assigneeId)
+    setEditActionAssignee(item.assigneeId || item.assignee || '');
   };
+
   const handleSaveEditActionItem = (idx: number) => {
-    if (!editActionInput.trim() || !editActionAssignee) return;
-    const assigneeObj = participants.find(p => p.user.id === editActionAssignee);
-    setActionItems(prev => prev.map((item, i) =>
-      i === idx
-        ? {
-            ...item,
-            assignee: editActionAssignee,
-            assigneeName: assigneeObj ? assigneeObj.user.name : 'Unknown',
-            task: editActionInput.trim(),
-            edited: true,
-          }
-        : item
-    ));
+    if (!editActionInput.trim() || !editActionAssignee || !user?.id) return;
+    
+    const item = actionItems[idx];
+    const assignee = participants.find(p => p.user.id === editActionAssignee);
+    const assigneeName = assignee?.user.name || 'Unknown';
+    
+    console.log('✏️ Updating action item via WebSocket:', {
+      retroId,
+      actionItemId: item.id || `temp_${idx}`,
+      task: editActionInput,
+      assigneeId: editActionAssignee,
+      assigneeName,
+      updatedBy: user.id
+    });
+    
+    // Send to WebSocket
+    if (socket && isConnected) {
+      socket.emit('action-item-updated', {
+        retroId,
+        actionItemId: item.id || `temp_${idx}`,
+        task: editActionInput,
+        assigneeId: editActionAssignee,
+        assigneeName,
+        updatedBy: user.id
+      });
+    }
+    
+    // Clear editing state
     setEditingActionIdx(null);
+    setEditActionInput('');
+    setEditActionAssignee('');
   };
+
   const handleDeleteActionItem = (idx: number) => {
-    setActionItems(prev => prev.filter((_, i) => i !== idx));
+    const item = actionItems[idx];
+    
+    console.log('🗑️ Deleting action item via WebSocket:', {
+      retroId,
+      actionItemId: item.id || `temp_${idx}`
+    });
+    
+    // Send to WebSocket
+    if (socket && isConnected) {
+      socket.emit('action-item-deleted', {
+        retroId,
+        actionItemId: item.id || `temp_${idx}`
+      });
+    }
   };
 
 
@@ -1120,6 +1278,7 @@ export default function RetroPage() {
         setShowShareModal={setShowShareModal}
         handleLogout={handleLogout}
         labellingItems={labellingItems}
+        setLabellingItems={setLabellingItems}
         isCurrentFacilitator={isCurrentFacilitator}
         typingParticipants={typingParticipants}
         setShowRoleModal={setShowRoleModal}
@@ -1130,6 +1289,8 @@ export default function RetroPage() {
         userVotes={userVotes}
         votesLeft={votesLeft}
         handleVote={handleVote}
+        socket={socket}
+        isConnected={isConnected}
       />
     </>
   );
@@ -1148,6 +1309,8 @@ export default function RetroPage() {
         showShareModal={showShareModal}
         setShowShareModal={setShowShareModal}
         handleLogout={handleLogout}
+        labellingItems={labellingItems}
+        setLabellingItems={setLabellingItems}
         groupLabels={groupLabels}
         userVotes={userVotes}
         actionItems={actionItems}
@@ -1171,6 +1334,8 @@ export default function RetroPage() {
         handleEditActionItem={handleEditActionItem}
         handleSaveEditActionItem={handleSaveEditActionItem}
         handleDeleteActionItem={handleDeleteActionItem}
+        socket={socket}
+        isConnected={isConnected}
       />
     </>
   );

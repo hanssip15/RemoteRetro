@@ -89,6 +89,7 @@ export interface GroupsData {
   id: number;
   label: string;
   retro_id: string;
+  votes: number;
   group_items: GroupItemEntity[];
 }
 
@@ -230,6 +231,13 @@ class ApiService {
     return this.request<GroupsData>(`/group/${id}`, {
       method: 'PUT',
       body: JSON.stringify({ label }),
+    });
+  }
+
+  async updateVotes(id: number, votes: number): Promise<GroupsData> {
+    return this.request<GroupsData>(`/group/${id}/votes`, {
+      method: 'PUT',
+      body: JSON.stringify({ votes }),
     });
   }
   
