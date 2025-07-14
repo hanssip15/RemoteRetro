@@ -17,6 +17,7 @@ import { RetroItemsService } from './services/item.service';
 import { ParticipantGateway } from './gateways/participant.gateways';
 import { GroupItemModule } from './modules/group-item.module';
 import { GroupModule } from './modules/group.module';
+import { ActionModule } from './modules/action.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { GroupModule } from './modules/group.module';
     RetroItemsModule,
     GroupItemModule,
     GroupModule,  
+    ActionModule
   ],
   controllers: [AppController, DashboardController],
   providers: [AppService, RetroItemsService, ParticipantGateway],

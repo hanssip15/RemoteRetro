@@ -436,6 +436,17 @@ export default function RetroPage() {
     }
   }, [phase, retroId, items]);
 
+  useEffect(() => {
+    if (phase === 'voting') {
+      apiService.getLabelsByRetro(retroId).then((groups) => {
+        setLabellingItems(groups);
+      }).catch((error) => {
+        console.error('❌ Error fetching labelling items:', error);
+        setLabellingItems([]);
+      });
+    }
+  }, [phase, retroId, items]);
+
   // Add useEffect for ActionItems phase to ensure labellingItems are loaded
   useEffect(() => {
     if (phase === 'ActionItems') {

@@ -11,6 +11,11 @@ export class ActionController {
     return this.actionService.create(dto);
   }
 
+  @Post('bulk')
+  async bulkCreate(@Body() dtos: CreateActionDto[]) {
+    return this.actionService.bulkCreate(dtos);
+  }
+
   @Get()
   async findAll() {
     return this.actionService.findAll();

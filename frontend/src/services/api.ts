@@ -108,6 +108,7 @@ export interface CreateLabelGroupSingle {
 export interface CreateActionData {
   retro_id: string;
   action_item: string;
+  assign_to: string;
 }
 
 
@@ -174,6 +175,12 @@ class ApiService {
     });
   }
 
+  async createBulkActions(data: CreateActionData[]): Promise<any> {
+    return this.request<any>('/action/bulk', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
 
 
   async createGroup(retro_id: string, data: CreateLabelGroupSingle): Promise<GroupsData> {
@@ -373,7 +380,7 @@ export const fetchProtectedData = async () => {
 
 export const apiService = new ApiService();
 
-export const api = {
+export const api = Object.assign(apiService, {
   // Get current user info from session
   getCurrentUser: async (): Promise<any> => {
     const userData = localStorage.getItem('user_data');
@@ -382,29 +389,24 @@ export const api = {
     }
     return JSON.parse(userData);
   },
-
   // Set auth token and user data
   setAuthToken: (token: string, userData?: any) => {
     localStorage.setItem('auth_token', token);
-    
     if (userData) {
       localStorage.setItem('user_data', JSON.stringify(userData));
     }
   },
-
   // Remove auth token and user data (logout)
   removeAuthToken: () => {
     localStorage.removeItem('auth_token');
     localStorage.removeItem('user_data');
   },
-
   // Check if user is authenticated
   isAuthenticated: (): boolean => {
     return !!(localStorage.getItem('auth_token') && localStorage.getItem('user_data'));
   },
-
   // Set user data in session
   setUserData: (userData: any) => {
     localStorage.setItem('user_data', JSON.stringify(userData));
   }
-}; 
+}); 
