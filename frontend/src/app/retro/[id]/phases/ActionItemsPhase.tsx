@@ -232,6 +232,7 @@ export default function ActionItemsPhase({
         user={user}
         setShowRoleModal={setShowRoleModal}
         setSelectedParticipant={setSelectedParticipant}
+        
       >
         <div className="w-full bg-white border-t">
           <div className="container mx-auto px-4 py-4 flex flex-row items-center gap-2">

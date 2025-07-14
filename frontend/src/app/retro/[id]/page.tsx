@@ -511,7 +511,7 @@ export default function RetroPage() {
     fetchRetroData();
   }, []);
 
-  const handlePhaseChange = useCallback((newPhase: 'prime-directive' | 'ideation' | 'grouping' | 'labelling' | 'voting' | 'final' | 'ActionItems' | 'submit') => {
+  const handlePhaseChange = useCallback((newPhase: 'prime-directive' | 'ideation' | 'grouping' | 'labelling' | 'voting' | 'final' | 'ActionItems') => {
     setPhase(newPhase);
     // Don't set isPhaseChanging to false here as it's handled by the button
   }, []);
@@ -924,17 +924,7 @@ export default function RetroPage() {
   };
   
 
-  const handlePromoteToFacilitator = useCallback(async (participantId: number) => {
-    if (!user) return;
-    try {
-      await apiService.updateParticipantRole(retroId, participantId);
-      await fetchRetroData();
-    } catch (error) {
-      console.error("Error promoting to facilitator:", error);  
-      setError("Failed to promote to facilitator. Please try again.");
-      throw error;
-    }
-  }, [retroId, user, fetchRetroData]);
+  
 
   // Request state dari server saat socket connect
   useEffect(() => {
@@ -1094,7 +1084,6 @@ export default function RetroPage() {
       });
     }
   };
-
 
   // Phase switching
   if (phase === 'prime-directive') return (

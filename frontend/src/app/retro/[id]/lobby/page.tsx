@@ -121,19 +121,7 @@ export default function RetroLobbyPage() {
   }, [retroId, navigate, socket, isOngoing, currentUser?.id])
 
   
-  // useEffect(() => {
-  //   if (!socket || !retroId) return;
-  
-  //   const handleRetroStarted = () => {
-  //     handleChangeView()
-  //   };
-  //   socket.on(`retro-started:${retroId}`, handleRetroStarted);
-  //   console.log('🔁 Retro started received, refreshing data...');
-  //   return () => {
-  //     socket.off(`retro-started:${retroId}`, handleRetroStarted);
-  //   };
 
-  // }, [socket, retroId, navigate]);
 
   const handlePromoteToFacilitator = useCallback(async () => {
     if (!selectedParticipant) return;
