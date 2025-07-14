@@ -307,16 +307,17 @@ export default function ActionItemsPhase({
               disabled={!actionInput.trim() || !actionAssignee || !actionAssignee}
               className="px-4 py-1"
               type="submit"
+              variant="phaseSecondary"
             >
               Add
             </Button>
             {isCurrentFacilitator && (
               <Button
                 onClick={() => broadcastPhaseChange ? broadcastPhaseChange('final') : setPhase && setPhase('final')}
-                className="ml-4 px-8 py-2 rounded text-base font-semibold"
-                variant="secondary"
+                className="flex items-center ml-4 px-8 py-2 rounded text-base font-semibold"
+                variant="phasePrimary"
               >
-                Next: Final
+                Next: Final <span className="ml-2">&#8594;</span>
               </Button>
             )}
           </div>

@@ -134,16 +134,17 @@ export default function IdeationPhase(props: any) {
             disabled={isAddingItem || !inputText.trim()}
             className="px-4 py-1"
             type="submit"
+            variant="phaseSecondary"
           >
             {isAddingItem ? "Adding..." : "Submit"}
           </Button>
           {isCurrentFacilitator && (
             <Button
               onClick={() => broadcastPhaseChange ? broadcastPhaseChange('grouping') : setPhase && setPhase('grouping')}
-              className="px-4 py-1"
-              variant="secondary"
+              className="flex items-center px-8 py-2 text-base font-semibold"
+              variant="phasePrimary"
             >
-              Grouping
+              Grouping <span className="ml-2">&#8594;</span>
             </Button>
           )}
         </div>

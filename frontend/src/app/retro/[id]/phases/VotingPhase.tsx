@@ -203,10 +203,10 @@ export default function VotingPhase(props: any) {
           <div className="flex flex-row items-center gap-2">
             <Button
               onClick={handleSaveVotesAndProceed}
-              className="px-8 py-2 rounded text-base font-semibold"
-              variant="secondary"
+              className="flex items-center px-8 py-2 text-base font-semibold"
+              variant="phasePrimary"
             >
-              Next: Action Items
+              Next: Action Items <span className="ml-2">&#8594;</span>
             </Button>
           </div>
         )}

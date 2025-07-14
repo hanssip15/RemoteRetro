@@ -135,10 +135,10 @@ export default function LabellingPhase(props: any) {
           <div className="flex flex-row items-center gap-2">
             <Button
               onClick={() => broadcastPhaseChange ? broadcastPhaseChange('voting') : setPhase && setPhase('voting')}
-              className="px-8 py-2 rounded text-base font-semibold"
-              variant="secondary"
+              className="flex items-center px-8 py-2 text-base font-semibold"
+              variant="phasePrimary"
             >
-              Next: Voting
+              Next: Voting <span className="ml-2">&#8594;</span>
             </Button>
           </div>
         )}

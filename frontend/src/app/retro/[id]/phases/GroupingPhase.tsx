@@ -140,10 +140,10 @@ export default function GroupingPhase({
             <div className="flex flex-row items-center gap-2">
               <Button
                 onClick={() => broadcastPhaseChange ? broadcastPhaseChange('labelling') : setPhase && setPhase('labelling')}
-                className="px-8 py-2 rounded text-base font-semibold"
-                variant="secondary"
+                className="flex items-center px-8 py-2 text-base font-semibold"
+                variant="phasePrimary"
               >
-                Next: Labelling
+                Next: Labelling <span className="ml-2">&#8594;</span>
               </Button>
             </div>
           )}
