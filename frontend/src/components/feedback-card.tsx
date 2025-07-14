@@ -97,40 +97,38 @@ export function FeedbackCard({
             </div>
           </div>
         ) : (
-          <>
-            <div className="flex items-start justify-between mb-3">
-              <p className="text-sm leading-relaxed flex-1">{item.content}</p>
+          <div className="flex items-start justify-between w-full">
+            <div>
+              <p className="text-sm leading-relaxed">{item.content}</p>
               {item.isEdited && (
                 <span className="text-xs text-gray-500 ml-2 flex-shrink-0">edited</span>
               )}
             </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-1">
-                {canEdit && (
-                  <Button 
-                    size="sm" 
-                    variant="ghost" 
-                    onClick={() => setIsEditing(true)} 
-                    className="p-1"
-                    title="Edit item"
-                  >
-                    <Edit2 className="h-3 w-3" />
-                  </Button>
-                )}
-                {canDelete && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => onDelete(item.id)}
-                    className="p-1 text-red-500 hover:text-red-600"
-                    title="Delete item"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
-                )}
-              </div>
+            <div className="flex items-center space-x-1 ml-4">
+              {canEdit && (
+                <Button 
+                  size="sm" 
+                  variant="ghost" 
+                  onClick={() => setIsEditing(true)} 
+                  className="p-1"
+                  title="Edit item"
+                >
+                  <Edit2 className="h-3 w-3" />
+                </Button>
+              )}
+              {canDelete && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => onDelete(item.id)}
+                  className="p-1 text-red-500 hover:text-red-600"
+                  title="Delete item"
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              )}
             </div>
-          </>
+          </div>
         )}
       </CardContent>
     </Card>

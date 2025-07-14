@@ -67,7 +67,11 @@ export default function IdeationPhase(props: any) {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   {/* Emoji sesuai kategori */}
-                  <span role="img" aria-label="cat">{idx === 0 ? '😀' : idx === 1 ? '😢' : '🤔'}</span> {getCategoryDisplayName(`format_${idx+1}`)}
+                  <span role="img" aria-label="cat">
+                    {retro?.format === "happy_sad_confused"
+                      ? (idx === 0 ? '😀' : idx === 1 ? '😢' : '🤔')
+                      : (idx === 0 ? '🟢' : idx === 1 ? '🛑' : '🔄')}
+                  </span> {getCategoryDisplayName(`format_${idx+1}`)}
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-4 space-y-4 min-h-[200px]">
