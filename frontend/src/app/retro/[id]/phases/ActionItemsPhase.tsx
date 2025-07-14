@@ -41,23 +41,12 @@ export default function ActionItemsPhase({
   isConnected,
 }: any) {
   // Debug logging
-  console.log('🔍 ActionItemsPhase - actionItems:', actionItems);
-  console.log('🔍 ActionItemsPhase - socket:', socket);
-  console.log('🔍 ActionItemsPhase - isConnected:', isConnected);
-  console.log('🔍 ActionItemsPhase - actionInput:', actionInput);
-  console.log('🔍 ActionItemsPhase - actionAssignee:', actionAssignee);
+
   
   // Handler untuk tombol Add yang mengirim ke WebSocket
   const handleAddActionItemWebSocket = () => {
-    console.log('🚀 handleAddActionItemWebSocket called');
-    console.log('🚀 actionInput:', actionInput);
-    console.log('🚀 actionAssignee:', actionAssignee);
-    console.log('🚀 user:', user);
-    console.log('🚀 socket:', socket);
-    console.log('🚀 isConnected:', isConnected);
-    
+
     if (!actionInput.trim() || !actionAssignee || !user?.id) {
-      console.log('❌ Validation failed:', { actionInput, actionAssignee, userId: user?.id });
       return;
     }
 
@@ -65,13 +54,7 @@ export default function ActionItemsPhase({
     const assignee = participants.find((p: any) => p.user.id === actionAssignee);
     const assigneeName = assignee?.user.name || 'Unknown';
 
-    console.log('🚀 Sending to WebSocket:', {
-      retroId: retro?.id,
-      task: actionInput,
-      assigneeId: actionAssignee,
-      assigneeName,
-      createdBy: user.id
-    });
+
 
     // Kirim ke WebSocket
     if (socket && isConnected) {
@@ -82,7 +65,6 @@ export default function ActionItemsPhase({
         assigneeName,
         createdBy: user.id
       });
-      console.log('✅ Action item sent to WebSocket');
     } else {
       console.log('❌ Socket not available or not connected');
     }

@@ -23,7 +23,5 @@ import { UsersModule } from '../modules/user.module';
 })
 export class AuthModule {
   constructor() {
-    console.log('AuthModule - JWT_SECRET:', process.env.JWT_SECRET ? 'SET' : 'NOT SET');
-    console.log('AuthModule - JWT_SECRET length:', process.env.JWT_SECRET?.length || 0);
   }
 }

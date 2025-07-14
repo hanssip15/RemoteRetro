@@ -32,7 +32,6 @@ export class GroupController {
   // Endpoint untuk group
   @Post('group/:retro_id')
   async createLabelGroup(@Param('retro_id') retro_id: string, @Body() data: { label: string; item_id: string }) {
-    console.log('📦 Creating label group:', data);
 
     const group = await this.groupService.create({
       label: data.label,
@@ -40,34 +39,24 @@ export class GroupController {
       retro_id: retro_id,
     });
 
-    console.log('✅ Created group:', group);
     return group;
-    // Buat group item
-    // const groupItem = await this.groupItemService.create({
-    //   label: 'unlabeled',
-    //   item_id: data.item_id,
-    //   group_id: data.retro_id,
-    // });
-    
-    // console.log('✅ Created group item:', groupItem);
-    // return groupItem;
+
   }
 
   @Get('group/:retroId')
   async getLabelsByRetro(@Param('retroId') retroId: string) {
-    console.log('📋 Getting labels for retro:', retroId);
     return this.groupService.findByRetroId(retroId);
   }
 
   @Put('group/:id')
   async updateLabel(@Param('id') id: string, @Body() data: { label: string }) {
-    console.log('✏️ Updating label:', id, data);
+
     return this.groupService.updateLabel(+id, data.label);
   }
 
   @Put('group/:id/votes')
   async updateVotes(@Param('id') id: string, @Body() data: { votes: number }) {
-    console.log('🗳️ Updating votes:', id, data);
+
     return this.groupService.updateVotes(+id, data.votes);
   }
 }

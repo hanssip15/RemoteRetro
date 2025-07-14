@@ -48,15 +48,11 @@ export class RetroService {
       order: { joinedAt: 'ASC' },
     });
 
-    // console.log('🔍 Participants with user data:', JSON.stringify(participants, null, 2));
 
     return { retro, participants };
   }
 
   async create(createRetroDto: CreateRetroDto, userId?: string): Promise<Retro> {
-    console.log('🏗️ === RETRO SERVICE DEBUG ===');
-    console.log('📝 CreateRetroDto:', JSON.stringify(createRetroDto, null, 2));
-    console.log('🆔 User ID:', userId);
     
     const retroData = {
       id: crypto.randomUUID(), // Generate UUID for ID
@@ -66,12 +62,10 @@ export class RetroService {
       format: createRetroDto.format || 'happy_sad_confused' // Default format
     };
     
-    console.log('📦 Retro data to save:', JSON.stringify(retroData, null, 2));
     
     const retro = this.retroRepository.create(retroData);
     const savedRetro = await this.retroRepository.save(retro);
     
-    console.log('✅ Retro created successfully:', JSON.stringify(savedRetro, null, 2));
     return savedRetro;
   }
 
@@ -82,7 +76,6 @@ export class RetroService {
     }
     Object.assign(retro, updateRetroDto);
 
-    console.log('🔁 Retro status updated:', JSON.stringify(retro, null, 2));
 
     this.participantGateway.broadcastRetroStarted(id);
     return this.retroRepository.save(retro);
@@ -104,7 +97,6 @@ export class RetroService {
     }
 
     retro.currentPhase = phase;
-    console.log('🔄 Phase updated:', JSON.stringify(retro, null, 2));
 
     // Broadcast phase change to all participants
     this.participantGateway.broadcastPhaseChange(id, phase);

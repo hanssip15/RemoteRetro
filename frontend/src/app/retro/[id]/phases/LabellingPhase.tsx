@@ -30,9 +30,7 @@ export default function LabellingPhase(props: any) {
   // Function untuk update label ke database
   const updateLabelInDatabase = useCallback(async (groupId: number, newLabel: string) => {
     try {
-      console.log('🔄 Updating label in database:', { groupId, newLabel });
       await apiService.updateLabel(groupId, newLabel);
-      console.log('✅ Label updated successfully');
       
       // Broadcast label update to other participants via WebSocket
       if (socket && isConnected && user) {
