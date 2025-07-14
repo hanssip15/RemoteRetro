@@ -9,7 +9,7 @@ export default function RetroFooter({
     <div className="fixed bottom-0 left-0 w-full z-40">
       {/* Avatar bar: tanpa background putih */}
       {participants.length > 0 && (
-        <div className="w-full flex justify-center pb-1 mb-8">
+        <div className="w-full flex justify-center pb-1 mb-4">
           <div className="flex flex-row items-end gap-6">
             {participants.map((p: any) => (
               <div key={p.id} className="flex flex-col items-center relative group">

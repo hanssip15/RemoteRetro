@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import RetroFooter from './RetroFooter';
 import { Button } from '@/components/ui/button';
 import RetroHeader from '../RetroHeader';
@@ -19,8 +19,35 @@ export default function FinalPhase({
   setShowRoleModal,
   setSelectedParticipant
 }: any) {
+  // Tambahkan state modal
+  const [showModal, setShowModal] = useState(true);
+
+  useEffect(() => {
+    setShowModal(true);
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Modal Stage Change Final/Closed */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg max-w-xl w-full p-8">
+            <h2 className="text-2xl font-bold mb-2 text-center">The Retrospective Has Been Closed!</h2>
+            <p className="mb-4 text-center">
+              The facilitator has closed the retro and distributed the action items via email. You can stick around and review the board, or revisit this retro and all action items generated via your{' '}
+              <a href="/dashboard" className="text-blue-600 underline">retro dashboard</a>.
+            </p>
+            <div className="flex justify-center">
+              <button
+                className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
+                onClick={() => setShowModal(false)}
+              >
+                Got it!
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <RetroHeader
         retro={retro}
         participants={participants}

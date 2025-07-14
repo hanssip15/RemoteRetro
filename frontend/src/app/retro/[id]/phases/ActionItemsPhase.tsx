@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import RetroFooter from './RetroFooter';
 import { Button } from '@/components/ui/button';
 import RetroHeader from '../RetroHeader';
@@ -36,8 +36,43 @@ export default function ActionItemsPhase({
   handleDeleteActionItem,
   broadcastPhaseChange
 }: any) {
+  const [showModal, setShowModal] = useState(true);
+
+  useEffect(() => {
+    setShowModal(true);
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Modal Stage Change Action-Item Generation */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg max-w-xl w-full p-8">
+            <h2 className="text-2xl font-bold mb-2 text-center">Stage Change: Action-Item Generation!</h2>
+            <div className="mb-4">
+              <b>Guidance:</b>
+              <ul className="list-disc pl-6 mt-2 text-left">
+                <li>Discuss the highest-voted items on the board.</li>
+                <li>Generate action-items aimed at:
+                  <ul className="list-disc pl-6">
+                    <li>exploding the team's bottlenecks</li>
+                    <li>bolstering the team's successes</li>
+                  </ul>
+                </li>
+                <li>If you're physically present in the room with the facilitator, put your laptop away so you can focus.</li>
+              </ul>
+            </div>
+            <div className="flex justify-center">
+              <button
+                className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
+                onClick={() => setShowModal(false)}
+              >
+                Got it!
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <RetroHeader
         retro={retro}
         participants={participants}

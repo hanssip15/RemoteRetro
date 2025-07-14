@@ -108,13 +108,15 @@ export default function RetroLobbyPage() {
       }
       setIsOngoing(true)
       await apiService.updateRetro(retroId, { status: "ongoing" })
+      // Set initial phase to prime-directive
+      await apiService.updatePhase(retroId, 'prime-directive', currentUser?.id || '')
       handleChangeView()
     } catch (error) {
       console.error("Error starting retro:", error)
       const errorMessage = error instanceof Error ? error.message : 'Failed to start retro'
       alert(`Failed to start retro: ${errorMessage}`)
     }
-  }, [retroId, navigate, socket, isOngoing])
+  }, [retroId, navigate, socket, isOngoing, currentUser?.id])
 
   
   // useEffect(() => {

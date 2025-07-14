@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import RetroFooter from './RetroFooter';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,7 +8,7 @@ import { ArrowLeft, Users, Clock, Share2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import RetroHeader from '../RetroHeader';
 
-export default function SubmitPhase(props: any) {
+export default function IdeationPhase(props: any) {
   const {
     retro, participants, user, currentUserRole, showShareModal, setShowShareModal, handleLogout,
     isCurrentFacilitator, setPhase, broadcastPhaseChange,
@@ -17,8 +17,38 @@ export default function SubmitPhase(props: any) {
     setShowRoleModal, setSelectedParticipant, updatingItemId, handleUpdateItem, handleDeleteItem
   } = props;
 
+  const [showModal, setShowModal] = useState(true);
+
+  useEffect(() => {
+    setShowModal(true);
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Modal Stage Change Idea Generation */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg max-w-xl w-full p-8">
+            <h2 className="text-2xl font-bold mb-2 text-center">Stage Change: Idea Generation!</h2>
+            <div className="mb-4">
+              <b>Guidance:</b>
+              <ul className="list-disc pl-6 mt-2 text-left">
+                <li>Reflect on the events of this past sprint.</li>
+                <li>Submit items that made you happy, sad, or just plain confused.</li>
+                <li>Be thoughtful and blameless with your language; we're all here to improve.</li>
+              </ul>
+            </div>
+            <div className="flex justify-center">
+              <button
+                className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
+                onClick={() => setShowModal(false)}
+              >
+                Got it!
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <RetroHeader
         retro={retro}
         participants={participants}
