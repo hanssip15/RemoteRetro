@@ -897,10 +897,8 @@ export default function RetroPage() {
   const currentUserParticipant = participants.find(x => x.user.id === user?.id);
   
   const handleAddActionItemWebSocket = () => {
-    
-    
+
     if (!actionInput.trim() || !actionAssignee || !user?.id) {
-      
       return;
     }
 
@@ -916,15 +914,15 @@ export default function RetroPage() {
         assigneeName,
         createdBy: user.id
       });
-      
     } else {
-      
+      console.log('❌ Socket not available or not connected');
     }
 
     // Kosongkan input
     setActionInput('');
     setActionAssignee('');
   };
+  
 
   const handlePromoteToFacilitator = useCallback(async (participantId: number) => {
     if (!user) return;

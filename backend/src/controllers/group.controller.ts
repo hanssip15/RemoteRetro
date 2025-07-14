@@ -56,7 +56,6 @@ export class GroupController {
 
   @Put('group/:id/votes')
   async updateVotes(@Param('id') id: string, @Body() data: { votes: number }) {
-
     return this.groupService.updateVotes(+id, data.votes);
   }
 }

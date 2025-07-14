@@ -19,8 +19,7 @@ export default function ActionItemsPhase({
   actionInput,
   actionAssignee,
   setActionInput,
-  setActionAssignee,
-  handleAddActionItem,
+  setActionAssignee,  
   isCurrentFacilitator,
   setPhase,
   typingParticipants,
@@ -32,6 +31,7 @@ export default function ActionItemsPhase({
   setEditingActionIdx,
   setEditActionInput,
   setEditActionAssignee,
+  handleAddActionItemWebSocket,
   handleEditActionItem,
   handleSaveEditActionItem,
   handleDeleteActionItem,
@@ -44,35 +44,7 @@ export default function ActionItemsPhase({
 
   
   // Handler untuk tombol Add yang mengirim ke WebSocket
-  const handleAddActionItemWebSocket = () => {
 
-    if (!actionInput.trim() || !actionAssignee || !user?.id) {
-      return;
-    }
-
-    // Cari nama assignee
-    const assignee = participants.find((p: any) => p.user.id === actionAssignee);
-    const assigneeName = assignee?.user.name || 'Unknown';
-
-
-
-    // Kirim ke WebSocket
-    if (socket && isConnected) {
-      socket.emit('action-item-added', {
-        retroId: retro?.id,
-        task: actionInput,
-        assigneeId: actionAssignee,
-        assigneeName,
-        createdBy: user.id
-      });
-    } else {
-      console.log('❌ Socket not available or not connected');
-    }
-
-    // Kosongkan input
-    setActionInput('');
-    setActionAssignee('');
-  };
   
   React.useEffect(() => {
     if (participants && participants.length > 0 && !actionAssignee) {
@@ -134,7 +106,7 @@ export default function ActionItemsPhase({
             return (
               <div key={group.id} className="bg-white border rounded-lg shadow-sm w-auto min-w-[220px] max-w-[350px] px-4 py-3">
                 <div className="mb-2 flex items-center justify-between">
-                  <span className="text-lg font-semibold text-gray-400">{groupLabels[idx]?.trim() || 'Unlabeled'}</span>
+                  <span className="text-lg font-semibold text-gray-400">{group.label || 'Unlabeled'}</span>
                   <div className="flex items-center gap-2">
                     <div className="bg-gray-100 text-gray-700 font-bold px-3 py-1 rounded select-none text-center" style={{fontSize: '1rem', minWidth: '60px'}}>
                       Votes {group.votes || 0}
@@ -285,7 +257,7 @@ export default function ActionItemsPhase({
               onChange={e => setActionInput(e.target.value)}
             />
             <Button
-              onClick={handleAddActionItem}
+              onClick={handleAddActionItemWebSocket}
               disabled={!actionInput.trim() || !actionAssignee || !actionAssignee}
               className="px-4 py-1"
               type="submit"

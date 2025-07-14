@@ -96,18 +96,15 @@ export class RetroController {
 
   @Get('debug/latest')
   async getLatestRetro() {
-    console.log('🔍 === DEBUG LATEST RETRO ===');
     try {
       const retros = await this.retroService.findAll();
       const latestRetro = retros[0]; // Assuming they're ordered by creation date
-      console.log('📊 Latest retro:', JSON.stringify(latestRetro, null, 2));
       return {
         message: 'Latest retro found',
         retro: latestRetro,
         totalRetros: retros.length
       };
     } catch (error) {
-      console.log('❌ Error getting latest retro:', error.message);
       return { error: error.message };
     }
   }

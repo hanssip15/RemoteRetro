@@ -152,7 +152,6 @@ import {
         userId: data.userId,
         timestamp: new Date().toISOString()
       });
-      // console.log(`🎨 Grouping update broadcasted to room: ${data.retroId}`);
     }
 
     // Handler baru: user minta state terkini
