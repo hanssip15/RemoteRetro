@@ -272,6 +272,19 @@ import {
         };
       }
       
+      // Check for duplicate action items (same task and assignee within last 5 seconds)
+      const now = Date.now();
+      const recentDuplicate = retroState[data.retroId].actionItems.find(item => 
+        item.task === data.task && 
+        item.assigneeId === data.assigneeId &&
+        (now - new Date(item.createdAt).getTime()) < 5000
+      );
+      
+      if (recentDuplicate) {
+        console.log('⚠️ Duplicate action item detected, skipping:', data);
+        return;
+      }
+      
       // Create new action item
       const newActionItem = {
         id: `action_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -283,8 +296,12 @@ import {
         edited: false
       };
       
+      console.log('✅ Adding new action item:', newActionItem);
+      
       // Add to state
       retroState[data.retroId].actionItems.push(newActionItem);
+      
+      console.log('📊 Total action items in state:', retroState[data.retroId].actionItems.length);
       
       // Broadcast to all clients in the retro room
       this.broadcastActionItemsUpdate(data.retroId, retroState[data.retroId].actionItems);
@@ -300,7 +317,7 @@ import {
       assigneeName: string;
       updatedBy: string;
     }) {
-      console.log('✏️ Action item updated:', data);
+      console.log('📩 Received from client:', data);
       
       if (retroState[data.retroId]) {
         const actionItemIndex = retroState[data.retroId].actionItems.findIndex(
