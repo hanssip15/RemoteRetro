@@ -9,7 +9,7 @@ export default function LabellingPhase(props: any) {
     retro, participants, user, currentUserRole, showShareModal, setShowShareModal, handleLogout,
     isCurrentFacilitator, setPhase, broadcastPhaseChange,
     labellingItems, typingParticipants, setShowRoleModal, setSelectedParticipant,
-    groupLabels, setGroupLabels, setLabellingItems, socket, isConnected
+    setLabellingItems, socket, isConnected
   } = props;
 
   // Debounce function untuk update label

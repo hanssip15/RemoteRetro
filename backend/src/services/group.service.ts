@@ -31,6 +31,15 @@ export class GroupService {
     });
   }
 
+  // Method untuk update votes group
+  async updateVotes(id: number, votes: number) {
+    await this.groupRepository.update(id, { votes });
+    return this.groupRepository.findOne({
+      where: { id },
+      relations: ['group_items', 'group_items.item'],
+    });
+  }
+
   // Method untuk mencari semua group berdasarkan retro_id
   async findByRetroId(retroId: string) {
     return this.groupRepository.find({

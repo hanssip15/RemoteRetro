@@ -11,6 +11,8 @@ export class GroupEntity {
   @Column({ type: 'varchar' })
   label: string;
 
+  @Column({ type: 'int', default: 0 })
+  votes: number;
 
   @Column({ type: 'varchar' })
   retro_id: string;
