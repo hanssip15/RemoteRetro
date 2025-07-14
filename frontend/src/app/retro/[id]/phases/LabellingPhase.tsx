@@ -51,7 +51,7 @@ export default function LabellingPhase(props: any) {
 
   // Debounced version of updateLabelInDatabase
   const debouncedUpdateLabel = useCallback(
-    debounce(updateLabelInDatabase, 1000), // 1 second delay
+    debounce(updateLabelInDatabase, 10), // 1 second delay
     [updateLabelInDatabase]
   );
 
