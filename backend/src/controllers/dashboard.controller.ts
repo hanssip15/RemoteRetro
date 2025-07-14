@@ -50,7 +50,6 @@ export class DashboardController {
       activeRetros,
       completedRetros,
     };
-    console.log('Dashboard /stats response:', response);
     return response;
   }
 } 

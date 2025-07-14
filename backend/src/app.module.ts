@@ -47,7 +47,5 @@ import { GroupModule } from './modules/group.module';
 })
 export class AppModule {
   constructor() {
-    console.log('AppModule initialized');
-    console.log('Controllers registered:', [AppController, DashboardController].map(c => c.name));
   }
 }

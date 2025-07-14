@@ -117,8 +117,6 @@ class ApiService {
     const url = `${API_BASE_URL}${endpoint}`;
     const token = localStorage.getItem('auth_token');
     
-    // console.log('API request to:', url);
-    // console.log('Token present:', !!token);
     
     const config: RequestInit = {
       headers: {
@@ -179,7 +177,6 @@ class ApiService {
 
 
   async createGroup(retro_id: string, data: CreateLabelGroupSingle): Promise<GroupsData> {
-    console.log("=== API . TS ===", data)
     return this.request<GroupsData>(`/group/${retro_id}`, {
       method: 'POST',
       body: JSON.stringify(data),
@@ -316,8 +313,6 @@ class ApiService {
   }
 
   async updateRetro(retroId: string, data: UpdateRetroData): Promise<Retro> {
-    console.log("=== UPDATE RETRO ===", data)
-    console.log("=== RETRO ID ===", retroId)
     return this.request<Retro>(`/retros/${retroId}`, {
       method: 'PUT',
       body: JSON.stringify(data),
@@ -325,7 +320,6 @@ class ApiService {
   }
 
   async updatePhase(retroId: string, phase: string, facilitatorId: string): Promise<Retro> {
-    console.log("=== UPDATE PHASE ===", { retroId, phase, facilitatorId });
     return this.request<Retro>(`/retros/${retroId}/phase`, {
       method: 'PUT',
       body: JSON.stringify({ phase, facilitatorId }),
@@ -391,12 +385,9 @@ export const api = {
 
   // Set auth token and user data
   setAuthToken: (token: string, userData?: any) => {
-    console.log('Setting auth token:', token.substring(0, 50) + '...');
     localStorage.setItem('auth_token', token);
-    console.log('Auth token stored in localStorage');
     
     if (userData) {
-      console.log('Setting user data in session:', userData);
       localStorage.setItem('user_data', JSON.stringify(userData));
     }
   },
@@ -414,7 +405,6 @@ export const api = {
 
   // Set user data in session
   setUserData: (userData: any) => {
-    console.log('Setting user data in session:', userData);
     localStorage.setItem('user_data', JSON.stringify(userData));
   }
 }; 

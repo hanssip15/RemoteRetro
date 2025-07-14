@@ -36,16 +36,13 @@ import {
     server: Server;
   
     handleConnection(client: Socket) {
-      console.log('🔌 Client connected:', client.id);
     }
   
     handleDisconnect(client: Socket) {
-      console.log('🔌 Client disconnected:', client.id);
     }
   
     @SubscribeMessage('join-retro-room')
     handleJoinRetroRoom(client: Socket, retroId: string) {
-      console.log(`🏠 Client ${client.id} joining retro room: ${retroId}`);
       client.join(`retro:${retroId}`);
       
       // Initialize retro state if it doesn't exist
@@ -61,27 +58,22 @@ import {
       // Send current retro state to the joining client
       const state = retroState[retroId];
       client.emit(`retro-state:${retroId}`, state);
-      console.log(`📦 Sent retro state to client ${client.id} for retro ${retroId}`);
     }
   
     @SubscribeMessage('leave-retro-room')
     handleLeaveRetroRoom(client: Socket, retroId: string) {
-      console.log(`🚪 Client ${client.id} leaving retro room: ${retroId}`);
       client.leave(`retro:${retroId}`);
     }
   
     broadcastParticipantUpdate(retroId: string) {
-      console.log(`👥 Broadcasting participant update to room: ${retroId}`);
       this.server.to(`retro:${retroId}`).emit(`participants-update:${retroId}`);
     }
 
     broadcastRetroStarted(retroId: string) {
-      console.log(`🚀 Broadcasting retro started to room: ${retroId}`);
       this.server.to(`retro:${retroId}`).emit(`retro-started:${retroId}`);
     }
 
     broadcastPhaseChange(retroId: string, phase: string) {
-      console.log(`🔄 Broadcasting phase change to room: ${retroId}`, phase);
       this.server.to(`retro:${retroId}`).emit(`phase-change:${retroId}`, {
         phase: phase,
         timestamp: new Date().toISOString()
@@ -89,41 +81,34 @@ import {
     }
 
     broadcastItemAdded(retroId: string, item: any) {
-      console.log(`📝 Broadcasting item added to room: ${retroId}`, item);
       this.server.to(`retro:${retroId}`).emit(`item-added:${retroId}`, item);
       
       // Log room members for debugging
       this.server.in(`retro:${retroId}`).fetchSockets().then(sockets => {
-        console.log(`📝 Broadcasting to ${sockets.length} clients in room ${retroId}`);
       });
     }
 
-    broadcastItemUpdated(retroId: string, item: any) {
-      console.log(`✏️ Broadcasting item updated to room: ${retroId}`, item);
+    broadcastItemUpdated(retroId: string, item: any) {  
       this.server.to(`retro:${retroId}`).emit(`item-updated:${retroId}`, item);
     }
 
     broadcastItemDeleted(retroId: string, itemId: string) {
-      console.log(`🗑️ Broadcasting item deleted to room: ${retroId}`, itemId);
       this.server.to(`retro:${retroId}`).emit(`item-deleted:${retroId}`, { itemId });
     }
 
     // Broadcast all items for a retro
     broadcastItemsUpdate(retroId: string, items: any[]) {
-      console.log(`📋 Broadcasting items update to room: ${retroId}`, items.length, 'items');
       this.server.to(`retro:${retroId}`).emit(`items-update:${retroId}`, items);
     }
 
     // Broadcast action items for a retro
     broadcastActionItemsUpdate(retroId: string, actionItems: any[]) {
-      console.log(`🚀 Broadcasting action items update to room: ${retroId}`, actionItems.length, 'action items');
       this.server.to(`retro:${retroId}`).emit(`action-items-update:${retroId}`, actionItems);
     }
 
     // Handle phase change from facilitator
     @SubscribeMessage('phase-change')
     handlePhaseChange(client: Socket, data: { retroId: string; phase: string; facilitatorId: string }) {
-      console.log(`🔄 Phase change request from facilitator:`, data);
       
       // Broadcast phase change to all participants in the retro
       this.server.to(`retro:${data.retroId}`).emit(`phase-change:${data.retroId}`, {
@@ -132,7 +117,6 @@ import {
         timestamp: new Date().toISOString()
       });
       
-      console.log(`📡 Phase change broadcasted to room: ${data.retroId}`);
     }
 
     // Handle item position updates during dragging
@@ -148,7 +132,6 @@ import {
         userId: data.userId,
         timestamp: new Date().toISOString()
       });
-      console.log(`📡 Item position broadcasted to room: ${data.retroId}`);
     }
 
     // Handle grouping updates
@@ -169,7 +152,6 @@ import {
         userId: data.userId,
         timestamp: new Date().toISOString()
       });
-      // console.log(`🎨 Grouping update broadcasted to room: ${data.retroId}`);
     }
 
     // Handler baru: user minta state terkini
@@ -177,7 +159,6 @@ import {
     handleRequestRetroState(client: Socket, data: { retroId: string }) {
       const state = retroState[data.retroId] || { itemPositions: {}, itemGroups: {}, signatureColors: {}, actionItems: [] };
       client.emit(`retro-state:${data.retroId}`, state);
-      console.log(`📦 Sent retro state to client ${client.id} for retro ${data.retroId}`);
     }
 
     @SubscribeMessage('typing')
@@ -185,7 +166,6 @@ import {
       // Broadcast ke semua client di room retro
       this.server.to(`retro:${data.retroId}`).emit('typing', { userId: data.userId });
       // Opsional: log
-      console.log(`✏️ Typing event from user ${data.userId} in retro ${data.retroId}`);
     }
 
     // Handle label updates from facilitator
@@ -196,7 +176,6 @@ import {
       label: string; 
       userId: string 
     }) {
-      console.log(`🏷️ Label update from facilitator:`, data);
       
       // Broadcast label update to all participants in the retro
       this.server.to(`retro:${data.retroId}`).emit(`label-update:${data.retroId}`, {
@@ -206,7 +185,6 @@ import {
         timestamp: new Date().toISOString()
       });
       
-      console.log(`📡 Label update broadcasted to room: ${data.retroId}`);
     }
 
     // Handle vote updates from participants
@@ -218,7 +196,6 @@ import {
       userId: string;
       userVotes: { [groupId: number]: number };
     }) {
-      console.log(`🗳️ Vote update from participant:`, data);
       
       // Broadcast vote update to all participants in the retro
       this.server.to(`retro:${data.retroId}`).emit(`vote-update:${data.retroId}`, {
@@ -229,7 +206,6 @@ import {
         timestamp: new Date().toISOString()
       });
       
-      console.log(`📡 Vote update broadcasted to room: ${data.retroId}`);
     }
 
     // Handle vote submission from facilitator
@@ -239,7 +215,6 @@ import {
       facilitatorId: string;
       groupVotes: { [groupId: number]: number };
     }) {
-      console.log(`📊 Vote submission from facilitator:`, data);
       
       // Broadcast vote submission to all participants in the retro
       this.server.to(`retro:${data.retroId}`).emit(`vote-submission:${data.retroId}`, {
@@ -248,7 +223,6 @@ import {
         timestamp: new Date().toISOString()
       });
       
-      console.log(`📡 Vote submission broadcasted to room: ${data.retroId}`);
     }
 
     // Handle action item added
@@ -260,7 +234,6 @@ import {
       assigneeName: string;
       createdBy: string;
     }) {
-      console.log('🚀 Action item added:', data);
       
       // Initialize retro state if it doesn't exist
       if (!retroState[data.retroId]) {
@@ -281,7 +254,6 @@ import {
       );
       
       if (recentDuplicate) {
-        console.log('⚠️ Duplicate action item detected, skipping:', data);
         return;
       }
       
@@ -296,12 +268,10 @@ import {
         edited: false
       };
       
-      console.log('✅ Adding new action item:', newActionItem);
       
       // Add to state
       retroState[data.retroId].actionItems.push(newActionItem);
       
-      console.log('📊 Total action items in state:', retroState[data.retroId].actionItems.length);
       
       // Broadcast to all clients in the retro room
       this.broadcastActionItemsUpdate(data.retroId, retroState[data.retroId].actionItems);
@@ -317,7 +287,6 @@ import {
       assigneeName: string;
       updatedBy: string;
     }) {
-      console.log('📩 Received from client:', data);
       
       if (retroState[data.retroId]) {
         const actionItemIndex = retroState[data.retroId].actionItems.findIndex(
@@ -345,7 +314,6 @@ import {
       retroId: string;
       actionItemId: string;
     }) {
-      console.log('🗑️ Action item deleted:', data);
       
       if (retroState[data.retroId]) {
         retroState[data.retroId].actionItems = retroState[data.retroId].actionItems.filter(

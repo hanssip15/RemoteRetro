@@ -44,7 +44,6 @@ export default function NewRetroPage() {
     const authStatus = api.isAuthenticated()
 
     if (!authStatus) {
-      console.log("=== REDIRECTING TO LOGIN ===")
       navigate('/login')
     }
   }, []) // Remove navigate dependency to prevent re-runs
@@ -65,9 +64,7 @@ export default function NewRetroPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    console.log("=== FORM SUBMIT TRIGGERED ===")
-    console.log("=== TITLE ===", title)
-    console.log("=== SELECTED FORMAT ===", selectedFormat)
+
 
     // Jika title kosong, isi dengan tanggal
     let finalTitle = title.trim();
@@ -87,18 +84,18 @@ export default function NewRetroPage() {
       return
     }
 
-    console.log("=== VALIDATION PASSED ===")
+
     setIsSubmitting(true)
 
     try {
-      console.log("=== CREATING RETRO ===")
+
 
       const retro = await apiService.createRetro({
         title: finalTitle,
         format: selectedFormat,
       })
 
-      console.log("=== RETRO CREATED ===", retro)
+
 
       if (!retro || !retro.id) {
         throw new Error("No retro ID returned from API")
@@ -108,26 +105,26 @@ export default function NewRetroPage() {
       const userData = localStorage.getItem('user_data');
       if (userData) {
         user = JSON.parse(userData)
-        console.log("=== USER DATA FOUND ===", user)
+
       } else {
-        console.log("=== NO USER DATA FOUND ===")
+
         throw new Error("User data not found. Please login again.")
       }
 
-      console.log("=== ADDING PARTICIPANT ===")
+
       await apiService.addParticipant(retro.id, { 
         userId: user.id,
         role: true
       });
-      console.log("=== REDIRECTING TO LOBBY ===")
+
       navigate(`/retro/${retro.id}/lobby`)
     } catch (error) {
-      console.error("=== CATCH ERROR ===", error)
+
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
       alert(`Error creating retro: ${errorMessage}`)
       // Don't redirect on error, let user stay on the form
     } finally {
-      console.log("=== FINALLY BLOCK ===")
+
       setIsSubmitting(false)
     }
   }
@@ -139,7 +136,7 @@ export default function NewRetroPage() {
   
 
   const handleFormatSelect = (key: string) => {
-    console.log("=== FORMAT SELECTED ===", key)
+
     setSelectedFormat(key);
   };
 
@@ -179,11 +176,7 @@ export default function NewRetroPage() {
                     onChange={handleTitleChange}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
-                        console.log("=== ENTER KEY PRESSED ===")
-                        console.log("=== TITLE VALUE ===", title)
-                        console.log("=== SELECTED FORMAT ===", selectedFormat)
-                        console.log("=== TITLE TRIM ===", title.trim())
-                        console.log("=== IS SUBMITTING ===", isSubmitting)
+
                         
                         e.preventDefault()
                         e.stopPropagation()
@@ -193,14 +186,14 @@ export default function NewRetroPage() {
                         const isValidFormat = selectedFormat && validFormats.includes(selectedFormat)
                         
                         if (title.trim() && isValidFormat && !isSubmitting) {
-                          console.log("=== AUTO SUBMIT ON ENTER ===")
+                          
                           // Trigger form submission by clicking the submit button
                           const submitButton = e.currentTarget.closest('form')?.querySelector('button[type="submit"]') as HTMLButtonElement
                           if (submitButton && !submitButton.disabled) {
                             submitButton.click()
                           }
                         } else {
-                          console.log("=== VALIDATION FAILED ===")
+                          
                           // Show validation message
                           if (!title.trim()) {
                             alert("Please enter a retrospective title")
