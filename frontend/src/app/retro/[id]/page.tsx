@@ -53,7 +53,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import Draggable from 'react-draggable';
 import { Label } from "recharts"
-import SubmitPhase from './phases/SubmitPhase';
+import PrimeDirectivePhase from './phases/PrimeDirectivePhase';
+import IdeationPhase from './phases/IdeationPhase';
 import GroupingPhase from './phases/GroupingPhase';
 import LabellingPhase from './phases/LabellingPhase';
 import VotingPhase from './phases/VotingPhase';
@@ -85,7 +86,7 @@ export default function RetroPage() {
     return userData ? JSON.parse(userData) : null;
   });
   const [isPhaseChanging, setIsPhaseChanging] = useState(false);
-  const [phase, setPhase] = useState<'submit' | 'grouping' | 'labelling' | 'voting' | 'final' | 'ActionItems'>('submit');
+  const [phase, setPhase] = useState<'prime-directive' | 'ideation' | 'grouping' | 'labelling' | 'voting' | 'final' | 'ActionItems'>('prime-directive');
   const [itemPositions, setItemPositions] = useState<{ [key: string]: { x: number; y: number } }>({});
   const [itemGroups, setItemGroups] = useState<{ [key: string]: string }>({}); // itemId -> signature
   const [groupColors, setGroupColors] = useState<{ [key: number]: string }>({}); // groupId -> color (deprecated)
@@ -430,14 +431,18 @@ export default function RetroPage() {
   // Load phase from retro data when component mounts or retro changes
   useEffect(() => {
     if (retro?.currentPhase) {
-      setPhase(retro.currentPhase as 'submit' | 'grouping' | 'labelling' | 'voting' | 'final' | 'ActionItems');
-      console.log('🔄 Loaded phase from retro:', retro.currentPhase);
+      // Map old phase names to new ones
+      let mappedPhase = retro.currentPhase;
+      if (retro.currentPhase === 'submit') {
+        mappedPhase = 'ideation';
+      }
+      setPhase(mappedPhase as 'prime-directive' | 'ideation' | 'grouping' | 'labelling' | 'voting' | 'final' | 'ActionItems');
+      console.log('🔄 Loaded phase from retro:', mappedPhase);
     } else {
-      setPhase('submit');
-      console.log('🔄 Set default phase: submit');
+      setPhase('prime-directive');
+      console.log('🔄 Set default phase: prime-directive');
     }
     console.log('Render RetroPage');
-    console.log('Render SubmitPhase');
   }, [retro?.currentPhase]);
 
   useEffect(() => {
@@ -539,7 +544,7 @@ export default function RetroPage() {
     fetchRetroData();
   }, []);
 
-  const handlePhaseChange = useCallback((newPhase: 'submit' | 'grouping' | 'labelling' | 'voting' | 'final' | 'ActionItems') => {
+  const handlePhaseChange = useCallback((newPhase: 'prime-directive' | 'ideation' | 'grouping' | 'labelling' | 'voting' | 'final' | 'ActionItems') => {
     console.log('🔄 WebSocket: Phase change event received:', newPhase);
     setPhase(newPhase);
     // Don't set isPhaseChanging to false here as it's handled by the button
@@ -692,7 +697,7 @@ export default function RetroPage() {
   });
 
   // Fungsi untuk mengirim phase change ke semua partisipan
-  const broadcastPhaseChange = useCallback(async (newPhase: 'submit' | 'grouping' | 'labelling' | 'voting' | 'final' | 'ActionItems') => {
+  const broadcastPhaseChange = useCallback(async (newPhase: 'prime-directive' | 'ideation' | 'grouping' | 'labelling' | 'voting' | 'final' | 'ActionItems') => {
     if (!user?.id) {
       console.error('❌ No user ID available for phase change');
       return;
@@ -1129,14 +1134,39 @@ export default function RetroPage() {
 
 
   // Phase switching
-  if (phase === 'submit') return (
+  if (phase === 'prime-directive') return (
     <>
       <ShareLinkModal
         isOpen={showShareModal}
         onClose={() => setShowShareModal(false)}
         shareUrl={typeof window !== 'undefined' ? window.location.href : ''}
       />
-      <SubmitPhase
+      <PrimeDirectivePhase
+        retro={retro}
+        participants={participants}
+        user={user}
+        currentUserRole={currentUserRole}
+        showShareModal={showShareModal}
+        setShowShareModal={setShowShareModal}
+        handleLogout={handleLogout}
+        isCurrentFacilitator={isCurrentFacilitator}
+        currentUserParticipant={currentUserParticipant}
+        typingParticipants={typingParticipants}
+        setShowRoleModal={setShowRoleModal}
+        setSelectedParticipant={setSelectedParticipant}
+        broadcastPhaseChange={broadcastPhaseChange}
+        setPhase={setPhase}
+      />
+    </>
+  );
+  if (phase === 'ideation') return (
+    <>
+      <ShareLinkModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        shareUrl={typeof window !== 'undefined' ? window.location.href : ''}
+      />
+      <IdeationPhase
         retro={retro}
         participants={participants}
         user={user}

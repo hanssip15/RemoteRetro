@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback }, { useEffect, useState } from 'react';
 import RetroFooter from './RetroFooter';
 import { Button } from '@/components/ui/button';
 import RetroHeader from '../RetroHeader';
@@ -108,8 +108,38 @@ export default function VotingPhase(props: any) {
       }
     }
   }, [labellingItems, broadcastPhaseChange, setPhase, socket, isConnected, user, retro?.id]);
+  const [showModal, setShowModal] = useState(true);
+
+  useEffect(() => {
+    setShowModal(true);
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Modal Stage Change Voting */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg max-w-xl w-full p-8">
+            <h2 className="text-2xl font-bold mb-2 text-center">Stage Change: Voting!</h2>
+            <div className="mb-4">
+              <b>Guidance:</b>
+              <ul className="list-disc pl-6 mt-2 text-left">
+                <li>Apply votes to the items you feel are <b>most important</b> for the team to discuss.</li>
+                <li>Multiple votes can be supplied to a single item.</li>
+                <li>Voting is blind. Totals will be revealed when the facilitator advances the retro.</li>
+              </ul>
+            </div>
+            <div className="flex justify-center">
+              <button
+                className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
+                onClick={() => setShowModal(false)}
+              >
+                Got it!
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <RetroHeader
         retro={retro}
         participants={participants}

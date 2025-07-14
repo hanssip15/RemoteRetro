@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import RetroFooter from './RetroFooter';
 import { Button } from '@/components/ui/button';
 import RetroHeader from '../RetroHeader';
@@ -11,6 +11,12 @@ export default function LabellingPhase(props: any) {
     labellingItems, typingParticipants, setShowRoleModal, setSelectedParticipant,
     setLabellingItems, socket, isConnected
   } = props;
+
+  const [showModal, setShowModal] = useState(true);
+
+  useEffect(() => {
+    setShowModal(true);
+  }, []);
 
   // Debounce function untuk update label
   const debounce = (func: Function, delay: number) => {
@@ -51,6 +57,29 @@ export default function LabellingPhase(props: any) {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Modal Stage Change Labeling */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg max-w-xl w-full p-8">
+            <h2 className="text-2xl font-bold mb-2 text-center">Stage Change: Labeling!</h2>
+            <div className="mb-4">
+              <b>Guidance:</b>
+              <ul className="list-disc pl-6 mt-2 text-left">
+                <li>Work as a team to arrive at sensible labels for each group of ideas.</li>
+                <li>Don't spend too much time labeling any one group. An approximate label is good enough.</li>
+              </ul>
+            </div>
+            <div className="flex justify-center">
+              <button
+                className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
+                onClick={() => setShowModal(false)}
+              >
+                Got it!
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <RetroHeader
         retro={retro}
         participants={participants}

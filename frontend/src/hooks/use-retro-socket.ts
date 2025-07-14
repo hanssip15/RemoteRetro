@@ -9,7 +9,7 @@ interface UseRetroSocketOptions {
   onItemsUpdate?: (items: any[]) => void;
   onParticipantUpdate?: () => void;
   onRetroStarted?: () => void;
-  onPhaseChange?: (phase: 'submit' | 'grouping' | 'labelling' | 'voting' | 'final' | 'ActionItems') => void;
+  onPhaseChange?: (phase: 'prime-directive' | 'ideation' | 'grouping' | 'labelling' | 'voting' | 'final' | 'ActionItems') => void;
   onItemPositionUpdate?: (data: { itemId: string; position: { x: number; y: number }; userId: string }) => void;
   onGroupingUpdate?: (data: { itemGroups: { [itemId: string]: string }; signatureColors: { [signature: string]: string }; userId: string }) => void;
   onVoteUpdate?: (data: { groupId: number; votes: number; userId: string; userVotes: { [groupId: number]: number } }) => void;
@@ -111,7 +111,7 @@ export const useRetroSocket = ({
       callbacks.onRetroStarted?.();
     };
 
-    const handlePhaseChange = (data: { phase: 'submit' | 'grouping' | 'labelling' | 'voting' | 'final' | 'ActionItems' }) => {
+    const handlePhaseChange = (data: { phase: 'prime-directive' | 'ideation' | 'grouping' | 'labelling' | 'voting' | 'final' | 'ActionItems' }) => {
       console.log('🔄 Phase change via WebSocket:', data.phase);
       callbacks.onPhaseChange?.(data.phase);
     };
