@@ -251,15 +251,7 @@ export default function ActionItemsPhase({
       <RetroFooter
         title={null}
         center={null}
-        right={isCurrentFacilitator && actionItems.length > 0 && (
-          <Button
-            onClick={() => broadcastPhaseChange ? broadcastPhaseChange('final') : setPhase && setPhase('final')}
-            className="px-8 py-2 rounded text-base font-semibold"
-            variant="secondary"
-          >
-            Next: Final
-          </Button>
-        )}
+        right={null}
         participants={participants}
         typingParticipants={typingParticipants}
         isCurrentFacilitator={isCurrentFacilitator}
@@ -293,14 +285,22 @@ export default function ActionItemsPhase({
               onChange={e => setActionInput(e.target.value)}
             />
             <Button
-              className="px-4 py-1 bg-gray-400 text-white hover:bg-gray-500"
-              style={{ minWidth: 100 }}
-              onClick={handleAddActionItemWebSocket}
-              disabled={!actionInput.trim() || !actionAssignee}
+              onClick={handleAddActionItem}
+              disabled={!actionInput.trim() || !actionAssignee || !actionAssignee}
+              className="px-4 py-1"
               type="submit"
             >
               Add
             </Button>
+            {isCurrentFacilitator && (
+              <Button
+                onClick={() => broadcastPhaseChange ? broadcastPhaseChange('final') : setPhase && setPhase('final')}
+                className="ml-4 px-8 py-2 rounded text-base font-semibold"
+                variant="secondary"
+              >
+                Next: Final
+              </Button>
+            )}
           </div>
         </div>
       </RetroFooter>
