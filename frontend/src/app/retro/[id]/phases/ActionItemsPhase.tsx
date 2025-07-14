@@ -3,6 +3,7 @@ import RetroFooter from './RetroFooter';
 import { Button } from '@/components/ui/button';
 import RetroHeader from '../RetroHeader';
 import { Pencil, Trash2 } from 'lucide-react';
+import { PhaseConfirmModal } from '@/components/ui/dialog';
 
 
 export default function ActionItemsPhase({
@@ -53,6 +54,7 @@ export default function ActionItemsPhase({
   }, [participants, actionAssignee, setActionAssignee]);
   
   const [showModal, setShowModal] = useState(true);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   useEffect(() => {
     setShowModal(true);
@@ -261,17 +263,32 @@ export default function ActionItemsPhase({
               disabled={!actionInput.trim() || !actionAssignee || !actionAssignee}
               className="px-4 py-1"
               type="submit"
+              variant="phaseSecondary"
             >
               Add
             </Button>
             {isCurrentFacilitator && (
-              <Button
-                onClick={() => broadcastPhaseChange ? broadcastPhaseChange('final') : setPhase && setPhase('final')}
-                className="ml-4 px-8 py-2 rounded text-base font-semibold"
-                variant="secondary"
-              >
-                Next: Final
-              </Button>
+              <>
+                <Button
+                  onClick={() => setShowConfirm(true)}
+                  className="flex items-center ml-4 px-8 py-2 rounded text-base font-semibold"
+                  variant="phasePrimary"
+                >
+                  Next: Final <span className="ml-2">&#8594;</span>
+                </Button>
+                <PhaseConfirmModal
+                  open={showConfirm}
+                  onOpenChange={setShowConfirm}
+                  title="Are you sure you want to distribute this retrospective's action items? This will close the retro."
+                  onConfirm={() => {
+                    if (broadcastPhaseChange) broadcastPhaseChange('final');
+                    else if (setPhase) setPhase('final');
+                  }}
+                  onCancel={() => {}}
+                  confirmLabel="Yes"
+                  cancelLabel="No"
+                />
+              </>
             )}
           </div>
         </div>

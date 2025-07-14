@@ -3,6 +3,7 @@ import RetroFooter from './RetroFooter';
 import { Button } from '@/components/ui/button';
 import RetroHeader from '../RetroHeader';
 import { apiService } from '@/services/api';
+import { PhaseConfirmModal } from '@/components/ui/dialog';
 
 export default function LabellingPhase(props: any) {
   const {
@@ -13,6 +14,7 @@ export default function LabellingPhase(props: any) {
   } = props;
 
   const [showModal, setShowModal] = useState(true);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   useEffect(() => {
     setShowModal(true);
@@ -130,15 +132,27 @@ export default function LabellingPhase(props: any) {
         title={<div className="flex flex-col items-start justify-center"><div className="text-2xl font-semibold mb-1">Labelling</div><div className="text-gray-500">Arrive at sensible group labels</div></div>}
         center={<div></div>}
         right={isCurrentFacilitator && (
-          <div className="flex flex-row items-center gap-2">
+          <>
             <Button
-              onClick={() => broadcastPhaseChange ? broadcastPhaseChange('voting') : setPhase && setPhase('voting')}
-              className="px-8 py-2 rounded text-base font-semibold"
-              variant="secondary"
+              onClick={() => setShowConfirm(true)}
+              className="flex items-center px-8 py-2 text-base font-semibold"
+              variant="phasePrimary"
             >
-              Next: Voting
+              Next: Voting <span className="ml-2">&#8594;</span>
             </Button>
-          </div>
+            <PhaseConfirmModal
+              open={showConfirm}
+              onOpenChange={setShowConfirm}
+              title="Is your team satisfied with the applied labels?"
+              onConfirm={() => {
+                if (broadcastPhaseChange) broadcastPhaseChange('voting');
+                else if (setPhase) setPhase('voting');
+              }}
+              onCancel={() => {}}
+              confirmLabel="Yes"
+              cancelLabel="No"
+            />
+          </>
         )}
         participants={participants}
         typingParticipants={typingParticipants}

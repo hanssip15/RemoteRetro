@@ -5,6 +5,7 @@ import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { Button } from "./button";
 
 const Dialog = DialogPrimitive.Root
 
@@ -107,6 +108,55 @@ const DialogDescription = React.forwardRef<
   />
 ))
 DialogDescription.displayName = DialogPrimitive.Description.displayName
+
+// Reusable modal for phase confirmation
+export function PhaseConfirmModal({
+  open,
+  onOpenChange,
+  title,
+  description,
+  onConfirm,
+  onCancel,
+  confirmLabel = "Yes",
+  cancelLabel = "No",
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  title: string;
+  description?: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+  confirmLabel?: string;
+  cancelLabel?: string;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+        </DialogHeader>
+        {description && <DialogDescription>{description}</DialogDescription>}
+        <hr className="my-6" />
+        <DialogFooter className="flex-row justify-end gap-2 mt-4">
+          <Button
+            variant="destructive"
+            onClick={() => { onCancel(); onOpenChange(false); }}
+            className="min-w-[80px]"
+          >
+            {cancelLabel}
+          </Button>
+          <Button
+            style={{ backgroundColor: '#22c55e' }} // green-600
+            onClick={() => { onConfirm(); onOpenChange(false); }}
+            className="min-w-[80px] text-white hover:bg-green-700"
+          >
+            {confirmLabel}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export {
   Dialog,

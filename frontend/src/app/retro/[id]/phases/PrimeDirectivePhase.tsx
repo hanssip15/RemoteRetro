@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import RetroFooter from './RetroFooter';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import RetroHeader from '../RetroHeader';
+import { PhaseConfirmModal } from '@/components/ui/dialog';
 
 export default function PrimeDirectivePhase(props: any) {
   const {
@@ -13,6 +14,7 @@ export default function PrimeDirectivePhase(props: any) {
   } = props;
 
   const [showModal, setShowModal] = useState(true);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   useEffect(() => {
     setShowModal(true);
@@ -108,13 +110,28 @@ and the situation at hand.`}
       >
         <div className="container mx-auto px-3 pt-7 pb-4 flex flex-row items-center justify-center gap-4 bg-white">
           {isCurrentFacilitator && (
-            <Button
-              onClick={() => broadcastPhaseChange ? broadcastPhaseChange('ideation') : setPhase && setPhase('ideation')}
-              className="px-6 py-2"
-              size="lg"
-            >
-              Begin Ideation Phase
-            </Button>
+            <>
+              <Button
+                onClick={() => setShowConfirm(true)}
+                className="flex items-center px-8 py-2 text-base font-semibold"
+                size="lg"
+                variant="phasePrimary"
+              >
+                Begin Ideation Phase <span className="ml-2">&#8594;</span>
+              </Button>
+              <PhaseConfirmModal
+                open={showConfirm}
+                onOpenChange={setShowConfirm}
+                title="Is everyone ready to begin?"
+                onConfirm={() => {
+                  if (broadcastPhaseChange) broadcastPhaseChange('ideation');
+                  else if (setPhase) setPhase('ideation');
+                }}
+                onCancel={() => {}}
+                confirmLabel="Yes"
+                cancelLabel="No"
+              />
+            </>
           )}
         </div>
       </RetroFooter>

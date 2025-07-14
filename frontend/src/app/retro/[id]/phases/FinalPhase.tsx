@@ -112,7 +112,7 @@ export default function FinalPhase({
         title={<div className="text-xl font-semibold">This retro is all wrapped up!</div>}
         center={<div className="text-gray-600">Contents are read-only.</div>}
         right={<div className="flex flex-row items-center gap-2">
-          <Button className="px-8 py-2 rounded text-base font-semibold bg-gray-200 text-gray-700 hover:bg-gray-300" style={{ minWidth: 180 }} onClick={() => window.location.href = '/dashboard'}>Visit your dashboard <span className="ml-2">&rarr;</span></Button>
+          <Button className="flex items-center px-8 py-2 text-base font-semibold" style={{ minWidth: 180 }} onClick={() => window.location.href = '/dashboard'} variant="phasePrimary">Visit your dashboard <span className="ml-2">&rarr;</span></Button>
         </div>}
         participants={participants}
         typingParticipants={typingParticipants}
