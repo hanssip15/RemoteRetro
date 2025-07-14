@@ -7,6 +7,7 @@ import { FeedbackCard } from '@/components/feedback-card';
 import { ArrowLeft, Users, Clock, Share2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import RetroHeader from '../RetroHeader';
+import { PhaseConfirmModal } from '@/components/ui/dialog';
 
 export default function IdeationPhase(props: any) {
   const {
@@ -18,6 +19,7 @@ export default function IdeationPhase(props: any) {
   } = props;
 
   const [showModal, setShowModal] = useState(true);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   useEffect(() => {
     setShowModal(true);
@@ -139,13 +141,27 @@ export default function IdeationPhase(props: any) {
             {isAddingItem ? "Adding..." : "Submit"}
           </Button>
           {isCurrentFacilitator && (
-            <Button
-              onClick={() => broadcastPhaseChange ? broadcastPhaseChange('grouping') : setPhase && setPhase('grouping')}
-              className="flex items-center px-8 py-2 text-base font-semibold"
-              variant="phasePrimary"
-            >
-              Grouping <span className="ml-2">&#8594;</span>
-            </Button>
+            <>
+              <Button
+                onClick={() => setShowConfirm(true)}
+                className="flex items-center px-8 py-2 text-base font-semibold"
+                variant="phasePrimary"
+              >
+                Grouping <span className="ml-2">&#8594;</span>
+              </Button>
+              <PhaseConfirmModal
+                open={showConfirm}
+                onOpenChange={setShowConfirm}
+                title="Are you sure you would like to proceed to the idea grouping stage?"
+                onConfirm={() => {
+                  if (broadcastPhaseChange) broadcastPhaseChange('grouping');
+                  else if (setPhase) setPhase('grouping');
+                }}
+                onCancel={() => {}}
+                confirmLabel="Yes"
+                cancelLabel="No"
+              />
+            </>
           )}
         </div>
       </RetroFooter>

@@ -136,6 +136,7 @@ export function PhaseConfirmModal({
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
         {description && <DialogDescription>{description}</DialogDescription>}
+        <hr className="my-6" />
         <DialogFooter className="flex-row justify-end gap-2 mt-4">
           <Button
             variant="destructive"
