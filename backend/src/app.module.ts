@@ -9,14 +9,14 @@ import { Retro } from './entities/retro.entity';
 import { RetroItem } from './entities/retro-item.entity';
 import { Participant } from './entities/participant.entity';
 import { User } from './entities/user.entity';
-import { LabelsGroup } from './entities/group.entity';
+import { GroupItemEntity } from './entities/group-item.entity';
 import { AuthModule } from './auth/auth.module';
-import { UsersModule } from './module/user.module';
-import { RetroItemsModule } from './module/item.module';
+import { UsersModule } from './modules/user.module';
+import { RetroItemsModule } from './modules/item.module';
 import { RetroItemsService } from './services/item.service';
 import { ParticipantGateway } from './gateways/participant.gateways';
-import { GroupModule } from './module/group.module';
-import { LabelsGroupModule } from './modules/labels-group.module';
+import { GroupItemModule } from './modules/group-item.module';
+import { GroupModule } from './modules/group.module';
 
 @Module({
   imports: [
@@ -34,13 +34,13 @@ import { LabelsGroupModule } from './modules/labels-group.module';
       } : false,
       logging: false, // Disable SQL logging
     }),
-    TypeOrmModule.forFeature([RetroItem, Retro, Participant, LabelsGroup]),
+    TypeOrmModule.forFeature([RetroItem, Retro, Participant, GroupItemEntity]),
     RetroModule, // ← TAMBAHKAN INI!
     AuthModule,
     UsersModule,
     RetroItemsModule,
-    GroupModule,
-    LabelsGroupModule,
+    GroupItemModule,
+    GroupModule,  
   ],
   controllers: [AppController, DashboardController],
   providers: [AppService, RetroItemsService, ParticipantGateway],

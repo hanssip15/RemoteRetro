@@ -1,5 +1,4 @@
-import { IsNotEmpty, IsUUID, IsString, IsEnum } from 'class-validator';
-import { RetroFormatTypes } from 'src/entities/retro-item.entity';
+import { IsNotEmpty, IsUUID, IsString, IsNumber } from 'class-validator';
 
 export class CreateGroupDto {
   @IsNotEmpty()
@@ -7,11 +6,11 @@ export class CreateGroupDto {
   label: string;
 
   @IsNotEmpty()
-  @IsUUID()
+  @IsString()
   retro_id: string;
 
   @IsNotEmpty()
-  @IsUUID()
-  item_id: string;
+  @IsNumber()
+  votes: number;
 
 }

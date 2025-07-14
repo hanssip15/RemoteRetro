@@ -1,31 +1,30 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
 import { Retro } from './retro.entity';
 import { RetroItem } from './retro-item.entity';
+import { GroupItemEntity } from './group-item.entity';
 
-@Entity('labels_group') // nama tabel (bisa disesuaikan)
-export class LabelsGroup {
+@Entity('group')
+export class GroupEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: 'varchar' })
   label: string;
 
-  @Column({ type: 'varchar'})
+
+  @Column({ type: 'varchar' })
   retro_id: string;
-
-  @Column({ type: 'uuid' })
-  item_id: string;
-
-  @Column({ type: 'int', nullable: true })
-  votes: number;
-
-  // Relations
 
   @ManyToOne(() => Retro, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
   @JoinColumn({ name: 'retro_id' })
   retro: Retro;
 
-  @ManyToOne(() => RetroItem, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
-  @JoinColumn({ name: 'item_id' })
-  item: RetroItem;
+  @OneToMany(() => GroupItemEntity, (groupItem) => groupItem.group)
+  group_items: GroupItemEntity[];
+  
+  
+
+  constructor(partial: Partial<GroupEntity>) {
+    Object.assign(this, partial);
+  }
 }

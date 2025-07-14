@@ -12,6 +12,9 @@ interface UseRetroSocketOptions {
   onPhaseChange?: (phase: 'submit' | 'grouping' | 'labelling' | 'voting' | 'final' | 'ActionItems') => void;
   onItemPositionUpdate?: (data: { itemId: string; position: { x: number; y: number }; userId: string }) => void;
   onGroupingUpdate?: (data: { itemGroups: { [itemId: string]: string }; signatureColors: { [signature: string]: string }; userId: string }) => void;
+  onVoteUpdate?: (data: { userId: string; groupLabel: string; voteCount: number }) => void;
+  onVoteSubmission?: (data: { facilitatorId: string; groupVotes: { [groupLabel: string]: number } }) => void;
+  onLabelUpdate?: (data: { groupId: number; label: string; userId: string }) => void;
 }
 
 export const useRetroSocket = ({
@@ -25,6 +28,9 @@ export const useRetroSocket = ({
   onPhaseChange,
   onItemPositionUpdate,
   onGroupingUpdate,
+  onVoteUpdate,
+  onVoteSubmission,
+  onLabelUpdate,
 }: UseRetroSocketOptions) => {
   const { socket, isConnected, joinRoom, leaveRoom } = useSocketContext();
 
@@ -39,7 +45,10 @@ export const useRetroSocket = ({
     onPhaseChange,
     onItemPositionUpdate,
     onGroupingUpdate,
-  }), [onItemAdded, onItemUpdated, onItemDeleted, onItemsUpdate, onParticipantUpdate, onRetroStarted, onPhaseChange, onItemPositionUpdate, onGroupingUpdate]);
+    onVoteUpdate,
+    onVoteSubmission,
+    onLabelUpdate,
+  }), [onItemAdded, onItemUpdated, onItemDeleted, onItemsUpdate, onParticipantUpdate, onRetroStarted, onPhaseChange, onItemPositionUpdate, onGroupingUpdate, onVoteUpdate, onVoteSubmission, onLabelUpdate]);
 
   // Join room when component mounts or retroId changes
   useEffect(() => {
@@ -110,6 +119,21 @@ export const useRetroSocket = ({
       callbacks.onGroupingUpdate?.(data);
     };
 
+    const handleVoteUpdate = (data: { userId: string; groupLabel: string; voteCount: number }) => {
+      console.log('🗳️ Vote update via WebSocket:', data);
+      callbacks.onVoteUpdate?.(data);
+    };
+
+    const handleVoteSubmission = (data: { facilitatorId: string; groupVotes: { [groupLabel: string]: number } }) => {
+      console.log('📊 Vote submission via WebSocket:', data);
+      callbacks.onVoteSubmission?.(data);
+    };
+
+    const handleLabelUpdate = (data: { groupId: number; label: string; userId: string }) => {
+      console.log('🏷️ Label update via WebSocket:', data);
+      callbacks.onLabelUpdate?.(data);
+    };
+
     // Add event listeners
     socket.on(`item-added:${retroId}`, handleItemAdded);
     socket.on(`item-updated:${retroId}`, handleItemUpdated);
@@ -120,6 +144,9 @@ export const useRetroSocket = ({
     socket.on(`phase-change:${retroId}`, handlePhaseChange);
     socket.on(`item-position-update:${retroId}`, handleItemPositionUpdate);
     socket.on(`grouping-update:${retroId}`, handleGroupingUpdate);
+    socket.on(`vote-update:${retroId}`, handleVoteUpdate);
+    socket.on(`vote-submission:${retroId}`, handleVoteSubmission);
+    socket.on(`label-update:${retroId}`, handleLabelUpdate);
 
     // Test event to verify listeners are working
     console.log('✅ Event listeners set up for retro:', retroId);
@@ -136,6 +163,9 @@ export const useRetroSocket = ({
       socket.off(`phase-change:${retroId}`, handlePhaseChange);
       socket.off(`item-position-update:${retroId}`, handleItemPositionUpdate);
       socket.off(`grouping-update:${retroId}`, handleGroupingUpdate);
+      socket.off(`vote-update:${retroId}`, handleVoteUpdate);
+      socket.off(`vote-submission:${retroId}`, handleVoteSubmission);
+      socket.off(`label-update:${retroId}`, handleLabelUpdate);
     };
   }, [socket, retroId, callbacks]);
 
@@ -143,4 +173,4 @@ export const useRetroSocket = ({
     isConnected,
     socket,
   };
-}; 
+};

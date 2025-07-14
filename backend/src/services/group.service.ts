@@ -1,37 +1,43 @@
+// src/group/group.service.ts
+
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from './prisma.service';
-import { CreateGroupDto } from '../dto/create-group.dto'; // Adjust the import path as necessary
+import { PrismaService } from '../services/prisma.service';
+import { Prisma, Group } from '@prisma/client';
+import { GroupEntity } from 'src/entities/group.entity';
+import { Repository } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
+import { CreateGroupDto } from 'src/dto/create-group.dto';
 
 @Injectable()
-export class LabelsGroupService {
-  constructor(private prisma: PrismaService) {}
+export class GroupService {
+  constructor(
+    @InjectRepository(GroupEntity)
+    private groupRepository: Repository<GroupEntity>,
+    // private prisma: PrismaService,
+  ) 
+  {}
 
-  async createLabelGroup(createGroupDto: CreateGroupDto) {
-    return this.prisma.labelsGroup.create({
-      data: {
-        label: createGroupDto.label,
-        retro_id: createGroupDto.retro_id,
-        item_id: createGroupDto.item_id,
-      },
-    });
+  async create(createGroupDto: CreateGroupDto ) {
+    const group = this.groupRepository.create(createGroupDto);
+    return this.groupRepository.save(group);
   }
 
-  async getLabelsByRetro(retroId: string) {
-    return this.prisma.labelsGroup.findMany({
-      where: { retro_id: retroId },
-    });
-  }
-
+  // Method untuk update label group
   async updateLabel(id: number, label: string) {
-    return this.prisma.labelsGroup.update({
+    await this.groupRepository.update(id, { label });
+    return this.groupRepository.findOne({
       where: { id },
-      data: { label },
+      relations: ['group_items', 'group_items.item'],
     });
   }
 
-  async deleteLabel(id: number) {
-    return this.prisma.labelsGroup.delete({
-      where: { id },
+  // Method untuk mencari semua group berdasarkan retro_id
+  async findByRetroId(retroId: string) {
+    return this.groupRepository.find({
+      where: {
+        retro_id: retroId,
+      },
+      relations: ['group_items', 'group_items.item'],
     });
   }
 }
