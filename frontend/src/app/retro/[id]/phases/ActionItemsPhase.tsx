@@ -152,7 +152,7 @@ export default function ActionItemsPhase({
             return (
               <div key={group.id} className="bg-white border rounded-lg shadow-sm w-auto min-w-[220px] max-w-[350px] px-4 py-3">
                 <div className="mb-2 flex items-center justify-between">
-                  <span className="text-lg font-semibold text-gray-400">{group.label}</span>
+                  <span className="text-lg font-semibold text-gray-400">{groupLabels[idx]?.trim() || 'Unlabeled'}</span>
                   <div className="flex items-center gap-2">
                     <div className="bg-gray-100 text-gray-700 font-bold px-3 py-1 rounded select-none text-center" style={{fontSize: '1rem', minWidth: '60px'}}>
                       Votes {group.votes || 0}
@@ -304,7 +304,7 @@ export default function ActionItemsPhase({
             />
             <Button
               onClick={handleAddActionItem}
-              disabled={!actionInput.trim() || !actionAssignee}
+              disabled={!actionInput.trim() || !actionAssignee || !actionAssignee}
               className="px-4 py-1"
               type="submit"
             >
