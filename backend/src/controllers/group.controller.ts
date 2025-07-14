@@ -64,4 +64,10 @@ export class GroupController {
     console.log('✏️ Updating label:', id, data);
     return this.groupService.updateLabel(+id, data.label);
   }
+
+  @Put('group/:id/votes')
+  async updateVotes(@Param('id') id: string, @Body() data: { votes: number }) {
+    console.log('🗳️ Updating votes:', id, data);
+    return this.groupService.updateVotes(+id, data.votes);
+  }
 }

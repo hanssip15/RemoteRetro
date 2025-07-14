@@ -13,7 +13,16 @@ import {
     [retroId: string]: {
       itemPositions: { [itemId: string]: { x: number; y: number } },
       itemGroups: { [itemId: string]: string },
-      signatureColors: { [signature: string]: string }
+      signatureColors: { [signature: string]: string },
+      actionItems: Array<{
+        id: string;
+        task: string;
+        assigneeId: string;
+        assigneeName: string;
+        createdBy: string;
+        createdAt: string;
+        edited?: boolean;
+      }>
     }
   } = {};
   
@@ -33,22 +42,32 @@ import {
     handleDisconnect(client: Socket) {
       console.log('🔌 Client disconnected:', client.id);
     }
-
+  
     @SubscribeMessage('join-retro-room')
     handleJoinRetroRoom(client: Socket, retroId: string) {
+      console.log(`🏠 Client ${client.id} joining retro room: ${retroId}`);
       client.join(`retro:${retroId}`);
-      console.log(`🏠 Client ${client.id} joined retro room: ${retroId}`);
       
-      // Log room members
-      this.server.in(`retro:${retroId}`).fetchSockets().then(sockets => {
-        console.log(`👥 Room ${retroId} now has ${sockets.length} members`);
-      });
+      // Initialize retro state if it doesn't exist
+      if (!retroState[retroId]) {
+        retroState[retroId] = {
+          itemPositions: {},
+          itemGroups: {},
+          signatureColors: {},
+          actionItems: []
+        };
+      }
+      
+      // Send current retro state to the joining client
+      const state = retroState[retroId];
+      client.emit(`retro-state:${retroId}`, state);
+      console.log(`📦 Sent retro state to client ${client.id} for retro ${retroId}`);
     }
-
+  
     @SubscribeMessage('leave-retro-room')
     handleLeaveRetroRoom(client: Socket, retroId: string) {
+      console.log(`🚪 Client ${client.id} leaving retro room: ${retroId}`);
       client.leave(`retro:${retroId}`);
-      console.log(`🚪 Client ${client.id} left retro room: ${retroId}`);
     }
   
     broadcastParticipantUpdate(retroId: string) {
@@ -95,6 +114,12 @@ import {
       this.server.to(`retro:${retroId}`).emit(`items-update:${retroId}`, items);
     }
 
+    // Broadcast action items for a retro
+    broadcastActionItemsUpdate(retroId: string, actionItems: any[]) {
+      console.log(`🚀 Broadcasting action items update to room: ${retroId}`, actionItems.length, 'action items');
+      this.server.to(`retro:${retroId}`).emit(`action-items-update:${retroId}`, actionItems);
+    }
+
     // Handle phase change from facilitator
     @SubscribeMessage('phase-change')
     handlePhaseChange(client: Socket, data: { retroId: string; phase: string; facilitatorId: string }) {
@@ -114,7 +139,7 @@ import {
     @SubscribeMessage('item-position-update')
     handleItemPositionUpdate(client: Socket, data: { retroId: string; itemId: string; position: { x: number; y: number }; userId: string }) {
       // Update in-memory state
-      if (!retroState[data.retroId]) retroState[data.retroId] = { itemPositions: {}, itemGroups: {}, signatureColors: {} };
+      if (!retroState[data.retroId]) retroState[data.retroId] = { itemPositions: {}, itemGroups: {}, signatureColors: {}, actionItems: [] };
       retroState[data.retroId].itemPositions[data.itemId] = data.position;
       // Broadcast position update to all participants in the retro
       this.server.to(`retro:${data.retroId}`).emit(`item-position-update:${data.retroId}`, {
@@ -134,7 +159,7 @@ import {
       signatureColors: { [signature: string]: string };
       userId: string 
     }) {
-      if (!retroState[data.retroId]) retroState[data.retroId] = { itemPositions: {}, itemGroups: {}, signatureColors: {} };
+      if (!retroState[data.retroId]) retroState[data.retroId] = { itemPositions: {}, itemGroups: {}, signatureColors: {}, actionItems: [] };
       retroState[data.retroId].itemGroups = data.itemGroups;
       retroState[data.retroId].signatureColors = data.signatureColors;
       // Broadcast grouping update to all participants in the retro
@@ -150,7 +175,7 @@ import {
     // Handler baru: user minta state terkini
     @SubscribeMessage('request-retro-state')
     handleRequestRetroState(client: Socket, data: { retroId: string }) {
-      const state = retroState[data.retroId] || { itemPositions: {}, itemGroups: {}, signatureColors: {} };
+      const state = retroState[data.retroId] || { itemPositions: {}, itemGroups: {}, signatureColors: {}, actionItems: [] };
       client.emit(`retro-state:${data.retroId}`, state);
       console.log(`📦 Sent retro state to client ${client.id} for retro ${data.retroId}`);
     }
@@ -182,6 +207,137 @@ import {
       });
       
       console.log(`📡 Label update broadcasted to room: ${data.retroId}`);
+    }
+
+    // Handle vote updates from participants
+    @SubscribeMessage('vote-update')
+    handleVoteUpdate(client: Socket, data: { 
+      retroId: string; 
+      groupId: number; 
+      votes: number; 
+      userId: string;
+      userVotes: { [groupId: number]: number };
+    }) {
+      console.log(`🗳️ Vote update from participant:`, data);
+      
+      // Broadcast vote update to all participants in the retro
+      this.server.to(`retro:${data.retroId}`).emit(`vote-update:${data.retroId}`, {
+        groupId: data.groupId,
+        votes: data.votes,
+        userId: data.userId,
+        userVotes: data.userVotes,
+        timestamp: new Date().toISOString()
+      });
+      
+      console.log(`📡 Vote update broadcasted to room: ${data.retroId}`);
+    }
+
+    // Handle vote submission from facilitator
+    @SubscribeMessage('vote-submission')
+    handleVoteSubmission(client: Socket, data: { 
+      retroId: string; 
+      facilitatorId: string;
+      groupVotes: { [groupId: number]: number };
+    }) {
+      console.log(`📊 Vote submission from facilitator:`, data);
+      
+      // Broadcast vote submission to all participants in the retro
+      this.server.to(`retro:${data.retroId}`).emit(`vote-submission:${data.retroId}`, {
+        facilitatorId: data.facilitatorId,
+        groupVotes: data.groupVotes,
+        timestamp: new Date().toISOString()
+      });
+      
+      console.log(`📡 Vote submission broadcasted to room: ${data.retroId}`);
+    }
+
+    // Handle action item added
+    @SubscribeMessage('action-item-added')
+    handleActionItemAdded(client: Socket, data: {
+      retroId: string;
+      task: string;
+      assigneeId: string;
+      assigneeName: string;
+      createdBy: string;
+    }) {
+      console.log('🚀 Action item added:', data);
+      
+      // Initialize retro state if it doesn't exist
+      if (!retroState[data.retroId]) {
+        retroState[data.retroId] = {
+          itemPositions: {},
+          itemGroups: {},
+          signatureColors: {},
+          actionItems: []
+        };
+      }
+      
+      // Create new action item
+      const newActionItem = {
+        id: `action_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        task: data.task,
+        assigneeId: data.assigneeId,
+        assigneeName: data.assigneeName,
+        createdBy: data.createdBy,
+        createdAt: new Date().toISOString(),
+        edited: false
+      };
+      
+      // Add to state
+      retroState[data.retroId].actionItems.push(newActionItem);
+      
+      // Broadcast to all clients in the retro room
+      this.broadcastActionItemsUpdate(data.retroId, retroState[data.retroId].actionItems);
+    }
+
+    // Handle action item updated
+    @SubscribeMessage('action-item-updated')
+    handleActionItemUpdated(client: Socket, data: {
+      retroId: string;
+      actionItemId: string;
+      task: string;
+      assigneeId: string;
+      assigneeName: string;
+      updatedBy: string;
+    }) {
+      console.log('✏️ Action item updated:', data);
+      
+      if (retroState[data.retroId]) {
+        const actionItemIndex = retroState[data.retroId].actionItems.findIndex(
+          item => item.id === data.actionItemId
+        );
+        
+        if (actionItemIndex !== -1) {
+          retroState[data.retroId].actionItems[actionItemIndex] = {
+            ...retroState[data.retroId].actionItems[actionItemIndex],
+            task: data.task,
+            assigneeId: data.assigneeId,
+            assigneeName: data.assigneeName,
+            edited: true
+          };
+          
+          // Broadcast to all clients in the retro room
+          this.broadcastActionItemsUpdate(data.retroId, retroState[data.retroId].actionItems);
+        }
+      }
+    }
+
+    // Handle action item deleted
+    @SubscribeMessage('action-item-deleted')
+    handleActionItemDeleted(client: Socket, data: {
+      retroId: string;
+      actionItemId: string;
+    }) {
+      console.log('🗑️ Action item deleted:', data);
+      
+      if (retroState[data.retroId]) {
+        retroState[data.retroId].actionItems = retroState[data.retroId].actionItems.filter(
+          item => item.id !== data.actionItemId
+        );
+        
+        // Broadcast to all clients in the retro room
+        this.broadcastActionItemsUpdate(data.retroId, retroState[data.retroId].actionItems);
+      }
     }
 
   }

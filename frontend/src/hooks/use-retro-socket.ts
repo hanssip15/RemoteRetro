@@ -12,9 +12,11 @@ interface UseRetroSocketOptions {
   onPhaseChange?: (phase: 'submit' | 'grouping' | 'labelling' | 'voting' | 'final' | 'ActionItems') => void;
   onItemPositionUpdate?: (data: { itemId: string; position: { x: number; y: number }; userId: string }) => void;
   onGroupingUpdate?: (data: { itemGroups: { [itemId: string]: string }; signatureColors: { [signature: string]: string }; userId: string }) => void;
-  onVoteUpdate?: (data: { userId: string; groupLabel: string; voteCount: number }) => void;
-  onVoteSubmission?: (data: { facilitatorId: string; groupVotes: { [groupLabel: string]: number } }) => void;
+  onVoteUpdate?: (data: { groupId: number; votes: number; userId: string; userVotes: { [groupId: number]: number } }) => void;
+  onVoteSubmission?: (data: { facilitatorId: string; groupVotes: { [groupId: number]: number } }) => void;
   onLabelUpdate?: (data: { groupId: number; label: string; userId: string }) => void;
+  onActionItemsUpdate?: (actionItems: any[]) => void;
+  onRetroState?: (state: any) => void;
 }
 
 export const useRetroSocket = ({
@@ -31,6 +33,8 @@ export const useRetroSocket = ({
   onVoteUpdate,
   onVoteSubmission,
   onLabelUpdate,
+  onActionItemsUpdate,
+  onRetroState,
 }: UseRetroSocketOptions) => {
   const { socket, isConnected, joinRoom, leaveRoom } = useSocketContext();
 
@@ -48,7 +52,9 @@ export const useRetroSocket = ({
     onVoteUpdate,
     onVoteSubmission,
     onLabelUpdate,
-  }), [onItemAdded, onItemUpdated, onItemDeleted, onItemsUpdate, onParticipantUpdate, onRetroStarted, onPhaseChange, onItemPositionUpdate, onGroupingUpdate, onVoteUpdate, onVoteSubmission, onLabelUpdate]);
+    onActionItemsUpdate,
+    onRetroState,
+  }), [onItemAdded, onItemUpdated, onItemDeleted, onItemsUpdate, onParticipantUpdate, onRetroStarted, onPhaseChange, onItemPositionUpdate, onGroupingUpdate, onVoteUpdate, onVoteSubmission, onLabelUpdate, onActionItemsUpdate, onRetroState]);
 
   // Join room when component mounts or retroId changes
   useEffect(() => {
@@ -119,12 +125,12 @@ export const useRetroSocket = ({
       callbacks.onGroupingUpdate?.(data);
     };
 
-    const handleVoteUpdate = (data: { userId: string; groupLabel: string; voteCount: number }) => {
+    const handleVoteUpdate = (data: { groupId: number; votes: number; userId: string; userVotes: { [groupId: number]: number } }) => {
       console.log('🗳️ Vote update via WebSocket:', data);
       callbacks.onVoteUpdate?.(data);
     };
 
-    const handleVoteSubmission = (data: { facilitatorId: string; groupVotes: { [groupLabel: string]: number } }) => {
+    const handleVoteSubmission = (data: { facilitatorId: string; groupVotes: { [groupId: number]: number } }) => {
       console.log('📊 Vote submission via WebSocket:', data);
       callbacks.onVoteSubmission?.(data);
     };
@@ -132,6 +138,16 @@ export const useRetroSocket = ({
     const handleLabelUpdate = (data: { groupId: number; label: string; userId: string }) => {
       console.log('🏷️ Label update via WebSocket:', data);
       callbacks.onLabelUpdate?.(data);
+    };
+
+    const handleActionItemsUpdate = (actionItems: any[]) => {
+      console.log('🚀 Action items update via WebSocket:', actionItems);
+      callbacks.onActionItemsUpdate?.(actionItems);
+    };
+
+    const handleRetroState = (state: any) => {
+      console.log('📦 Retro state via WebSocket:', state);
+      callbacks.onRetroState?.(state);
     };
 
     // Add event listeners
@@ -147,6 +163,8 @@ export const useRetroSocket = ({
     socket.on(`vote-update:${retroId}`, handleVoteUpdate);
     socket.on(`vote-submission:${retroId}`, handleVoteSubmission);
     socket.on(`label-update:${retroId}`, handleLabelUpdate);
+    socket.on(`action-items-update:${retroId}`, handleActionItemsUpdate);
+    socket.on(`retro-state:${retroId}`, handleRetroState);
 
     // Test event to verify listeners are working
     console.log('✅ Event listeners set up for retro:', retroId);
@@ -166,6 +184,8 @@ export const useRetroSocket = ({
       socket.off(`vote-update:${retroId}`, handleVoteUpdate);
       socket.off(`vote-submission:${retroId}`, handleVoteSubmission);
       socket.off(`label-update:${retroId}`, handleLabelUpdate);
+      // socket.off(`action-items-update:${retroId}`, handleActionItemsUpdate);
+      // socket.off(`retro-state:${retroId}`, handleRetroState);
     };
   }, [socket, retroId, callbacks]);
 
