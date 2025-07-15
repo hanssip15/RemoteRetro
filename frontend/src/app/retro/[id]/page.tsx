@@ -1196,6 +1196,7 @@ export default function RetroPage() {
         itemPositions={itemPositions}
         highContrast={highContrast}
         itemGroups={itemGroups}
+        setItemGroups={setItemGroups}
         signatureColors={signatureColors}
         handleDrag={handleDrag}
         handleStop={handleStop}

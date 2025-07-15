@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import RetroHeader from '../RetroHeader';
 import Draggable from 'react-draggable';
 import { PhaseConfirmModal } from '@/components/ui/dialog';
+import { apiService } from '@/services/api';
 
 export default function GroupingPhase({
   retro,
@@ -31,11 +32,13 @@ export default function GroupingPhase({
   setShowRoleModal,
   setSelectedParticipant,
   setPhase,
-  getCategoryDisplayName
+  getCategoryDisplayName,
+  setItemGroups
 }: {
   items?: any[];
   itemGroups?: { [id: string]: string };
   [key: string]: any;
+  setItemGroups: (groups: { [id: string]: string }) => void;
 }) {
   const [showModal, setShowModal] = useState(true);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -181,9 +184,28 @@ export default function GroupingPhase({
                 open={showConfirm}
                 onOpenChange={setShowConfirm}
                 title="Has your team finished grouping the ideas?"
-                onConfirm={() => {
-                  if (broadcastPhaseChange) broadcastPhaseChange('labelling');
-                  else if (setPhase) setPhase('labelling');
+                onConfirm={async () => {
+                  // Cek jika belum ada grup, assign setiap item ke grup sendiri
+                  const sigCount: { [sig: string]: number } = {};
+                  (Object.values(itemGroups || {}) as string[]).forEach((sig: string) => { sigCount[sig] = (sigCount[sig] || 0) + 1; });
+                  const allUnique = Object.values(sigCount).every((count: number) => count === 1);
+                  const noGroups = !itemGroups || Object.keys(itemGroups).length === 0 || allUnique;
+                  if (noGroups && items && items.length > 0) {
+                    const newGroups: { [id: string]: string } = {};
+                    // 1. Buat grup di backend untuk setiap item
+                    for (const item of items) {
+                      // Buat grup baru (label = content item)
+                      const group = await apiService.createGroup(retro.id, { label: item.content, votes: 0 });
+                      // Assign item ke grup
+                      await apiService.createGroupItem(group.id.toString(), item.id);
+                      newGroups[item.id] = group.id.toString();
+                    }
+                    setItemGroups(newGroups); // update state global
+                    if (typeof setPhase === 'function') setPhase('labelling');
+                  } else {
+                    if (typeof broadcastPhaseChange === 'function') broadcastPhaseChange('labelling');
+                    else if (typeof setPhase === 'function') setPhase('labelling');
+                  }
                 }}
                 onCancel={() => {}}
                 confirmLabel="Yes"
