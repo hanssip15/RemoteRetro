@@ -146,6 +146,7 @@ export default function IdeationPhase(props: any) {
                 onClick={() => setShowConfirm(true)}
                 className="flex items-center px-8 py-2 text-base font-semibold"
                 variant="phasePrimary"
+                disabled={items.length === 0}
               >
                 Grouping <span className="ml-2">&#8594;</span>
               </Button>

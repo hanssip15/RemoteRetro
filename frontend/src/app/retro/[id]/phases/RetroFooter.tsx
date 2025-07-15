@@ -27,7 +27,6 @@ export default function RetroFooter({
   const [selectedParticipant, setSelectedParticipantLocal] = useState<Participant | null>(null);
   const [loading, setLoading] = useState(false);
   const [showFacilitatorGrantedModal, setShowFacilitatorGrantedModal] = useState(false);
-
   // Tampilkan modal jika user baru saja menjadi facilitator
   useEffect(() => {
     if (isCurrentFacilitator && user?.id) {

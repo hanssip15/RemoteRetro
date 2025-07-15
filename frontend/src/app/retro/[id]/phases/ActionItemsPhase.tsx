@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import RetroHeader from '../RetroHeader';
 import { Pencil, Trash2 } from 'lucide-react';
 import { PhaseConfirmModal } from '@/components/ui/dialog';
-import { api } from '@/services/api';
+import { api, apiService } from '@/services/api';
 
 
 export default function ActionItemsPhase({
@@ -259,6 +259,12 @@ export default function ActionItemsPhase({
               className="border rounded px-2 py-1 flex-1"
               value={actionInput}
               onChange={e => setActionInput(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && actionInput.trim() && actionAssignee) {
+                  handleAddActionItemWebSocket(e);
+                }
+              }}
+            
             />
             <Button
               onClick={handleAddActionItemWebSocket}
@@ -275,6 +281,7 @@ export default function ActionItemsPhase({
                   onClick={() => setShowConfirm(true)}
                   className="flex items-center ml-4 px-8 py-2 rounded text-base font-semibold"
                   variant="phasePrimary"
+                  disabled= {actionItems.length === 0}
                 >
                   Next: Final <span className="ml-2">&#8594;</span>
                 </Button>
@@ -296,6 +303,8 @@ export default function ActionItemsPhase({
 
                       // Kirim email action items ke semua participant
                       const participantEmails = participants.map((p: any) => p.user.email).filter(Boolean);
+                      await apiService.updateRetro(retro.id, { status: "completed" })
+                      await apiService.updatePhase(retro.id, 'final', user.id); 
                       await api.sendActionItemsEmail({
                         retroId: retro.id,
                         retroTitle: retro.title,
