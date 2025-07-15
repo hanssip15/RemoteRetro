@@ -99,8 +99,7 @@ export default function FinalPhase({
               <div key={idx} className="bg-gray-50 border rounded px-3 py-2 text-sm flex items-center justify-between gap-2">
                 <div className="flex-1 flex flex-col">
                   <span>
-                    {item.task} <span className="text-gray-700">({item.assigneeName})</span>
-                    {item.edited && <span className="ml-2 text-xs text-gray-500 font-semibold">(edited)</span>}
+                    {item.action_item} <span className="text-gray-700">({item.assign_to})</span>
                   </span>
                 </div>
               </div>

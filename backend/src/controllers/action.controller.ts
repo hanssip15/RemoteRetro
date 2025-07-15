@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param } from '@nestjs/common';
 import { ActionService } from '../services/action.service';
 import { CreateActionDto } from '../dto/create-action.dto';
 
@@ -19,5 +19,9 @@ export class ActionController {
   @Get()
   async findAll() {
     return this.actionService.findAll();
+  }
+  @Get(':retro_id')
+  async getActionsByRetro(@Param('retroId') retroId: string) {
+    return this.actionService.findByRetroId(retroId);
   }
 }
