@@ -2,6 +2,16 @@ import React, { useEffect, useState } from 'react';
 import RetroFooter from './RetroFooter';
 import { Button } from '@/components/ui/button';
 import RetroHeader from '../RetroHeader';
+import { Lightbulb } from 'lucide-react';
+
+function getIdeaCategoryIcon(category: string) {
+  switch (category) {
+    case "format_1": return <span role="img" aria-label="happy">😊</span>;
+    case "format_2": return <span role="img" aria-label="sad">😢</span>;
+    case "format_3": return <span role="img" aria-label="confused">😕</span>;
+    default: return null;
+  }
+}
 
 export default function FinalPhase({
   retro,
@@ -75,7 +85,7 @@ export default function FinalPhase({
               <div className="flex flex-col gap-2">
                   {group.group_items.map((item: any, idx: number) => (
                     <div key={idx} className="bg-gray-50 border rounded px-3 py-2 text-sm flex items-center justify-between gap-2">
-                      <span>{item.item ? item.item.content : 'No item'}</span>
+                      <span className="flex items-center gap-2">{item.item ? getIdeaCategoryIcon(item.item.category) : null}{item.item ? item.item.content : 'No item'}</span>
                     </div>
                   ))}
                 </div>
