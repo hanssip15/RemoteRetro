@@ -458,6 +458,24 @@ export default function RetroPage() {
       });
     }
   }, [phase, retroId]);
+
+  useEffect(() => {
+    if (phase === 'final') {
+      
+      apiService.getLabelsByRetro(retroId).then((groups) => {
+        setLabellingItems(groups);
+      }).catch((error) => {
+        console.error('❌ Error fetching labelling items for ActionItems:', error);
+        setLabellingItems([]);
+      });
+      apiService.getAction(retroId).then((item) => {
+        setActionItems(item);
+      }).catch((error) => {
+        console.error('❌ Error fetching labelling items for ActionItems:', error);
+        setLabellingItems([]);
+      });
+    }
+  }, [phase, retroId]);
   
 
   const currentUserRole = participants.find(p => p.user.id === user?.id)?.role || false;
@@ -1178,6 +1196,7 @@ export default function RetroPage() {
         itemPositions={itemPositions}
         highContrast={highContrast}
         itemGroups={itemGroups}
+        setItemGroups={setItemGroups}
         signatureColors={signatureColors}
         handleDrag={handleDrag}
         handleStop={handleStop}

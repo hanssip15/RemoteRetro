@@ -52,4 +52,12 @@ export class ActionService {
   async findAll() {
     return this.actionRepository.find();
   }
+
+  async findByRetroId(retroid : string){
+    return this.actionRepository.find({
+      where: {
+        retro_id: retroid,
+      }
+    });
+  }
 }

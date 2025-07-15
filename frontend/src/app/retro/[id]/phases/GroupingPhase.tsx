@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import RetroHeader from '../RetroHeader';
 import Draggable from 'react-draggable';
 import { PhaseConfirmModal } from '@/components/ui/dialog';
+import { apiService } from '@/services/api';
 
 export default function GroupingPhase({
   retro,
@@ -13,10 +14,10 @@ export default function GroupingPhase({
   showShareModal,
   setShowShareModal,
   handleLogout,
-  items,
+  items = [],
   itemPositions,
   highContrast,
-  itemGroups,
+  itemGroups = {},
   signatureColors,
   handleDrag,
   handleStop,
@@ -31,14 +32,46 @@ export default function GroupingPhase({
   setShowRoleModal,
   setSelectedParticipant,
   setPhase,
-  getCategoryDisplayName
-}: any) {
+  getCategoryDisplayName,
+  setItemGroups
+}: {
+  items?: any[];
+  itemGroups?: { [id: string]: string };
+  [key: string]: any;
+  setItemGroups: (groups: { [id: string]: string }) => void;
+}) {
   const [showModal, setShowModal] = useState(true);
   const [showConfirm, setShowConfirm] = useState(false);
 
   useEffect(() => {
     setShowModal(true);
   }, []);
+
+  // Cek jika tidak ada grup yang terbentuk, assign setiap item ke grup sendiri
+  const processedItemGroups = React.useMemo(() => {
+    // Jika itemGroups kosong atau semua item punya signature unik (tidak ada grouping)
+    if (!itemGroups || Object.keys(itemGroups).length === 0) {
+      // Setiap item jadi grup sendiri
+      const result: { [id: string]: string } = {};
+      (items || []).forEach((item: any) => {
+        result[item.id] = item.id; // signature = id unik
+      });
+      return result;
+    }
+    // Cek jika semua signature unik (tidak ada 2 item dengan signature sama)
+    const sigCount: { [sig: string]: number } = {};
+    (Object.values(itemGroups) as string[]).forEach((sig: string) => { sigCount[sig] = (sigCount[sig] || 0) + 1; });
+    const allUnique = Object.values(sigCount).every((count: number) => count === 1);
+    if (allUnique) {
+      const result: { [id: string]: string } = {};
+      (items || []).forEach((item: any) => {
+        result[item.id] = item.id;
+      });
+      return result;
+    }
+    // Default: pakai itemGroups asli
+    return itemGroups;
+  }, [itemGroups, items]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -77,7 +110,7 @@ export default function GroupingPhase({
       />
       <div className="flex-1 relative bg-white overflow-hidden" style={{ minHeight: 'calc(100vh - 120px)' }}>
         {items.map((item: any, idx: number) => {
-          const signature = itemGroups[item.id];
+          const signature = processedItemGroups[item.id];
           const groupSize = signature ? Object.values(itemGroups).filter((sig: any) => sig === signature).length : 0;
           let borderColor = highContrast ? '#000000' : '#e5e7eb';
           if (!highContrast && signature && groupSize > 1 && signatureColors[signature]) {
@@ -151,9 +184,28 @@ export default function GroupingPhase({
                 open={showConfirm}
                 onOpenChange={setShowConfirm}
                 title="Has your team finished grouping the ideas?"
-                onConfirm={() => {
-                  if (broadcastPhaseChange) broadcastPhaseChange('labelling');
-                  else if (setPhase) setPhase('labelling');
+                onConfirm={async () => {
+                  // Cek jika belum ada grup, assign setiap item ke grup sendiri
+                  const sigCount: { [sig: string]: number } = {};
+                  (Object.values(itemGroups || {}) as string[]).forEach((sig: string) => { sigCount[sig] = (sigCount[sig] || 0) + 1; });
+                  const allUnique = Object.values(sigCount).every((count: number) => count === 1);
+                  const noGroups = !itemGroups || Object.keys(itemGroups).length === 0 || allUnique;
+                  if (noGroups && items && items.length > 0) {
+                    const newGroups: { [id: string]: string } = {};
+                    // 1. Buat grup di backend untuk setiap item
+                    for (const item of items) {
+                      // Buat grup baru (label = content item)
+                      const group = await apiService.createGroup(retro.id, { label: item.content, votes: 0 });
+                      // Assign item ke grup
+                      await apiService.createGroupItem(group.id.toString(), item.id);
+                      newGroups[item.id] = group.id.toString();
+                    }
+                    setItemGroups(newGroups); // update state global
+                    if (typeof setPhase === 'function') setPhase('labelling');
+                  } else {
+                    if (typeof broadcastPhaseChange === 'function') broadcastPhaseChange('labelling');
+                    else if (typeof setPhase === 'function') setPhase('labelling');
+                  }
                 }}
                 onCancel={() => {}}
                 confirmLabel="Yes"
