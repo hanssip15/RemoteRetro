@@ -4,6 +4,16 @@ import { Button } from '@/components/ui/button';
 import RetroHeader from '../RetroHeader';
 import { apiService } from '@/services/api';
 import { PhaseConfirmModal } from '@/components/ui/dialog';
+import { Lightbulb } from 'lucide-react';
+
+function getIdeaCategoryIcon(category: string) {
+  switch (category) {
+    case "format_1": return <span role="img" aria-label="happy">😊</span>;
+    case "format_2": return <span role="img" aria-label="sad">😢</span>;
+    case "format_3": return <span role="img" aria-label="confused">😕</span>;
+    default: return null;
+  }
+}
 
 export default function VotingPhase(props: any) {
   const {
@@ -251,7 +261,7 @@ export default function VotingPhase(props: any) {
               <div className="flex flex-col gap-2">
                   {group.group_items.map((item: any) => (
                   <div key={item.id} className="flex items-center gap-2 text-base">
-                    <span>{item.item.content}</span>
+                    <span className="flex items-center gap-2">{getIdeaCategoryIcon(item.item.category)}{item.item.content}</span>
                   </div>
                 ))}
               </div>

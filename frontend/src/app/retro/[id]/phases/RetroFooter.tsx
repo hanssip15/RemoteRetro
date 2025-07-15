@@ -1,4 +1,4 @@
-import {useCallback, useState, useEffect} from 'react';
+import {useCallback, useState, useEffect, useRef} from 'react';
 import { apiService, Participant} from "@/services/api"
 
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -27,14 +27,15 @@ export default function RetroFooter({
   const [selectedParticipant, setSelectedParticipantLocal] = useState<Participant | null>(null);
   const [loading, setLoading] = useState(false);
   const [showFacilitatorGrantedModal, setShowFacilitatorGrantedModal] = useState(false);
+  const prevIsFacilitator = useRef(isCurrentFacilitator);
 
-  // Tampilkan modal jika user baru saja menjadi facilitator
   useEffect(() => {
-    if (isCurrentFacilitator && user?.id) {
-      // Modal hanya muncul sekali saat user baru jadi facilitator
+    // Munculkan modal hanya jika transisi dari bukan facilitator ke facilitator
+    if (!prevIsFacilitator.current && isCurrentFacilitator) {
       setShowFacilitatorGrantedModal(true);
     }
-  }, [isCurrentFacilitator, user?.id]);
+    prevIsFacilitator.current = isCurrentFacilitator;
+  }, [isCurrentFacilitator]);
 
   // Handler promote facilitator
   const handlePromoteToFacilitator = useCallback(async () => {
