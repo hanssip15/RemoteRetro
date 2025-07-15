@@ -91,7 +91,9 @@ export default function LabellingPhase(props: any) {
       />
       <div className="flex-1 flex flex-col items-center justify-start w-full">
           <div className="flex flex-row gap-8 mt-8 w-full justify-center">
+            {console.log("label items ",labellingItems)}
             {labellingItems.map((group: any, idx: number) => (
+              
               <div key={group.id} className="bg-white border rounded-lg shadow-sm min-w-[350px] max-w-[400px] w-full p-4">
                 <div className="mb-2">
                   <input
@@ -119,8 +121,10 @@ export default function LabellingPhase(props: any) {
                 </div>
                 <div className="flex flex-col gap-2">
                   {group.group_items.map((item: any) => (
+                    // console.log(group)
                     <div key={item.id} className="flex items-center gap-2 text-base">
                       <span>{item.item.content}</span>
+                      <span>{item.item.format_type}</span>
                     </div>
                   ))}
                 </div>

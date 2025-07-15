@@ -3,8 +3,8 @@
 import { useSocket } from "@/hooks/use-socket"
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 
-import { useEffect, useState, useCallback } from "react"
-import { useParams, useNavigate } from "react-router-dom"
+import { useEffect, useState, useCallback, useRef } from "react"
+import { useParams, useNavigate, useLocation } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -152,6 +152,18 @@ export default function RetroLobbyPage() {
   const facilitator = participants.find((p) => p.role === true)
   const isFacilitator = currentUser?.id === facilitator?.user.id
 
+  // import { useRef, useLocation } from "react-router-dom";
+// ... kode lain
+
+const location = useLocation();
+const prevPathRef = useRef(location.pathname);
+
+useEffect(() => {
+  if (prevPathRef.current !== location.pathname && socket && retroId) {
+    socket.emit('leave-retro-room', retroId);
+  }
+  prevPathRef.current = location.pathname;
+}, [location.pathname, socket, retroId]);
   
   
 

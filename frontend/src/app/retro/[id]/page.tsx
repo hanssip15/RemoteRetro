@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from "react"
-import { useParams, useNavigate } from "react-router-dom"
+import { useParams, useNavigate, useLocation } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -89,8 +89,7 @@ export default function RetroPage() {
   const [phase, setPhase] = useState<'prime-directive' | 'ideation' | 'grouping' | 'labelling' | 'voting' | 'final' | 'ActionItems'>('prime-directive');
   const [itemPositions, setItemPositions] = useState<{ [key: string]: { x: number; y: number } }>({});
   const [itemGroups, setItemGroups] = useState<{ [key: string]: string }>({}); // itemId -> signature
-  const [groupColors, setGroupColors] = useState<{ [key: number]: string }>({}); // groupId -> color (deprecated)
-  const [highContrast, setHighContrast] = useState(false);
+    const [highContrast, setHighContrast] = useState(false);
   const areaRef = useRef<HTMLDivElement>(null);
   const [groupLabels, setGroupLabels] = useState<string[]>(["", ""]); // contoh 2 group
 
@@ -102,14 +101,11 @@ export default function RetroPage() {
   // Promote to Facilitator Confirmation
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [selectedParticipant, setSelectedParticipant] = useState<Participant | null>(null);
-  const [isPromoting, setIsPromoting] = useState(false);
 
-  const [groupsData, setGroupsData] = useState<GroupsData[]>([]);
   const [labellingItems, setLabellingItems] = useState<GroupsData[]>([]);
 
   // 1. State for typing participants
   const [typingParticipants, setTypingParticipants] = useState<string[]>([]);
-
   // Helper warna random konsisten
   function getNextColor(used: string[]): string {
     const palette = [
@@ -247,7 +243,7 @@ export default function RetroPage() {
       groups: groups,
     };
   }, [itemGroups, signatureColors]);
-
+    
   // Fungsi untuk menyimpan data grup ke database (kirim satu per satu)
   const saveGroupData = useCallback(async () => {
     const dataToSave = convertGroupsToDatabaseFormat();
@@ -993,6 +989,16 @@ export default function RetroPage() {
     return () => { socket.off('typing', handleTyping); };
   }, [socket]);
 
+  const location = useLocation();
+  const prevPathRef = useRef(location.pathname);
+
+  useEffect(() => {
+    if (prevPathRef.current !== location.pathname && socket && retroId) {
+      socket.emit('leave-retro-room', retroId);
+    }
+    prevPathRef.current = location.pathname;
+  }, [location.pathname, socket, retroId]);
+
   // 3. Emit typing event when user types in input (contoh untuk inputText)
   const handleInputTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInputText(e.target.value);
@@ -1105,7 +1111,6 @@ export default function RetroPage() {
     
     
     
-    // Send to WebSocket
     if (socket && isConnected) {
       socket.emit('action-item-deleted', {
         retroId,
