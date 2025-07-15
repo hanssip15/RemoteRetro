@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import RetroFooter from './RetroFooter';
 import { Button } from '@/components/ui/button';
 import RetroHeader from '../RetroHeader';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil, Trash2, Lightbulb } from 'lucide-react';
 import { PhaseConfirmModal } from '@/components/ui/dialog';
 import { api, apiService } from '@/services/api';
 
@@ -60,6 +60,15 @@ export default function ActionItemsPhase({
   useEffect(() => {
     setShowModal(true);
   }, []);
+
+  function getIdeaCategoryIcon(category: string) {
+    switch (category) {
+      case "format_1": return <span role="img" aria-label="happy">😊</span>;
+      case "format_2": return <span role="img" aria-label="sad">😢</span>;
+      case "format_3": return <span role="img" aria-label="confused">😕</span>;
+      default: return null;
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">

@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import RetroHeader from '../RetroHeader';
 import { apiService } from '@/services/api';
 import { PhaseConfirmModal } from '@/components/ui/dialog';
+import { getCategoryEmoji } from '@/lib/utils';
 
 export default function LabellingPhase(props: any) {
   const {
@@ -118,11 +119,14 @@ export default function LabellingPhase(props: any) {
                   />
                 </div>
                 <div className="flex flex-col gap-2">
-                  {group.group_items.map((item: any) => (
-                    <div key={item.id} className="flex items-center gap-2 text-base">
-                      <span>{item.item.content}</span>
-                    </div>
-                  ))}
+                  {group.group_items.map((item: any) => {
+                    return (
+                      <div key={item.id} className="flex items-center gap-2 text-base">
+                        <span>{getCategoryEmoji(item.item.format_type, retro.format)}</span>
+                        <span>{item.item.content}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             ))}
