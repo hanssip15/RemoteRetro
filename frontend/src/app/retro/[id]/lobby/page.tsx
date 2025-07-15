@@ -1,6 +1,7 @@
 "use client"
 // import { io } from 'socket.io-client';
 import { useSocket } from "@/hooks/use-socket"
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 
 import { useEffect, useState, useCallback } from "react"
 import { useParams, useNavigate } from "react-router-dom"
@@ -8,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ShareLinkModal } from "@/components/share-link-modal"
-import { ArrowLeft, Users, Clock, Share2, Play, RefreshCw, Crown } from "lucide-react"
+import { ArrowLeft, Users, Clock, Share2, Play, RefreshCw, Crown, User } from "lucide-react"
 import RetroHeader from '../RetroHeader';
 import { Link } from "react-router-dom"
 import { apiService, Retro, Participant, api } from "@/services/api"
@@ -227,9 +228,25 @@ export default function RetroLobbyPage() {
                   <div key={participant.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div className="flex items-center space-x-3">
                       <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
-                        <span className="text-sm font-medium text-indigo-600">
+                        {/* <span className="text-sm font-medium text-indigo-600">
                           {participant.user.name.charAt(0).toUpperCase()}
                         </span>
+                         */}
+                         <Avatar
+                      className={`h-12 w-12 border-3 ${participant.role ? 'border-blue-500' : 'border-gray-200'} group-hover:border-indigo-500 transition`}
+                      title={`${participant.user.name} ${participant.role ? '(Facilitator)' : '(Participant)'}`}
+                    >
+                      <AvatarImage 
+                        src={participant.user.imageUrl || participant.user.image_url || undefined} 
+                        alt={participant.user.name} 
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                      <AvatarFallback>
+                        {participant.user.name?.charAt(0)?.toUpperCase() || <User className="h-4 w-4" />}
+                      </AvatarFallback>
+                    </Avatar>
                       </div>
                       <div>
                         <p className="font-medium">{participant.user.name}</p>

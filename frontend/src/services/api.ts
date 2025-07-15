@@ -182,6 +182,10 @@ class ApiService {
     });
   }
 
+  async getAction(retro_id:string ): Promise<any> {
+    return this.request<GroupsData[]>(`/action/${retro_id}`);
+  }
+
 
   async createGroup(retro_id: string, data: CreateLabelGroupSingle): Promise<GroupsData> {
     return this.request<GroupsData>(`/group/${retro_id}`, {
@@ -363,6 +367,19 @@ class ApiService {
     };
   }> {
     return this.request(`/dashboard/stats/${userId}`);
+  }
+
+  // Send action items email to participants
+  async sendActionItemsEmail(data: {
+    retroId: string;
+    retroTitle: string;
+    actionItems: Array<{ task: string; assigneeName: string }>;
+    participantEmails: string[];
+  }): Promise<any> {
+    return this.request<any>('/email/send-action-items', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   }
 }
 // api.ts

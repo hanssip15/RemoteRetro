@@ -293,10 +293,23 @@ export default function ActionItemsPhase({
                       if (bulkData.length > 0) {
                         await api.createBulkActions(bulkData);
                       }
+
+                      // Kirim email action items ke semua participant
+                      const participantEmails = participants.map((p: any) => p.user.email).filter(Boolean);
+                      await api.sendActionItemsEmail({
+                        retroId: retro.id,
+                        retroTitle: retro.title,
+                        actionItems: actionItems.map((item: any) => ({
+                          task: item.task,
+                          assigneeName: item.assigneeName,
+                        })),
+                        participantEmails,
+                      });
+
                       if (broadcastPhaseChange) broadcastPhaseChange('final');
                       else if (setPhase) setPhase('final');
                     } catch (err) {
-                      alert('Failed to save action items to database!');
+                      alert('Failed to save action items to database or send email!');
                       console.error(err);
                     }
                   }}
