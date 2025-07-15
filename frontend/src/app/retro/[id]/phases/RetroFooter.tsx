@@ -1,13 +1,24 @@
-import {useCallback, useState} from 'react';
+import {useCallback, useState, useEffect} from 'react';
 import { apiService, Participant} from "@/services/api"
 
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useParams } from 'react-router-dom';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 
 export default function RetroFooter({
   title, center, right, participants = [], typingParticipants = [], children, isCurrentFacilitator, user, setShowRoleModal, setSelectedParticipant, 
+  votesLeft,
+  allUserVotes = {},
+  maxVotes = 3
 }: any) {
   const params = useParams();
   const retroId = params.id as string;
@@ -15,6 +26,15 @@ export default function RetroFooter({
   const [showRoleModal, setShowRoleModalLocal] = useState(false);
   const [selectedParticipant, setSelectedParticipantLocal] = useState<Participant | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showFacilitatorGrantedModal, setShowFacilitatorGrantedModal] = useState(false);
+
+  // Tampilkan modal jika user baru saja menjadi facilitator
+  useEffect(() => {
+    if (isCurrentFacilitator && user?.id) {
+      // Modal hanya muncul sekali saat user baru jadi facilitator
+      setShowFacilitatorGrantedModal(true);
+    }
+  }, [isCurrentFacilitator, user?.id]);
 
   // Handler promote facilitator
   const handlePromoteToFacilitator = useCallback(async () => {
@@ -35,35 +55,58 @@ export default function RetroFooter({
   return (
     <>
       {/* Modal */}
-      {showRoleModal && selectedParticipant && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold mb-4">Promote to Facilitator?</h3>
-            <p className="text-gray-600 mb-6">
-              Are you sure you want to promote <strong>{selectedParticipant.user.name}</strong> to facilitator? 
-              You will no longer be the facilitator.
-            </p>
-            <div className="flex justify-end space-x-3">
-              <Button 
-                variant="outline" 
-                onClick={() => {
-                  setShowRoleModalLocal(false);
-                  setSelectedParticipantLocal(null);
-                }}
-                disabled={loading}
-              >
-                Cancel
-              </Button>
-              <Button 
-                onClick={handlePromoteToFacilitator}
-                disabled={loading}
-              >
-                {loading ? "Promoting..." : "Promote"}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Dialog open={showRoleModal && !!selectedParticipant} onOpenChange={setShowRoleModalLocal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Promote to Facilitator?</DialogTitle>
+          </DialogHeader>
+          <DialogDescription>
+            Are you sure you want to promote <strong>{selectedParticipant?.user.name}</strong> to facilitator? <br/>
+            You will no longer be the facilitator.
+          </DialogDescription>
+          <DialogFooter className="flex-row justify-end space-x-3 mt-4">
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setShowRoleModalLocal(false);
+                setSelectedParticipantLocal(null);
+              }}
+              disabled={loading}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handlePromoteToFacilitator}
+              disabled={loading}
+              style={{ backgroundColor: '#22c55e' }} // green-600
+              className="text-white hover:bg-green-700"
+            >
+              {loading ? "Promoting..." : "Promote"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal for facilitator granted */}
+      <Dialog open={showFacilitatorGrantedModal} onOpenChange={setShowFacilitatorGrantedModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>You've been granted the facilitatorship!</DialogTitle>
+          </DialogHeader>
+          <DialogDescription>
+            As <b>facilitator</b>, you are responsible for advancing the retrospective and keeping the vibe inclusive!
+          </DialogDescription>
+          <DialogFooter className="flex-row justify-end mt-4">
+            <Button
+              style={{ backgroundColor: '#2563eb' }} // blue-600
+              className="text-white hover:bg-blue-700"
+              onClick={() => setShowFacilitatorGrantedModal(false)}
+            >
+              Got it!
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* ...footer content, avatar bar, dsb... */}
       <div className="fixed bottom-0 left-0 w-full z-40">
@@ -107,6 +150,14 @@ export default function RetroFooter({
                     )}
                   </div>
                   <span className="text-xs text-gray-900 mt-1 font-medium">{p.user.name}{p.role ? ' (Facilitator)' : ''}</span>
+                  {/* ALL VOTES IN indicator for any participant */}
+                  {(() => {
+                    const userVoteObj = allUserVotes?.[p.user.id] || {};
+                    const totalVotes = Object.values(userVoteObj).reduce((a: number, b) => a + Number(b), 0);
+                    return totalVotes >= maxVotes ? (
+                      <span className="text-xs font-bold text-green-600 mt-1">ALL VOTES IN</span>
+                    ) : null;
+                  })()}
                   {/* Typing indicator */}
                   {typingParticipants.includes(p.user.id) && (
                     <div className="flex space-x-1 mt-1">
