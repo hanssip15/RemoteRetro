@@ -73,6 +73,13 @@ import {
       this.server.to(`retro:${retroId}`).emit(`retro-started:${retroId}`);
     }
 
+    broadcastRetroCompleted(retroId: string) {
+      this.server.to(`retro:${retroId}`).emit(`retro-completed:${retroId}`, {
+        status: 'completed',
+        timestamp: new Date().toISOString()
+      });
+    }
+
     broadcastPhaseChange(retroId: string, phase: string) {
       this.server.to(`retro:${retroId}`).emit(`phase-change:${retroId}`, {
         phase: phase,
