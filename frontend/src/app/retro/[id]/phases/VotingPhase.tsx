@@ -13,6 +13,9 @@ export default function VotingPhase(props: any) {
     userVotes, handleVote, socket, isConnected, setLabellingItems
   } = props;
 
+  // State untuk menyimpan votes semua peserta
+  const [allUserVotes, setAllUserVotes] = useState<{ [userId: string]: { [groupIdx: number]: number } }>({});
+
   // Function untuk update votes di database dan broadcast via WebSocket
   const updateVotesInDatabase = useCallback(async (groupId: number, newVotes: number) => {
     try {
@@ -148,6 +151,32 @@ export default function VotingPhase(props: any) {
     }
   }, [socket, retro?.id, setLabellingItems]);
 
+  // Handler untuk menerima data votes semua peserta dari websocket
+  useEffect(() => {
+    if (!socket) return;
+
+    // Handler vote-update (pastikan backend mengirimkan allUserVotes)
+    const handleVoteUpdate = (data: { allUserVotes?: { [userId: string]: { [groupIdx: number]: number } } }) => {
+      if (data.allUserVotes) setAllUserVotes(data.allUserVotes);
+    };
+
+    // Handler retro-state (jika backend mengirimkan allUserVotes di state)
+    const handleRetroState = (state: { allUserVotes?: { [userId: string]: { [groupIdx: number]: number } } }) => {
+      if (state.allUserVotes) setAllUserVotes(state.allUserVotes);
+    };
+
+    socket.on('vote-update', handleVoteUpdate);
+    socket.on('retro-state', handleRetroState);
+
+    return () => {
+      socket.off('vote-update', handleVoteUpdate);
+      socket.off('retro-state', handleRetroState);
+    };
+  }, [socket]);
+
+  // TODO: Ganti dengan variabel mapping votes semua peserta yang benar jika sudah ada
+  const maxVotes = 1; // Assuming a default max votes per item
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Modal Stage Change Voting */}
@@ -259,6 +288,9 @@ export default function VotingPhase(props: any) {
         user={user}
         setShowRoleModal={setShowRoleModal}
         setSelectedParticipant={setSelectedParticipant}
+        votesLeft={votesLeft}
+        allUserVotes={allUserVotes}
+        maxVotes={maxVotes}
       />
     </div>
   );
