@@ -27,15 +27,22 @@ export default function RetroFooter({
   const [selectedParticipant, setSelectedParticipantLocal] = useState<Participant | null>(null);
   const [loading, setLoading] = useState(false);
   const [showFacilitatorGrantedModal, setShowFacilitatorGrantedModal] = useState(false);
-  const prevIsFacilitator = useRef(isCurrentFacilitator);
+  const prevFacilitatorId = useRef<string | null>(null);
 
   useEffect(() => {
-    // Munculkan modal hanya jika transisi dari bukan facilitator ke facilitator
-    if (!prevIsFacilitator.current && isCurrentFacilitator) {
+    // Cari id facilitator saat ini dari participants
+    const facilitator = participants.find((p: any) => p.role)?.user.id;
+    // Modal hanya muncul jika facilitator berpindah ke user ini, dan sebelumnya sudah ada facilitator
+    if (
+      facilitator &&
+      facilitator !== prevFacilitatorId.current &&
+      facilitator === user?.id &&
+      prevFacilitatorId.current !== null // jangan trigger saat pertama kali render/creator
+    ) {
       setShowFacilitatorGrantedModal(true);
     }
-    prevIsFacilitator.current = isCurrentFacilitator;
-  }, [isCurrentFacilitator]);
+    prevFacilitatorId.current = facilitator || null;
+  }, [participants, user?.id]);
 
   // Handler promote facilitator
   const handlePromoteToFacilitator = useCallback(async () => {

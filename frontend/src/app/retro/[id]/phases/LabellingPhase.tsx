@@ -120,10 +120,10 @@ export default function LabellingPhase(props: any) {
                 </div>
                 <div className="flex flex-col gap-2">
                   {group.group_items.map((item: any) => {
-                    console.log('item.category', item.category, 'retro?.format', retro?.format);
                     return (
                       <div key={item.id} className="flex items-center gap-2 text-base">
-                        <span className="flex items-center gap-2">{getCategoryEmoji(item.format_type, retro?.format)}{item.item.content}</span>
+                        <span>{getCategoryEmoji(item.item.format_type, retro.format)}</span>
+                        <span>{item.item.content}</span>
                       </div>
                     );
                   })}
