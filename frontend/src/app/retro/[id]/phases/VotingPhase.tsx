@@ -113,6 +113,41 @@ export default function VotingPhase(props: any) {
     setShowModal(true);
   }, []);
 
+  useEffect(() => {
+    async function fetchLabellingItems() {
+      try {
+        // Ambil data group beserta votes dari backend
+        const groups = await apiService.getLabelsByRetro(retro.id);
+        setLabellingItems(groups); // Pastikan groups sudah mengandung field votes
+      } catch (err) {
+        console.error('Failed to fetch voting data:', err);
+      }
+    }
+    if (retro?.id) {
+      fetchLabellingItems();
+    }
+  }, [retro?.id, setLabellingItems]);
+
+  useEffect(() => {
+    if (socket && retro?.id) {
+      // Request state voting dari server via WebSocket
+      socket.emit('request-retro-state', { retroId: retro.id });
+
+      // Handler untuk menerima state dari server
+      const handleRetroState = (state: any) => {
+        if (state && state.labellingItems) {
+          setLabellingItems(state.labellingItems);
+        }
+      };
+      socket.on(`retro-state:${retro.id}`, handleRetroState);
+
+      // Cleanup listener saat unmount
+      return () => {
+        socket.off(`retro-state:${retro.id}`, handleRetroState);
+      };
+    }
+  }, [socket, retro?.id, setLabellingItems]);
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Modal Stage Change Voting */}

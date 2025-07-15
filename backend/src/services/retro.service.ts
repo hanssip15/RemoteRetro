@@ -76,8 +76,13 @@ export class RetroService {
     }
     Object.assign(retro, updateRetroDto);
 
-
-    this.participantGateway.broadcastRetroStarted(id);
+    // Broadcast based on status change
+    if (updateRetroDto.status === 'completed') {
+      this.participantGateway.broadcastRetroCompleted(id);
+    } else if (updateRetroDto.status === 'ongoing') {
+      this.participantGateway.broadcastRetroStarted(id);
+    }
+    
     return this.retroRepository.save(retro);
   }
 

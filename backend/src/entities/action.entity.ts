@@ -1,7 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { Retro } from './retro.entity';
 
-@Entity('action')
+@Entity('action_items')
 export class Action {
   @PrimaryGeneratedColumn()
   id: number;
@@ -11,6 +11,9 @@ export class Action {
 
   @Column({ type: 'varchar' })
   action_item: string;
+
+  @Column({ type: 'varchar'})
+  assign_to : string
 
   @ManyToOne(() => Retro, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
   @JoinColumn({ name: 'retro_id' })

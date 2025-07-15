@@ -6,5 +6,9 @@ export class CreateActionDto {
   action_item: string;
 
   @IsNotEmpty()
+  @IsString()
+  assign_to: string;
+
+  @IsNotEmpty()
   retro_id: string;
 }

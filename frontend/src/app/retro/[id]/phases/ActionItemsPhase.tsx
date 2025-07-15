@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import RetroHeader from '../RetroHeader';
 import { Pencil, Trash2 } from 'lucide-react';
 import { PhaseConfirmModal } from '@/components/ui/dialog';
+import { api } from '@/services/api';
 
 
 export default function ActionItemsPhase({
@@ -281,9 +282,23 @@ export default function ActionItemsPhase({
                   open={showConfirm}
                   onOpenChange={setShowConfirm}
                   title="Are you sure you want to distribute this retrospective's action items? This will close the retro."
-                  onConfirm={() => {
-                    if (broadcastPhaseChange) broadcastPhaseChange('final');
-                    else if (setPhase) setPhase('final');
+                  onConfirm={async () => {
+                    try {
+                      console.log("action : " , actionItems)
+                      const bulkData = actionItems.map((item: any) => ({
+                        retro_id: retro.id,
+                        action_item: item.task,
+                        assign_to: item.assigneeName,
+                      }));
+                      if (bulkData.length > 0) {
+                        await api.createBulkActions(bulkData);
+                      }
+                      if (broadcastPhaseChange) broadcastPhaseChange('final');
+                      else if (setPhase) setPhase('final');
+                    } catch (err) {
+                      alert('Failed to save action items to database!');
+                      console.error(err);
+                    }
                   }}
                   onCancel={() => {}}
                   confirmLabel="Yes"
