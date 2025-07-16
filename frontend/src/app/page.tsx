@@ -20,7 +20,7 @@ export default function HomePage() {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <Zap className="h-8 w-8 text-indigo-600" />
-            <h1 className="text-2xl font-bold text-gray-900">RemoteRetro</h1>
+            <h1 className="text-2xl font-bold text-gray-900">RetroSprint</h1>
           </div>
           <nav className="flex items-center space-x-4">
             <Link to="/dashboard">
@@ -104,7 +104,7 @@ export default function HomePage() {
         <div className="text-center bg-white rounded-2xl p-12 shadow-lg">
           <h3 className="text-3xl font-bold text-gray-900 mb-4">Ready to improve your team retrospectives?</h3>
           <p className="text-lg text-gray-600 mb-8">
-            Join thousands of teams already using RemoteRetro to drive continuous improvement.
+            Join thousands of teams already using RetroSprint to drive continuous improvement.
           </p>
           <Link to="/retro/new">
             <Button size="lg" className="px-12 py-4 text-lg">
@@ -119,7 +119,7 @@ export default function HomePage() {
         <div className="container mx-auto px-4 text-center">
           <div className="flex items-center justify-center space-x-2 mb-4">
             <Zap className="h-6 w-6" />
-            <span className="text-xl font-bold">RemoteRetro</span>
+            <span className="text-xl font-bold">RetroSprint</span>
           </div>
           <p className="text-gray-400">Built with ❤️ for remote teams everywhere</p>
         </div>

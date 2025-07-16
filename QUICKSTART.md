@@ -1,6 +1,6 @@
-# 🚀 Quick Start Guide - RemoteRetro
+# 🚀 Quick Start Guide - RetroSprint
 
-Panduan cepat untuk menjalankan project RemoteRetro yang sudah direfactor.
+Panduan cepat untuk menjalankan project RetroSprint yang sudah direfactor.
 
 ## ⚡ Quick Setup (5 Menit)
 
@@ -30,11 +30,11 @@ cd ..
 ```bash
 # Buat database PostgreSQL
 # Buka psql atau pgAdmin dan jalankan:
-CREATE DATABASE remoteretro;
+CREATE DATABASE retrosprint;
 
 # Setup environment variables
 # Buat file backend/.env dengan isi:
-DATABASE_URL=postgresql://username:password@localhost:5432/remoteretro
+DATABASE_URL=postgresql://username:password@localhost:5432/retrosprint
 PORT=3000
 NODE_ENV=development
 ```
@@ -73,7 +73,7 @@ npm run dev
 # Pastikan PostgreSQL running
 # Check connection string di backend/.env
 # Test connection:
-psql postgresql://username:password@localhost:5432/remoteretro
+psql postgresql://username:password@localhost:5432/retrosprint
 ```
 
 ### Port Already in Use
