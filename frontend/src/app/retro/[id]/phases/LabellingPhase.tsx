@@ -107,7 +107,7 @@ export default function LabellingPhase(props: any) {
         setShowShareModal={setShowShareModal}
         handleLogout={handleLogout}
       />
-      <div className="flex-1 flex flex-col items-center justify-start w-full overflow-auto pb-40">
+      <div className="flex-1 flex flex-col items-center justify-start w-full">
           <div className="flex flex-row flex-wrap gap-8 mt-8 w-full justify-center">
             {labellingItems.map((group: any, idx: number) => (
               

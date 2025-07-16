@@ -1,3 +1,4 @@
+import { UUID } from "crypto";
 
 const API_BASE_URL = '/api';
 // const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -320,6 +321,11 @@ class ApiService {
   async updateParticipantRole(retroId: string, participantId: number): Promise<Participant> {
     return this.request<Participant>(`/participant/${retroId}/update-role/${participantId}`, {
       method: 'PUT'
+    });
+  }
+  async deleteParticipants(userId: UUID, retroId: string) : Promise<Participant>{
+    return this.request<Participant>(`/participant/${retroId}/${userId}`, {
+      method: 'DELETE',
     });
   }
 

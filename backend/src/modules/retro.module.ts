@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { RetroController } from '../controllers/retro.controller';
 import { ParticipantController } from '../controllers/participant.controller';
@@ -12,7 +12,16 @@ import { Participant } from '../entities/participant.entity';
 @Module({
   imports: [TypeOrmModule.forFeature([Retro, RetroItem, Participant])],
   controllers: [RetroController, ParticipantController],
-  providers: [RetroService, ParticipantService, ParticipantGateway],
-  exports: [RetroService, ParticipantService],
+  providers: [
+    RetroService,
+    ParticipantService,
+    ParticipantGateway
+    // Gunakan forwardRef untuk gateway
+    // {
+    //   provide: ParticipantGateway,
+    //   useClass: forwardRef(() => ParticipantGateway),
+    // },
+  ],
+  exports: [RetroService, ParticipantService, ParticipantGateway],
 })
 export class RetroModule {} 

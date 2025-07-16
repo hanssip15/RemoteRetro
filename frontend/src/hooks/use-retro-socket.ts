@@ -38,6 +38,10 @@ export const useRetroSocket = ({
 }: UseRetroSocketOptions) => {
   const { socket, isConnected, joinRoom, leaveRoom } = useSocketContext();
 
+  // Ambil userId dari localStorage
+  const userData = typeof window !== 'undefined' ? localStorage.getItem('user_data') : null;
+  const userId = userData ? JSON.parse(userData).id : undefined;
+
   // Memoize callbacks to prevent unnecessary re-renders
   const callbacks = useMemo(() => ({
     onItemAdded,
@@ -58,16 +62,15 @@ export const useRetroSocket = ({
 
   // Join room when component mounts or retroId changes
   useEffect(() => {
-    if (retroId) {
-      joinRoom(retroId);
+    if (retroId && userId && socket) {
+      socket.emit('join-retro-room', { retroId, userId });
     }
-
     return () => {
-      if (retroId) {
-        leaveRoom(retroId);
+      if (retroId && socket) {
+        socket.emit('leave-retro-room', retroId);
       }
     };
-  }, [retroId, joinRoom, leaveRoom]);
+  }, [retroId, userId, socket]);
 
   // Set up event listeners
   useEffect(() => {

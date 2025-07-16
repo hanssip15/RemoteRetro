@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, BadRequestException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Participant } from '../entities/participant.entity';
@@ -14,6 +14,7 @@ export class ParticipantService {
     private participantRepository: Repository<Participant>,
     @InjectRepository(Retro)
     private retroRepository: Repository<Retro>,
+    @Inject(forwardRef(() => ParticipantGateway))
     private readonly participantGateway: ParticipantGateway,
 
   ) {}
@@ -60,10 +61,20 @@ export class ParticipantService {
     return savedParticipant;
   }
 
-  async remove(id: string): Promise<void> {
+  async remove(id: string, retroId: string): Promise<void> {
+    
     const result = await this.participantRepository.delete(id);
     if (result.affected === 0) {
       throw new NotFoundException(`Participant with ID ${id} not found`);
+    }
+    this.participantGateway.broadcastParticipantUpdate(retroId);
+
+  }
+
+  async removeByRetroAndUser(retroId: string, userId: string): Promise<void> {
+    const participant = await this.participantRepository.findOne({ where: { retroId, userId } });
+    if (participant) {
+      await this.participantRepository.delete(participant.id);
     }
   }
 
@@ -71,7 +82,7 @@ export class ParticipantService {
     const result = await this.participantRepository
       .createQueryBuilder('participant')
       .leftJoin('participant.user', 'user')
-      .select('COUNT(DISTINCT user.name)', 'count')
+      .select('COUNT(DISTINCT user.name)', 'count') 
       .getRawOne();
     
     return parseInt(result.count) || 0;
