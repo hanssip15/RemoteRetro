@@ -155,15 +155,7 @@ export default function RetroLobbyPage() {
   // import { useRef, useLocation } from "react-router-dom";
 // ... kode lain
 
-const location = useLocation();
-const prevPathRef = useRef(location.pathname);
 
-useEffect(() => {
-  if (prevPathRef.current !== location.pathname && socket && retroId) {
-    socket.emit('leave-retro-room', retroId);
-  }
-  prevPathRef.current = location.pathname;
-}, [location.pathname, socket, retroId]);
   
   
 

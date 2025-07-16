@@ -3,6 +3,7 @@ import RetroFooter from './RetroFooter';
 import { Button } from '@/components/ui/button';
 import RetroHeader from '../RetroHeader';
 import { Lightbulb } from 'lucide-react';
+import { getCategoryEmoji } from '@/lib/utils';
 
 function getIdeaCategoryIcon(category: string) {
   switch (category) {
@@ -85,7 +86,7 @@ export default function FinalPhase({
               <div className="flex flex-col gap-2">
                   {group.group_items.map((item: any, idx: number) => (
                     <div key={idx} className="bg-gray-50 border rounded px-3 py-2 text-sm flex items-center justify-between gap-2">
-                      <span className="flex items-center gap-2">{item.item ? getIdeaCategoryIcon(item.item.category) : null}{item.item ? item.item.content : 'No item'}</span>
+                      <span className="flex items-center gap-2">{item.item ? getCategoryEmoji(item.item.format_type, retro.format) : null}{item.item ? item.item.content : 'No item'}</span>
                     </div>
                   ))}
                 </div>

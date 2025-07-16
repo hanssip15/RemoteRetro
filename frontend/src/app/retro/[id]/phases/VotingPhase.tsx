@@ -5,6 +5,7 @@ import RetroHeader from '../RetroHeader';
 import { apiService } from '@/services/api';
 import { PhaseConfirmModal } from '@/components/ui/dialog';
 import { Lightbulb } from 'lucide-react';
+import { getCategoryEmoji } from '@/lib/utils';
 
 function getIdeaCategoryIcon(category: string) {
   switch (category) {
@@ -261,7 +262,8 @@ export default function VotingPhase(props: any) {
               <div className="flex flex-col gap-2">
                   {group.group_items.map((item: any) => (
                   <div key={item.id} className="flex items-center gap-2 text-base">
-                    <span className="flex items-center gap-2">{getIdeaCategoryIcon(item.item.category)}{item.item.content}</span>
+                    <span>{getCategoryEmoji(item.item.format_type, retro.format)}</span>
+                    <span>{item.item.content}</span>
                   </div>
                 ))}
               </div>

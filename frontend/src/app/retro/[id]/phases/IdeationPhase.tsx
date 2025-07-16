@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import RetroFooter from './RetroFooter';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,10 +20,27 @@ export default function IdeationPhase(props: any) {
 
   const [showModal, setShowModal] = useState(true);
   const [showConfirm, setShowConfirm] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setShowModal(true);
   }, []);
+
+  useEffect(() => {
+    if (!isAddingItem) {
+      inputRef.current?.focus();
+    }
+  }, [isAddingItem]);
+
+  // Handler submit yang sudah ada
+  const handleAddAndFocus = (...args: any[]) => {
+    if (props.handleAdd) {
+      props.handleAdd(...args);
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 0);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -123,16 +140,23 @@ export default function IdeationPhase(props: any) {
             </select>
           </div>
           <input
+            ref={inputRef}
             type="text"
             placeholder="Ex. we have a linter!"
             className="border rounded px-2 py-1 flex-1"
             value={inputText}
             onChange={handleInputTextChange}
-            onKeyDown={handleKeyDown}
+            onKeyDown={e => {
+              if (e.key === 'Enter' && !isAddingItem && inputText.trim()) {
+                handleAddAndFocus();
+              } else if (props.handleKeyDown) {
+                props.handleKeyDown(e);
+              }
+            }}
             disabled={isAddingItem}
           />
           <Button
-            onClick={handleAdd}
+            onClick={handleAddAndFocus}
             disabled={isAddingItem || !inputText.trim()}
             className="px-4 py-1"
             type="submit"
