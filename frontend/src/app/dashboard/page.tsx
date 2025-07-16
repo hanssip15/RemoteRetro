@@ -286,7 +286,7 @@ export default function DashboardPage() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-4">
-              <h1 className="text-2xl font-bold text-gray-900">RemoteRetro</h1>
+              <h1 className="text-2xl font-bold text-gray-900">RetroSprint</h1>
               <span className="text-gray-400">|</span>
               <span className="text-gray-600">Dashboard</span>
             </div>

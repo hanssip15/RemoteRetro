@@ -1,6 +1,5 @@
 @echo off
-echo ========================================
-echo RemoteRetro Refactor Setup
+echo RetroSprint Refactor Setup
 echo ========================================
 
 echo.

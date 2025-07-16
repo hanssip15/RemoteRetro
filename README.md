@@ -1,6 +1,6 @@
-# RemoteRetro - Refactored Project
+# RetroSprint - Refactored Project
 
-RemoteRetro adalah aplikasi retrospective online yang memungkinkan tim untuk melakukan retrospective meeting secara remote. Project ini telah direfactor menjadi struktur frontend dan backend yang terpisah untuk memungkinkan pengembangan yang lebih fleksibel.
+RetroSprint adalah aplikasi retrospective online yang memungkinkan tim untuk melakukan retrospective meeting secara remote. Project ini telah direfactor menjadi struktur frontend dan backend yang terpisah untuk memungkinkan pengembangan yang lebih fleksibel.
 
 ## 🏗️ Struktur Project
 
@@ -77,7 +77,7 @@ Buat file `.env` di folder `backend/`:
 
 ```env
 # Database
-DATABASE_URL=postgresql://username:password@localhost:5432/remoteretro
+DATABASE_URL=postgresql://username:password@localhost:5432/retrosprint
 
 # Server
 PORT=3000
@@ -92,7 +92,7 @@ CORS_ORIGIN=http://localhost:5173
 Pastikan database PostgreSQL sudah berjalan dan buat database:
 
 ```sql
-CREATE DATABASE remoteretro;
+CREATE DATABASE retrosprint;
 ```
 
 Jalankan script database initialization:
@@ -225,7 +225,7 @@ npm run build
 ### Database Connection Issues
 1. Pastikan PostgreSQL berjalan
 2. Periksa `DATABASE_URL` di `.env`
-3. Pastikan database `remoteretro` sudah dibuat
+3. Pastikan database `retrosprint` sudah dibuat
 
 ### CORS Issues
 1. Periksa `CORS_ORIGIN` di backend `.env`

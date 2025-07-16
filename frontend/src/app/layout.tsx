@@ -6,7 +6,7 @@ import "./globals.css"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "RemoteRetro - Better Retrospectives for Remote Teams",
+  title: "RetroSprint - Better Retrospectives for Remote Teams",
   description:
     "Conduct engaging and productive retrospectives with your distributed team. Collaborate in real-time, gather insights, and drive continuous improvement.",
     generator: 'v0.dev'
