@@ -21,6 +21,18 @@ export default function LabellingPhase(props: any) {
     setShowModal(true);
   }, []);
 
+  // Normalisasi label dari backend: jika 'unlabeled', ubah ke '' agar placeholder bekerja
+  useEffect(() => {
+    if (labellingItems && Array.isArray(labellingItems)) {
+      const normalized = labellingItems.map((group: any) => ({
+        ...group,
+        label: group.label === 'unlabeled' ? '' : group.label || ''
+      }));
+      setLabellingItems(normalized);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // hanya saat mount
+
   // Debounce function untuk update label
   const debounce = (func: Function, delay: number) => {
     let timeoutId: NodeJS.Timeout;
@@ -32,15 +44,16 @@ export default function LabellingPhase(props: any) {
 
   // Function untuk update label ke database
   const updateLabelInDatabase = useCallback(async (groupId: number, newLabel: string) => {
+    const labelToSave = newLabel.trim() === "" ? "unlabeled" : newLabel;
     try {
-      await apiService.updateLabel(groupId, newLabel);
+      await apiService.updateLabel(groupId, labelToSave);
       
       // Broadcast label update to other participants via WebSocket
       if (socket && isConnected && user) {
         socket.emit('label-update', {
           retroId: retro.id,
           groupId: groupId,
-          label: newLabel,
+          label: labelToSave,
           userId: user.id
         });
         console.log('📡 Label update broadcasted via WebSocket');
@@ -91,15 +104,15 @@ export default function LabellingPhase(props: any) {
         handleLogout={handleLogout}
       />
       <div className="flex-1 flex flex-col items-center justify-start w-full">
-          <div className="flex flex-row gap-8 mt-8 w-full justify-center">
+          <div className="flex flex-row flex-wrap gap-8 mt-8 w-full justify-center">
             {labellingItems.map((group: any, idx: number) => (
               <div key={group.id} className="bg-white border rounded-lg shadow-sm min-w-[350px] max-w-[400px] w-full p-4">
                 <div className="mb-2">
                   <input
-                    className="w-full text-center text-gray-500 font-semibold bg-gray-100 rounded px-2 py-1 mb-2 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                    placeholder="Optional Group Label"
+                    className="w-full max-w-[200px] text-center text-gray-500 font-semibold bg-gray-100 rounded px-2 py-1 mb-2 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                    placeholder="unlabeled"
                     maxLength={20}
-                    value={group.label}
+                    value={group.label === 'unlabeled' ? '' : group.label || ''}
                     readOnly={!isCurrentFacilitator}
                     onChange={(e) => {
                       if (isCurrentFacilitator) {
