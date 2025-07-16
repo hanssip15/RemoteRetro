@@ -8,6 +8,7 @@ import { ArrowLeft, Users, Clock, Share2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import RetroHeader from '../RetroHeader';
 import { PhaseConfirmModal } from '@/components/ui/dialog';
+import useEnterToCloseModal from "@/hooks/useEnterToCloseModal";
 
 export default function IdeationPhase(props: any) {
   const {
@@ -31,6 +32,8 @@ export default function IdeationPhase(props: any) {
       inputRef.current?.focus();
     }
   }, [isAddingItem]);
+
+  useEnterToCloseModal(showModal, () => setShowModal(false));
 
   // Handler submit yang sudah ada
   const handleAddAndFocus = (...args: any[]) => {

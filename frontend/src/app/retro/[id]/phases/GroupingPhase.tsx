@@ -5,6 +5,7 @@ import RetroHeader from '../RetroHeader';
 import Draggable from 'react-draggable';
 import { PhaseConfirmModal } from '@/components/ui/dialog';
 import { apiService } from '@/services/api';
+import useEnterToCloseModal from "@/hooks/useEnterToCloseModal";
 
 export default function GroupingPhase({
   retro,
@@ -46,6 +47,8 @@ export default function GroupingPhase({
   useEffect(() => {
     setShowModal(true);
   }, []);
+
+  useEnterToCloseModal(showModal, () => setShowModal(false));
 
   // Cek jika tidak ada grup yang terbentuk, assign setiap item ke grup sendiri
   const processedItemGroups = React.useMemo(() => {

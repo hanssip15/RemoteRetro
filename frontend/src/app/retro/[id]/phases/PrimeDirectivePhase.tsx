@@ -4,6 +4,7 @@ import RetroFooter from './RetroFooter';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import RetroHeader from '../RetroHeader';
 import { PhaseConfirmModal } from '@/components/ui/dialog';
+import useEnterToCloseModal from "@/hooks/useEnterToCloseModal";
 
 export default function PrimeDirectivePhase(props: any) {
   const {
@@ -19,6 +20,8 @@ export default function PrimeDirectivePhase(props: any) {
   useEffect(() => {
     setShowModal(true);
   }, []);
+
+  useEnterToCloseModal(showModal, () => setShowModal(false));
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
