@@ -41,7 +41,7 @@ const LoginPage = () => {
           color: '#333',
           fontSize: '28px'
         }}>
-          Welcome to RemoteRetro
+          Welcome to RetroSprint
         </h1>
         
         <p style={{ 

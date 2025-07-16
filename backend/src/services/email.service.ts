@@ -109,7 +109,7 @@ export class EmailService {
           </table>
           
           <div class="footer">
-            <p>This email was automatically generated from your RemoteRetro session.</p>
+            <p>This email was automatically generated from your RetroSprint session.</p>
             <p>Thank you for participating in the retrospective!</p>
           </div>
         </div>
