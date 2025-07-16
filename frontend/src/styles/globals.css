@@ -92,3 +92,21 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+/* Typing indicator dot animation */
+.dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background: #888;
+  border-radius: 50%;
+  animation: typing 1s infinite;
+}
+.dot1 { animation-delay: 0s; }
+.dot2 { animation-delay: 0.2s; }
+.dot3 { animation-delay: 0.4s; }
+
+@keyframes typing {
+  0%, 80%, 100% { opacity: 0.2; }
+  40% { opacity: 1; }
+}

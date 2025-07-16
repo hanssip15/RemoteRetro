@@ -92,3 +92,17 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+.dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background: #888;
+  border-radius: 50%;
+  animation: dotFlashing 1s infinite linear alternate;
+  margin: 0 2px;
+}
+@keyframes dotFlashing {
+  0% { opacity: 0.2; }
+  50%, 100% { opacity: 1; }
+}

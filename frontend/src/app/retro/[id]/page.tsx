@@ -109,6 +109,7 @@ export default function RetroPage() {
 
   // 1. State for typing participants
   const [typingParticipants, setTypingParticipants] = useState<string[]>([]);
+  const typingTimeouts = useRef<{ [userId: string]: NodeJS.Timeout }>({});
 
   // Helper warna random konsisten
   function getNextColor(used: string[]): string {
@@ -984,10 +985,15 @@ export default function RetroPage() {
         if (prev.includes(data.userId)) return prev;
         return [...prev, data.userId];
       });
-      // Remove after 2s
-      setTimeout(() => {
+      // Jika ada timeout sebelumnya, clear
+      if (typingTimeouts.current[data.userId]) {
+        clearTimeout(typingTimeouts.current[data.userId]);
+      }
+      // Set timeout baru untuk menghapus user dari typingParticipants
+      typingTimeouts.current[data.userId] = setTimeout(() => {
         setTypingParticipants((prev) => prev.filter((id) => id !== data.userId));
-      }, 2000);
+        delete typingTimeouts.current[data.userId];
+      }, 1000); // 1 detik, sesuaikan dengan animasi dot
     };
     socket.on('typing', handleTyping);
     return () => { socket.off('typing', handleTyping); };

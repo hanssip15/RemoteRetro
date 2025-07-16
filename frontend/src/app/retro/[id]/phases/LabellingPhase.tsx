@@ -5,6 +5,7 @@ import RetroHeader from '../RetroHeader';
 import { apiService } from '@/services/api';
 import { PhaseConfirmModal } from '@/components/ui/dialog';
 import { getCategoryEmoji } from '@/lib/utils';
+import useEnterToCloseModal from "@/hooks/useEnterToCloseModal";
 
 export default function LabellingPhase(props: any) {
   const {
@@ -68,6 +69,9 @@ export default function LabellingPhase(props: any) {
     debounce(updateLabelInDatabase, 10), // 1 second delay
     [updateLabelInDatabase]
   );
+
+  // Panggil custom hook untuk modal
+  useEnterToCloseModal(showModal, () => setShowModal(false));
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">

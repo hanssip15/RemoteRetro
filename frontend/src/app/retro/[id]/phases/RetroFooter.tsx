@@ -166,14 +166,22 @@ export default function RetroFooter({
                       <span className="text-xs font-bold text-green-600 mt-1">ALL VOTES IN</span>
                     ) : null;
                   })()}
-                  {/* Typing indicator */}
-                  {typingParticipants.includes(p.user.id) && (
-                    <div className="flex space-x-1 mt-1">
-                      <span className="dot dot1"></span>
-                      <span className="dot dot2"></span>
-                      <span className="dot dot3"></span>
-                    </div>
-                  )}
+                  {/* Typing indicator: selalu sediakan space agar avatar tidak bergerak */}
+                  <div className="flex space-x-1 mt-1" style={{ minHeight: 12 }}>
+                    {typingParticipants.includes(p.user.id) ? (
+                      <>
+                        <span className="dot" style={{ animationDelay: '0s' }}></span>
+                        <span className="dot" style={{ animationDelay: '0.2s' }}></span>
+                        <span className="dot" style={{ animationDelay: '0.4s' }}></span>
+                      </>
+                    ) : (
+                      <>
+                        <span style={{ width: 8, height: 8, margin: '0 2px', opacity: 0, display: 'inline-block' }}></span>
+                        <span style={{ width: 8, height: 8, margin: '0 2px', opacity: 0, display: 'inline-block' }}></span>
+                        <span style={{ width: 8, height: 8, margin: '0 2px', opacity: 0, display: 'inline-block' }}></span>
+                      </>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

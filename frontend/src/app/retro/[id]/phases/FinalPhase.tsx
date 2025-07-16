@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import RetroHeader from '../RetroHeader';
 import { Lightbulb } from 'lucide-react';
 import { getCategoryEmoji } from '@/lib/utils';
+import useEnterToCloseModal from "@/hooks/useEnterToCloseModal";
 
 function getIdeaCategoryIcon(category: string) {
   switch (category) {
@@ -37,6 +38,8 @@ export default function FinalPhase({
   useEffect(() => {
     setShowModal(true);
   }, []);
+
+  useEnterToCloseModal(showModal, () => setShowModal(false));
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">

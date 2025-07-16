@@ -6,6 +6,7 @@ import { Pencil, Trash2, Lightbulb } from 'lucide-react';
 import { PhaseConfirmModal } from '@/components/ui/dialog';
 import { api, apiService } from '@/services/api';
 import { getCategoryEmoji } from '@/lib/utils';
+import useEnterToCloseModal from "@/hooks/useEnterToCloseModal";
 
 
 export default function ActionItemsPhase({
@@ -61,6 +62,8 @@ export default function ActionItemsPhase({
   useEffect(() => {
     setShowModal(true);
   }, []);
+
+  useEnterToCloseModal(showModal, () => setShowModal(false));
 
   function getIdeaCategoryIcon(category: string) {
     switch (category) {

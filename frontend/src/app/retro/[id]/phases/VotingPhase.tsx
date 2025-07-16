@@ -6,6 +6,7 @@ import { apiService } from '@/services/api';
 import { PhaseConfirmModal } from '@/components/ui/dialog';
 import { Lightbulb } from 'lucide-react';
 import { getCategoryEmoji } from '@/lib/utils';
+import useEnterToCloseModal from "@/hooks/useEnterToCloseModal";
 
 function getIdeaCategoryIcon(category: string) {
   switch (category) {
@@ -126,6 +127,8 @@ export default function VotingPhase(props: any) {
   useEffect(() => {
     setShowModal(true);
   }, []);
+
+  useEnterToCloseModal(showModal, () => setShowModal(false));
 
   useEffect(() => {
     async function fetchLabellingItems() {
