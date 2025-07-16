@@ -108,7 +108,7 @@ export default function GroupingPhase({
         setShowShareModal={setShowShareModal}
         handleLogout={handleLogout}
       />
-      <div className="flex-1 relative bg-white overflow-hidden" style={{ minHeight: 'calc(100vh - 120px)' }}>
+      <div className="flex-1 relative bg-white overflow-auto pb-40" style={{ minHeight: 'calc(100vh - 120px)' }}>
         {items.map((item: any, idx: number) => {
           const signature = processedItemGroups[item.id];
           const groupSize = signature ? Object.values(itemGroups).filter((sig: any) => sig === signature).length : 0;
@@ -168,6 +168,7 @@ export default function GroupingPhase({
           </label>
         </div>
         {/* Footer modular */}
+        <div className="h-40" />
         <RetroFooter
           title={<div className="flex flex-col items-start justify-center"><div className="text-lg font-semibold">Grouping</div><div className="text-xs text-gray-500">{(() => {const summary = getGroupSummary();return `${summary.totalGroups} groups, ${summary.totalGroupedItems} items grouped`;})()}</div></div>}
           center={<div></div>}
