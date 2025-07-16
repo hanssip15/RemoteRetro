@@ -5,6 +5,7 @@ import RetroHeader from '../RetroHeader';
 import { Pencil, Trash2, Lightbulb } from 'lucide-react';
 import { PhaseConfirmModal } from '@/components/ui/dialog';
 import { api, apiService } from '@/services/api';
+import { getCategoryEmoji } from '@/lib/utils';
 
 
 export default function ActionItemsPhase({
@@ -128,7 +129,7 @@ export default function ActionItemsPhase({
                 <div className="flex flex-col gap-2">
                   {group.group_items.map((item: any, idx: number) => (
                     <div key={idx} className="bg-gray-50 border rounded px-3 py-2 text-sm flex items-center justify-between gap-2">
-                      <span>{item.item ? item.item.content : 'No item'}</span>
+                      <span>{getCategoryEmoji(item.item.format_type, retro.format)}{item.item.content}</span>
                     </div>
                   ))}
                 </div>
