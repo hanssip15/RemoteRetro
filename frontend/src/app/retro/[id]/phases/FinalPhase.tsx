@@ -69,52 +69,59 @@ export default function FinalPhase({
         setShowShareModal={setShowShareModal}
         handleLogout={handleLogout}
       />
-      <div className="w-full flex flex-row">
-        {/* Card group kiri (read-only) */}
-        <div className="flex flex-row gap-6 p-8 items-start flex-1">
-        {labellingItems && labellingItems.length > 0 ? (
-          labellingItems.sort((a: any, b: any) => b.votes - a.votes).map((group: any, idx: number) => {
-            return (            <div key={group.id} className="bg-white border rounded-lg shadow-sm w-auto min-w-[220px] max-w-[350px] px-4 py-3">
-              <div className="mb-2 flex items-center justify-between">
-                <span className="text-lg font-semibold text-gray-400">{group.label || 'Unlabeled'}</span>
-                <div className="flex items-center gap-2">
-                  <div className="bg-gray-100 text-gray-700 font-bold px-3 py-1 rounded select-none text-center" style={{fontSize: '1rem', minWidth: '60px'}}>
-                    Votes {group.votes || 0}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] w-full h-full min-h-screen bg-gray-50">
+        {/* Panel kiri: feedback/group */}
+        <div className="flex flex-col bg-white pb-56">
+          {/* Card group kiri (read-only) */}
+          <div className="flex flex-row flex-wrap gap-8 mt-8 w-full justify-center min-h-full">
+          {labellingItems && labellingItems.length > 0 ? (
+            labellingItems.sort((a: any, b: any) => b.votes - a.votes).map((group: any, idx: number) => {
+              return (            <div key={group.id} className="bg-white border rounded-lg shadow-sm w-auto min-w-[220px] max-w-[350px] px-4 py-3">
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="text-lg font-semibold text-gray-400">{group.label || 'Unlabeled'}</span>
+                  <div className="flex items-center gap-2">
+                    <div className="bg-gray-100 text-gray-700 font-bold px-3 py-1 rounded select-none text-center" style={{fontSize: '1rem', minWidth: '60px'}}>
+                      Votes {group.votes || 0}
+                    </div>
                   </div>
                 </div>
+                <div className="flex flex-col gap-2">
+                    {group.group_items.map((item: any, idx: number) => (
+                      <div key={idx} className="bg-gray-50 border rounded px-3 py-2 text-sm flex items-center justify-between gap-2">
+                        <span className="flex items-center gap-2">{item.item ? getCategoryEmoji(item.item.format_type, retro.format) : null}{item.item ? item.item.content : 'No item'}</span>
+                      </div>
+                    ))}
+                  </div>
               </div>
-              <div className="flex flex-col gap-2">
-                  {group.group_items.map((item: any, idx: number) => (
-                    <div key={idx} className="bg-gray-50 border rounded px-3 py-2 text-sm flex items-center justify-between gap-2">
-                      <span className="flex items-center gap-2">{item.item ? getCategoryEmoji(item.item.format_type, retro.format) : null}{item.item ? item.item.content : 'No item'}</span>
-                    </div>
-                  ))}
-                </div>
-            </div>
-          )})
-        ) : (
-          <div className="text-gray-400 text-sm">No items to display.</div>
-        )}
+            )})
+          ) : (
+            <div className="text-gray-400 text-sm">No items to display.</div>
+          )}
+          </div>
         </div>
-        {/* Panel Action Items kanan (read-only) */}
-        <div className="w-[400px] border-l bg-white flex flex-col p-6 sticky top-0 self-start overflow-y-auto" style={{ height: 'calc(100vh - 80px)', right: 0 }}>
-          <div className="flex items-center gap-2 mb-2">
+        {/* Panel kanan: Action Items (atau summary) */}
+        <div className="w-[400px] border-l bg-white flex flex-col p-6 h-full min-h-screen">
+          {/* Header sticky */}
+          <div className="flex items-center gap-2 mb-2 sticky top-0 z-10 bg-white">
             <span className="text-2xl">🚀</span>
             <span className="text-xl font-semibold">Action Items</span>
           </div>
           <hr className="mb-4" />
-          {/* List action items (read-only) */}
-          <div className="flex flex-col gap-2">
-            {actionItems.length === 0 && <span className="text-gray-400 text-sm">No action items yet.</span>}
-            {actionItems.map((item: any, idx: number) => (
-              <div key={idx} className="bg-gray-50 border rounded px-3 py-2 text-sm flex items-center justify-between gap-2">
-                <div className="flex-1 flex flex-col">
-                  <span>
-                    {item.action_item} <span className="text-gray-700">({item.assign_to})</span>
-                  </span>
+          {/* Isi panel scrollable */}
+          <div className="flex-1 overflow-y-auto">
+            {/* List action items (read-only) */}
+            <div className="flex flex-col gap-2">
+              {actionItems.length === 0 && <span className="text-gray-400 text-sm">No action items yet.</span>}
+              {actionItems.filter((item: any) => item.retro_id === retro.id).map((item: any, idx: number) => (
+                <div key={idx} className="bg-gray-50 border rounded px-3 py-2 text-sm flex items-center justify-between gap-2">
+                  <div className="flex-1 flex flex-col">
+                    <span>
+                      {item.action_item} <span className="text-gray-700">({item.assign_to})</span>
+                    </span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       </div>
