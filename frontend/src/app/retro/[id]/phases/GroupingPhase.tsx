@@ -5,6 +5,7 @@ import RetroHeader from '../RetroHeader';
 import Draggable from 'react-draggable';
 import { PhaseConfirmModal } from '@/components/ui/dialog';
 import { apiService } from '@/services/api';
+import useEnterToCloseModal from "@/hooks/useEnterToCloseModal";
 
 export default function GroupingPhase({
   retro,
@@ -46,6 +47,8 @@ export default function GroupingPhase({
   useEffect(() => {
     setShowModal(true);
   }, []);
+
+  useEnterToCloseModal(showModal, () => setShowModal(false));
 
   // Cek jika tidak ada grup yang terbentuk, assign setiap item ke grup sendiri
   const processedItemGroups = React.useMemo(() => {
@@ -108,7 +111,7 @@ export default function GroupingPhase({
         setShowShareModal={setShowShareModal}
         handleLogout={handleLogout}
       />
-      <div className="flex-1 relative bg-white overflow-hidden" style={{ minHeight: 'calc(100vh - 120px)' }}>
+      <div className="flex-1 relative bg-white overflow-auto pb-40" style={{ minHeight: 'calc(100vh - 120px)' }}>
         {items.map((item: any, idx: number) => {
           const signature = processedItemGroups[item.id];
           const groupSize = signature ? Object.values(itemGroups).filter((sig: any) => sig === signature).length : 0;
@@ -168,6 +171,7 @@ export default function GroupingPhase({
           </label>
         </div>
         {/* Footer modular */}
+        <div className="h-40" />
         <RetroFooter
           title={<div className="flex flex-col items-start justify-center"><div className="text-lg font-semibold">Grouping</div><div className="text-xs text-gray-500">{(() => {const summary = getGroupSummary();return `${summary.totalGroups} groups, ${summary.totalGroupedItems} items grouped`;})()}</div></div>}
           center={<div></div>}

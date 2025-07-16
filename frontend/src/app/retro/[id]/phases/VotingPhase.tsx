@@ -6,6 +6,7 @@ import { apiService } from '@/services/api';
 import { PhaseConfirmModal } from '@/components/ui/dialog';
 import { Lightbulb } from 'lucide-react';
 import { getCategoryEmoji } from '@/lib/utils';
+import useEnterToCloseModal from "@/hooks/useEnterToCloseModal";
 
 function getIdeaCategoryIcon(category: string) {
   switch (category) {
@@ -127,6 +128,8 @@ export default function VotingPhase(props: any) {
     setShowModal(true);
   }, []);
 
+  useEnterToCloseModal(showModal, () => setShowModal(false));
+
   useEffect(() => {
     async function fetchLabellingItems() {
       try {
@@ -223,8 +226,8 @@ export default function VotingPhase(props: any) {
         setShowShareModal={setShowShareModal}
         handleLogout={handleLogout}
       />
-      <div className="flex-1 flex flex-col items-center justify-start w-full">
-        <div className="flex flex-row gap-8 mt-8 w-full justify-center">
+      <div className="flex-1 flex flex-col items-center justify-start w-full overflow-auto pb-40">
+        <div className="flex flex-row flex-wrap gap-8 mt-8 w-full justify-center">
         {labellingItems.map((group: any, idx: number) => (
             <div key={group.id} className="bg-white border rounded-lg shadow-sm min-w-[350px] max-w-[400px] w-full p-4">
               <div className="mb-2 flex items-center justify-between">
@@ -271,6 +274,7 @@ export default function VotingPhase(props: any) {
           ))}
         </div>
       </div>
+      <div className="h-40" />
       <RetroFooter
         title={<div className="flex flex-col items-start justify-center"><div className="text-xl font-semibold">Voting: {votesLeft} Votes Left</div></div>}
         center={<div></div>}

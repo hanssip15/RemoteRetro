@@ -71,9 +71,18 @@ export default function RetroHeader({
             {user && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                    <Avatar className="h-10 w-10">
-                      <AvatarImage src={typeof (user as any)["image_url"] === "string" ? (user as any)["image_url"] : undefined} alt={user.name} />
+                  <Button variant="ghost" className="relative h-14 w-14 rounded-full p-0">
+                    <Avatar
+                      className={`h-14 w-14 border-2 ${currentUserRole ? 'border-blue-500' : 'border-gray-200'} transition`}
+                      title={user.name + (currentUserRole ? ' (Facilitator)' : '')}
+                    >
+                      <AvatarImage 
+                        src={user.imageUrl || user.image_url || undefined}
+                        alt={user.name}
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
                       <AvatarFallback>
                         {user.name?.charAt(0)?.toUpperCase() || <User className="h-4 w-4" />}
                       </AvatarFallback>

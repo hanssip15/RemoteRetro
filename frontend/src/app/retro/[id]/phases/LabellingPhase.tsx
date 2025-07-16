@@ -5,6 +5,7 @@ import RetroHeader from '../RetroHeader';
 import { apiService } from '@/services/api';
 import { PhaseConfirmModal } from '@/components/ui/dialog';
 import { getCategoryEmoji } from '@/lib/utils';
+import useEnterToCloseModal from "@/hooks/useEnterToCloseModal";
 
 export default function LabellingPhase(props: any) {
   const {
@@ -69,6 +70,9 @@ export default function LabellingPhase(props: any) {
     [updateLabelInDatabase]
   );
 
+  // Panggil custom hook untuk modal
+  useEnterToCloseModal(showModal, () => setShowModal(false));
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Modal Stage Change Labeling */}
@@ -103,7 +107,7 @@ export default function LabellingPhase(props: any) {
         setShowShareModal={setShowShareModal}
         handleLogout={handleLogout}
       />
-      <div className="flex-1 flex flex-col items-center justify-start w-full">
+      <div className="flex-1 flex flex-col items-center justify-start w-full overflow-auto pb-40">
           <div className="flex flex-row flex-wrap gap-8 mt-8 w-full justify-center">
             {labellingItems.map((group: any, idx: number) => (
               
@@ -146,6 +150,7 @@ export default function LabellingPhase(props: any) {
             ))}
           </div>
       </div>
+      <div className="h-40" />
       <RetroFooter
         title={<div className="flex flex-col items-start justify-center"><div className="text-2xl font-semibold mb-1">Labelling</div><div className="text-gray-500">Arrive at sensible group labels</div></div>}
         center={<div></div>}
