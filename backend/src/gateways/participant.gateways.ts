@@ -11,6 +11,7 @@ import {
   // Tambahkan di luar class (atau static property jika ingin lebih rapi)
   const retroState: {
     [retroId: string]: {
+      participantsOnline: { [userId: string]: boolean },
       itemPositions: { [itemId: string]: { x: number; y: number } },
       itemGroups: { [itemId: string]: string },
       signatureColors: { [signature: string]: string },
@@ -25,7 +26,8 @@ import {
       }>
     }
   } = {};
-  
+  const socketMetaMap: Record<string, { retroId: string; participantId: number }> = {};
+
   @WebSocketGateway({
     cors: {
       origin: '*',
@@ -39,34 +41,68 @@ import {
     }
   
     handleDisconnect(client: Socket) {
+      const meta = socketMetaMap[client.id];
+      if (meta) {
+        const { retroId, participantId } = meta;
+
+        // Set participant offline
+        if (retroState[retroId]?.participantsOnline) {
+          retroState[retroId].participantsOnline[participantId] = false;
+        }
+        
+
+        // Broadcast ke peserta lain
+        this.broadcastParticipantUpdate(retroId,participantId);
+
+        // Cleanup
+        delete socketMetaMap[client.id];
+      }
     }
   
     @SubscribeMessage('join-retro-room')
-    handleJoinRetroRoom(client: Socket, retroId: string) {
+    handleJoinRetroRoom(client: Socket, retroId: string, participantId: number) {
       client.join(`retro:${retroId}`);
       
       // Initialize retro state if it doesn't exist
       if (!retroState[retroId]) {
         retroState[retroId] = {
+          participantsOnline: {},
           itemPositions: {},
           itemGroups: {},
           signatureColors: {},
           actionItems: []
         };
       }
+      if (!retroState[retroId].participantsOnline) retroState[retroId].participantsOnline = {};
+      retroState[retroId].participantsOnline[participantId] = true;
+      this.broadcastParticipantUpdate(retroId,participantId);
       
       // Send current retro state to the joining client
       const state = retroState[retroId];
+      const socketMeta = {
+        retroId,
+        participantId,
+      };
+      socketMetaMap[client.id] = socketMeta; // Tambahkan ini
       client.emit(`retro-state:${retroId}`, state);
     }
   
     @SubscribeMessage('leave-retro-room')
-    handleLeaveRetroRoom(client: Socket, retroId: string) {
+    handleLeaveRetroRoom(client: Socket, retroId: string, participantId:number) {
+      console.log("participan yang keluar :", participantId, "dari retro", retroId)
       client.leave(`retro:${retroId}`);
+
+      // if (retroState[retroId]?.participantsOnline) {
+      // retroState[retroId].participantsOnline[participantId] = false;
+      // this.broadcastParticipantUpdate(retroId,participantId);
+      // }
     }
   
-    broadcastParticipantUpdate(retroId: string) {
-      this.server.to(`retro:${retroId}`).emit(`participants-update:${retroId}`);
+    broadcastParticipantUpdate(retroId: string,participantId:number) {
+      // this.server.to(`retro:${retroId}`).emit(`participants-update:${retroId}`);
+      this.server.to(`retro:${retroId}`).emit(`participants-update:${retroId}`, {
+        participantsOnline: retroState[retroId]?.participantsOnline || {}
+      });
     }
 
     broadcastRetroStarted(retroId: string) {
@@ -130,7 +166,8 @@ import {
     @SubscribeMessage('item-position-update')
     handleItemPositionUpdate(client: Socket, data: { retroId: string; itemId: string; position: { x: number; y: number }; userId: string }) {
       // Update in-memory state
-      if (!retroState[data.retroId]) retroState[data.retroId] = { itemPositions: {}, itemGroups: {}, signatureColors: {}, actionItems: [] };
+      if (!retroState[data.retroId]) retroState[data.retroId] = {participantsOnline: {},
+      itemPositions: {}, itemGroups: {}, signatureColors: {}, actionItems: [] };
       retroState[data.retroId].itemPositions[data.itemId] = data.position;
       // Broadcast position update to all participants in the retro
       this.server.to(`retro:${data.retroId}`).emit(`item-position-update:${data.retroId}`, {
@@ -149,7 +186,7 @@ import {
       signatureColors: { [signature: string]: string };
       userId: string 
     }) {
-      if (!retroState[data.retroId]) retroState[data.retroId] = { itemPositions: {}, itemGroups: {}, signatureColors: {}, actionItems: [] };
+      if (!retroState[data.retroId]) retroState[data.retroId] = { participantsOnline: {}, itemPositions: {}, itemGroups: {}, signatureColors: {}, actionItems: [] };
       retroState[data.retroId].itemGroups = data.itemGroups;
       retroState[data.retroId].signatureColors = data.signatureColors;
       // Broadcast grouping update to all participants in the retro
@@ -245,6 +282,7 @@ import {
       // Initialize retro state if it doesn't exist
       if (!retroState[data.retroId]) {
         retroState[data.retroId] = {
+          participantsOnline: {},
           itemPositions: {},
           itemGroups: {},
           signatureColors: {},

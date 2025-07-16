@@ -336,7 +336,7 @@ class ApiService {
       body: JSON.stringify({ phase, facilitatorId }),
     });
   }
-  async removeParticipant(retroId: number, participantId: number): Promise<void> {
+  async removeParticipant(retroId: string, participantId: number): Promise<void> {
     return this.request<void>(`/retros/${retroId}/participants/${participantId}`, {
       method: 'DELETE',
     });

@@ -202,10 +202,9 @@ export default function GroupingPhase({
                     }
                     setItemGroups(newGroups); // update state global
                     if (typeof setPhase === 'function') setPhase('labelling');
-                  } else {
-                    if (typeof broadcastPhaseChange === 'function') broadcastPhaseChange('labelling');
-                    else if (typeof setPhase === 'function') setPhase('labelling');
-                  }
+                  } 
+                  if (typeof broadcastPhaseChange === 'function') broadcastPhaseChange('labelling');
+                  else if (typeof setPhase === 'function') setPhase('labelling');
                 }}
                 onCancel={() => {}}
                 confirmLabel="Yes"

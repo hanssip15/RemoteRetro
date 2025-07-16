@@ -693,6 +693,9 @@ export default function RetroPage() {
   const fetchRetroData = useCallback(async () => {
     try {
       const data = await apiService.getRetro(retroId)
+      if(data.retro.status === "draft") {
+        navigate(`/retro/${retroId}/lobby`)
+      }
       if (data.retro.format === "happy_sad_confused") {
         setFormat(["format_1", "format_2", "format_3"])
       } else {
@@ -942,7 +945,6 @@ export default function RetroPage() {
     } else {
       console.log('❌ Socket not available or not connected');
     }
-
     // Kosongkan input
     setActionInput('');
     setActionAssignee('');

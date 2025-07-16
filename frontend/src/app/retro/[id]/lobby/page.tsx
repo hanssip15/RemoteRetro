@@ -20,6 +20,7 @@ export default function RetroLobbyPage() {
   const params = useParams()
   const navigate = useNavigate()
   const retroId = params.id as string
+
   const [selectedParticipant, setSelectedParticipant] = useState<Participant | null>(null);
   const [showRoleModal, setShowRoleModal] = useState(false);
   
@@ -36,11 +37,12 @@ export default function RetroLobbyPage() {
   const [socket, setSocket] = useState<any>(null)
   const [isOngoing, setIsOngoing] = useState(false)
   const [isPromoting, setIsPromoting] = useState(false)
+  const [onlineStatus, setOnlineStatus] = useState<{ [userId: string]: boolean }>({});
 
-  // Get current user from localStorage
   const userData = localStorage.getItem('user_data');
   const currentUser = userData ? JSON.parse(userData) : null;
-
+  const participant = participants.find((p) => p.user.id === currentUser.id);
+  const participantId = participant?.id
 
   const fetchLobbyData = useCallback(async () => {
     if (!retroId) return;
@@ -50,7 +52,7 @@ export default function RetroLobbyPage() {
       const data = await apiService.getRetro(retroId);
       if (data.retro.status === "ongoing") {
         handleChangeView()
-      }
+      } 
       setRetro(data.retro);
       setParticipants(data.participants);
     } catch (error) {
@@ -68,6 +70,8 @@ export default function RetroLobbyPage() {
       navigate('/login')
       return
     }
+   
+     
 
     if (!retroId) return;    
     fetchLobbyData();
@@ -93,6 +97,41 @@ export default function RetroLobbyPage() {
     }
   }, [currentUser, retroId, participants, fetchLobbyData]);
 
+
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      console.log("phase 1")
+      if (socket && retroId && participant?.id) {
+        socket.emit('leave-retro-room', retroId, participant.id);
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [socket, retroId, participant]);
+ 
+
+  useEffect(() => {
+    if (!socket || !retroId) return;
+  
+    const handler = (data: { participantsOnline: { [userId: string]: boolean } }) => {
+      setOnlineStatus(data.participantsOnline || {});
+    };
+  
+    socket.on(`participants-update:${retroId}`, handler);
+  
+    return () => {
+      socket.off(`participants-update:${retroId}`, handler);
+    };
+  }, [socket, retroId]);
+
+  useEffect(() => {
+    // Mark all as online for now
+    const status: { [userId: string]: boolean } = {};
+    participants.forEach(p => { status[p.user.id] = true; });
+    setOnlineStatus(status);
+  }, [participants]);
   
   useEffect(() => {
     if (!loading && retro && participants.length > 0) {
@@ -123,7 +162,6 @@ export default function RetroLobbyPage() {
 
   
 
-
   const handlePromoteToFacilitator = useCallback(async () => {
     if (!selectedParticipant) return;
     try {
@@ -144,6 +182,7 @@ export default function RetroLobbyPage() {
 
   const { isConnected } = useSocket({
     retroId,
+    participantId,
     onParticipantUpdate: fetchLobbyData,
     onRetroStarted: handleChangeView,
   });
@@ -155,44 +194,48 @@ export default function RetroLobbyPage() {
   // import { useRef, useLocation } from "react-router-dom";
 // ... kode lain
 
-const location = useLocation();
-const prevPathRef = useRef(location.pathname);
-
 useEffect(() => {
-  if (prevPathRef.current !== location.pathname && socket && retroId) {
-    socket.emit('leave-retro-room', retroId);
-  }
-  prevPathRef.current = location.pathname;
-}, [location.pathname, socket, retroId]);
-  
-  
+  const handleBeforeUnload = (event:any) => {
+    console.log("User akan keluar halaman atau reload atau tutup tab.");
+    // Jika ingin menampilkan dialog konfirmasi di browser lama:
+    event.preventDefault();
+    event.returnValue = ""; // ini hanya untuk kompatibilitas lama
+  };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading lobby...</p>
-          {isJoining && (
-            <p className="text-sm text-indigo-600 mt-2">Joining as participant...</p>
-          )}
-        </div>
-      </div>
-    )
-  }
+  window.addEventListener("beforeunload", handleBeforeUnload);
 
-  if (error && !retro) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">{error || "Retro not found"}</h1>
-          <Link to="/dashboard">
-            <Button>Back to Dashboard</Button>
-          </Link>
-        </div>
+  return () => {
+    window.removeEventListener("beforeunload", handleBeforeUnload);
+  };
+}, []);
+
+
+if (loading) {
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+        <p className="text-gray-600">Loading lobby...</p>
+        {isJoining && (
+          <p className="text-sm text-indigo-600 mt-2">Joining as participant...</p>
+        )}
       </div>
-    )
-  }
+    </div>
+  )
+}
+
+if (error && !retro) {
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="text-center">
+        <h1 className="text-2xl font-bold text-gray-900 mb-4">{error || "Retro not found"}</h1>
+        <Link to="/dashboard">
+          <Button>Back to Dashboard</Button>
+        </Link>
+      </div>
+    </div>
+  )
+}
 
   if (joinError) {
     return (
@@ -257,6 +300,7 @@ useEffect(() => {
                       />
                       <AvatarFallback>
                         {participant.user.name?.charAt(0)?.toUpperCase() || <User className="h-4 w-4" />}
+                        
                       </AvatarFallback>
                     </Avatar>
                       </div>
@@ -265,6 +309,11 @@ useEffect(() => {
                         <p className="text-sm text-gray-500">
                           {participant.role === true ? "Facilitator" : "Participant"}
                         </p>
+                        {onlineStatus[participant.user.id] ? (
+                          <span className="ml-2 text-green-500">● Online</span>
+                        ) : (
+                          <span className="ml-2 text-gray-400">● Offline</span>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">

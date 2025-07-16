@@ -1,8 +1,10 @@
 import { useEffect, useRef, useCallback, useMemo } from 'react';
 import { io, Socket } from 'socket.io-client';
+import { apiService } from '@/services/api';
 
 interface UseSocketOptions {
   retroId: string;
+  participantId?: number;
   onItemAdded?: (item: any) => void;
   onItemUpdated?: (item: any) => void;
   onItemDeleted?: (itemId: string) => void;
@@ -13,6 +15,7 @@ interface UseSocketOptions {
 
 export const useSocket = ({
   retroId,
+  participantId,
   onItemAdded,
   onItemUpdated,
   onItemDeleted,
@@ -109,8 +112,8 @@ export const useSocket = ({
 
   const disconnect = useCallback(() => {
     if (socketRef.current) {
-      console.log('🔌 Disconnecting from WebSocket server...');
-      socketRef.current.emit('leave-retro-room', retroId);
+      console.log('🔌 Disconnecting from WebSocket server...haha');
+      socketRef.current.emit('leave-retro-room', retroId, participantId);
       socketRef.current.disconnect();
       socketRef.current = null;
       isConnectingRef.current = false;

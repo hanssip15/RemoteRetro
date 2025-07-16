@@ -55,7 +55,7 @@ export class ParticipantService {
 
     const savedParticipant = await this.participantRepository.save(participant);
     
-    this.participantGateway.broadcastParticipantUpdate(retroId);
+    this.participantGateway.broadcastParticipantUpdate(retroId,savedParticipant.id);
 
     return savedParticipant;
   }
@@ -77,13 +77,13 @@ export class ParticipantService {
     return parseInt(result.count) || 0;
   }
 
-  async updateRole(retroId: string, participantId: string): Promise<Participant> {
+  async updateRole(retroId: string, participantId: number): Promise<Participant> {
     const retro = await this.retroRepository.findOne({ where: { id: retroId } });
     if (!retro) {
       throw new NotFoundException('Retro not found');
     }
 
-    const participant = await this.participantRepository.findOne({ where: { id: parseInt(participantId)} });
+    const participant = await this.participantRepository.findOne({ where: { id: participantId} });
     if (!participant || participant.retroId !== retroId) {
       throw new NotFoundException('Participant not found in this retro');
     }
@@ -96,7 +96,7 @@ export class ParticipantService {
     }
     participant.role = true;
     await this.participantRepository.save(participant);
-    this.participantGateway.broadcastParticipantUpdate(retroId);
+    this.participantGateway.broadcastParticipantUpdate(retroId, participantId);
     
     return participant;
   }

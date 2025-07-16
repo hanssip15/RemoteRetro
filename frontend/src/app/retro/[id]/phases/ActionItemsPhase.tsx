@@ -271,6 +271,7 @@ export default function ActionItemsPhase({
               onChange={e => setActionInput(e.target.value)}
               onKeyDown={e => {
                 if (e.key === 'Enter' && actionInput.trim() && actionAssignee) {
+                  setActionAssignee(actionAssignee);
                   handleAddActionItemWebSocket(e);
                 }
               }}

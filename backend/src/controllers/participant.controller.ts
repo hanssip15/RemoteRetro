@@ -12,7 +12,7 @@ export class ParticipantController {
   }
 
   @Put('update-role/:participantId')
-  async updateRole(@Param('retroId') retroId: string, @Param('participantId') participantId: string) {
+  async updateRole(@Param('retroId') retroId: string, @Param('participantId') participantId: number) {
     return this.participantService.updateRole(retroId, participantId);
   }
   
