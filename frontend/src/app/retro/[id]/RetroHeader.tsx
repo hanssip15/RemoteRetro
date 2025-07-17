@@ -79,6 +79,7 @@ export default function RetroHeader({
                       <AvatarImage 
                         src={user.imageUrl || user.image_url || undefined}
                         alt={user.name}
+                        loading="lazy"
                         onError={(e) => {
                           (e.target as HTMLImageElement).style.display = 'none';
                         }}

@@ -132,6 +132,7 @@ export default function RetroFooter({
                       <AvatarImage 
                         src={p.user.imageUrl || p.user.image_url || undefined} 
                         alt={p.user.name} 
+                        loading="lazy"
                         onError={(e) => {
                           (e.target as HTMLImageElement).style.display = 'none';
                         }}

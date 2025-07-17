@@ -239,6 +239,7 @@ export default function RetroLobbyPage() {
                       <AvatarImage 
                         src={participant.user.imageUrl || participant.user.image_url || undefined} 
                         alt={participant.user.name} 
+                        loading="lazy"
                         onError={(e) => {
                           (e.target as HTMLImageElement).style.display = 'none';
                         }}

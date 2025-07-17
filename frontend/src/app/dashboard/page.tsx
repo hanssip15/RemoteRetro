@@ -282,7 +282,7 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header with User Profile */}
-      <div className="bg-white border-b shadow-sm">
+      <div className="sticky top-0 z-30 bg-white border-b shadow-sm">
         <div className="container mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-4">
@@ -296,7 +296,7 @@ export default function DashboardPage() {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                     <Avatar className="h-10 w-10">
-                      <AvatarImage src={user.imageUrl} alt={user.name} />
+                      <AvatarImage src={user.imageUrl} alt={user.name} loading="lazy" />
                       <AvatarFallback>
                         {user.name?.charAt(0)?.toUpperCase() || <User className="h-4 w-4" />}
                       </AvatarFallback>
