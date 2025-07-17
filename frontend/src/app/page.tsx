@@ -12,7 +12,6 @@ export default function HomePage() {
     const authStatus = api.isAuthenticated()
     setAuthStatus(authStatus)
                 }, [])
-  const apiUrl = import.meta.env.VITE_API_URL;
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Header */}

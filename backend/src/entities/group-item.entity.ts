@@ -1,7 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { Retro } from './retro.entity';
 import { RetroItem } from './retro-item.entity';
-import { Group, GroupItem } from '@prisma/client';
 import { GroupEntity } from './group.entity';
 
 @Entity('group_item')
