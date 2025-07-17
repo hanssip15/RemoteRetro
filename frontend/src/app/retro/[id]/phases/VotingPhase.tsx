@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import RetroHeader from '../RetroHeader';
 import { apiService } from '@/services/api';
 import { PhaseConfirmModal } from '@/components/ui/dialog';
-import { Lightbulb } from 'lucide-react';
 import { getCategoryEmoji } from '@/lib/utils';
 import useEnterToCloseModal from "@/hooks/useEnterToCloseModal";
 
@@ -28,30 +27,57 @@ export default function VotingPhase(props: any) {
   // State untuk menyimpan votes semua peserta
   const [allUserVotes, setAllUserVotes] = useState<{ [userId: string]: { [groupIdx: number]: number } }>({});
 
-  // Function untuk update votes di database dan broadcast via WebSocket
+  // Function untuk update votes di database (tanpa broadcast untuk menghindari duplikasi)
   const updateVotesInDatabase = useCallback(async (groupId: number, newVotes: number) => {
     try {
       await apiService.updateVotes(groupId, newVotes);
-      
-      // Broadcast vote update to other participants via WebSocket
-      if (socket && isConnected && user) {
-        socket.emit('vote-update', {
-          retroId: retro.id,
-          groupId: groupId,
-          votes: newVotes,
-          userId: user.id,
-          userVotes: userVotes
-        });
-      }
+      console.log('✅ Database updated successfully for group', groupId, 'with votes:', newVotes);
     } catch (error) {
       console.error('❌ Failed to update votes:', error);
     }
-  }, [socket, isConnected, user, retro?.id, userVotes]);
+  }, []);
+
+  // TODO: Ganti dengan variabel mapping votes semua peserta yang benar jika sudah ada
+  const maxVotes = 3; // Sesuai dengan implementasi di RetroPage
 
   // Enhanced vote handler that updates database and broadcasts
   const handleVoteWithBroadcast = useCallback((groupIdx: number, delta: number) => {
-    // Call the original handleVote function
+    console.log('📊 handleVoteWithBroadcast called with:', { groupIdx, delta });
+    console.log('📊 userVotes before handleVote:', userVotes);
+    
+    // Calculate the new userVotes manually
+    const currentUserVotes = userVotes[groupIdx] || 0;
+    const newUserVotes = Math.max(0, currentUserVotes + delta);
+    
+    // Check if this vote change is valid
+    const totalCurrentVotes = (Object.values(userVotes) as number[]).reduce((sum: number, votes: number) => sum + votes, 0);
+    const totalNewVotes = totalCurrentVotes + delta;
+    
+    console.log('📊 Vote validation:', {
+      currentUserVotes,
+      newUserVotes,
+      totalCurrentVotes,
+      totalNewVotes,
+      maxVotes,
+      delta,
+      isValid: totalNewVotes >= 0 && totalNewVotes <= maxVotes
+    });
+    
+    // Only proceed if vote change is valid
+    if (totalNewVotes < 0 || totalNewVotes > maxVotes) {
+      console.log('❌ Invalid vote change, aborting');
+      return;
+    }
+    
+    const updatedUserVotes = { ...userVotes, [groupIdx]: newUserVotes };
+    
+    console.log('📊 Calculated updatedUserVotes:', updatedUserVotes);
+    console.log('📊 Total votes in updatedUserVotes:', (Object.values(updatedUserVotes) as number[]).reduce((sum: number, votes: number) => sum + votes, 0));
+    
+    // Call the original handleVote function first
     handleVote(groupIdx, delta);
+    
+    console.log('📊 userVotes after handleVote:', userVotes);
     
     // Update database and broadcast if vote was successful
     const group = labellingItems[groupIdx];
@@ -68,10 +94,36 @@ export default function VotingPhase(props: any) {
         )
       );
       
-      // Update database and broadcast
+      // Update database and broadcast - ONLY ONCE
       updateVotesInDatabase(group.id, Math.max(0, newVotes));
+      
+      // Broadcast vote update with allUserVotes - use calculated userVotes
+      if (socket && isConnected && user) {
+        console.log('📊 Broadcasting vote update with updatedUserVotes:', updatedUserVotes);
+        console.log('📊 updatedUserVotes type:', typeof updatedUserVotes);
+        console.log('📊 updatedUserVotes keys:', Object.keys(updatedUserVotes));
+        console.log('📊 updatedUserVotes values:', Object.values(updatedUserVotes));
+        console.log('📊 Total votes in updatedUserVotes:', (Object.values(updatedUserVotes) as number[]).reduce((a: number, b: number) => a + b, 0));
+        
+        // Log setiap key-value pair untuk debugging
+        Object.entries(updatedUserVotes).forEach(([key, value]) => {
+          console.log(`📊 Key: ${key}, Value: ${value}, Type: ${typeof value}`);
+        });
+        
+        // Ensure we're sending the correct data structure
+        const voteData = {
+          retroId: retro.id,
+          groupId: group.id,
+          votes: Math.max(0, newVotes),
+          userId: user.id,
+          userVotes: updatedUserVotes
+        };
+        
+        console.log('📊 Sending vote data to backend:', voteData);
+        socket.emit('vote-update', voteData);
+      }
     }
-  }, [handleVote, labellingItems, setLabellingItems, updateVotesInDatabase]);
+  }, [handleVote, labellingItems, setLabellingItems, updateVotesInDatabase, socket, isConnected, user, retro?.id, userVotes, maxVotes]);
 
   // Function untuk menyimpan semua votes ke database saat facilitator menekan Action Items
   const handleSaveVotesAndProceed = useCallback(async () => {
@@ -170,26 +222,96 @@ export default function VotingPhase(props: any) {
     if (!socket) return;
 
     // Handler vote-update (pastikan backend mengirimkan allUserVotes)
-    const handleVoteUpdate = (data: { allUserVotes?: { [userId: string]: { [groupIdx: number]: number } } }) => {
-      if (data.allUserVotes) setAllUserVotes(data.allUserVotes);
+    const handleVoteUpdate = (data: { 
+      groupId: number; 
+      votes: number; 
+      userId: string; 
+      userVotes: { [groupId: number]: number };
+      allUserVotes?: { [userId: string]: { [groupIdx: number]: number } };
+    }) => {
+      console.log('📊 Received vote-update:', data);
+      
+      if (data.allUserVotes) {
+        console.log('📊 Setting allUserVotes:', data.allUserVotes);
+        console.log('📊 allUserVotes type:', typeof data.allUserVotes);
+        console.log('📊 allUserVotes keys:', Object.keys(data.allUserVotes));
+        
+        // Log setiap user dalam allUserVotes
+        Object.entries(data.allUserVotes).forEach(([userId, userVotes]) => {
+          const totalVotes = (Object.values(userVotes) as number[]).reduce((sum: number, votes: number) => sum + votes, 0);
+          console.log(`📊 User ${userId}: totalVotes=${totalVotes}, userVotes=`, userVotes);
+        });
+        
+        // Replace allUserVotes completely to ensure consistency
+        setAllUserVotes(data.allUserVotes);
+      }
     };
 
     // Handler retro-state (jika backend mengirimkan allUserVotes di state)
-    const handleRetroState = (state: { allUserVotes?: { [userId: string]: { [groupIdx: number]: number } } }) => {
-      if (state.allUserVotes) setAllUserVotes(state.allUserVotes);
+    const handleRetroState = (state: { 
+      labellingItems?: any[];
+      allUserVotes?: { [userId: string]: { [groupIdx: number]: number } };
+    }) => {
+      console.log('📊 Received retro-state:', state);
+      if (state.labellingItems) {
+        setLabellingItems(state.labellingItems);
+      }
+      if (state.allUserVotes) {
+        console.log('📊 Setting allUserVotes from state:', state.allUserVotes);
+        // Replace allUserVotes completely to ensure consistency
+        setAllUserVotes(state.allUserVotes);
+      }
     };
 
-    socket.on('vote-update', handleVoteUpdate);
-    socket.on('retro-state', handleRetroState);
+    socket.on(`vote-update:${retro?.id}`, handleVoteUpdate);
+    socket.on(`retro-state:${retro?.id}`, handleRetroState);
 
     return () => {
-      socket.off('vote-update', handleVoteUpdate);
-      socket.off('retro-state', handleRetroState);
+      socket.off(`vote-update:${retro?.id}`, handleVoteUpdate);
+      socket.off(`retro-state:${retro?.id}`, handleRetroState);
     };
-  }, [socket]);
+  }, [socket, retro?.id]);
 
-  // TODO: Ganti dengan variabel mapping votes semua peserta yang benar jika sudah ada
-  const maxVotes = 1; // Assuming a default max votes per item
+  // Debug logging untuk allUserVotes
+  useEffect(() => {
+    console.log('📊 Current allUserVotes state:', allUserVotes);
+    console.log('📊 Max votes:', maxVotes);
+    console.log('📊 Number of participants with votes:', Object.keys(allUserVotes).length);
+    console.log('📊 Current user votes:', userVotes);
+    console.log('📊 Current user total votes:', (Object.values(userVotes) as number[]).reduce((a: number, b: number) => a + Number(b), 0));
+    
+    // Log untuk setiap participant
+    participants.forEach((p: any) => {
+      const userVoteObj = allUserVotes?.[p.user.id] || {};
+      const totalVotes = (Object.values(userVoteObj) as number[]).reduce((a: number, b: number) => a + Number(b), 0);
+      const hasUsedAllVotes = totalVotes >= maxVotes;
+      console.log(`📊 ${p.user.name}: ${totalVotes}/${maxVotes} votes, hasUsedAllVotes=${hasUsedAllVotes}`);
+    });
+  }, [allUserVotes, participants, maxVotes, userVotes]);
+
+  // Update allUserVotes locally when userVotes changes
+  useEffect(() => {
+    if (user?.id && userVotes) {
+      console.log('📊 Updating allUserVotes locally for current user:', user.id);
+      console.log('📊 Current userVotes:', userVotes);
+      
+      setAllUserVotes(prev => {
+        const currentUserVotes = prev[user.id] || {};
+        const isSame = JSON.stringify(currentUserVotes) === JSON.stringify(userVotes);
+        
+        if (isSame) {
+          console.log('📊 User votes already up to date, skipping update');
+          return prev;
+        }
+        
+        console.log('📊 Updating user votes in allUserVotes');
+        return {
+          ...prev,
+          [user.id]: { ...userVotes }
+        };
+      });
+    }
+  }, [userVotes, user?.id]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">

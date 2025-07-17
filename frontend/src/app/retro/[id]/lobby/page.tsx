@@ -285,13 +285,13 @@ export default function RetroLobbyPage() {
               </div>
             </CardContent>
           </Card>
-          {/* Kolom kanan: Stack Retrospective Details (tanpa Prime Directive) */}
-          <div className="flex flex-col gap-8">
-            <Card>
-              <CardHeader>
-                <CardTitle>Retrospective Details</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+          {/* Kolom kanan: Retrospective Details */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Retrospective Details</CardTitle>
+            </CardHeader>
+            <CardContent className="h-[420px] flex flex-col">
+              <div className="flex-1 space-y-4">
                 <div>
                   <h3 className="font-medium text-gray-900">Title</h3>
                   <p className="text-gray-600">{retro?.title}</p>
@@ -312,18 +312,18 @@ export default function RetroLobbyPage() {
                     <p className="text-gray-600">{facilitator.user.name}</p>
                   </div>
                 )}
-                {/* Tombol Start Retro di bawah Format */}
-                {isFacilitator && (
-                  <div className="mt-4">
-                    <Button onClick={() => setShowStartConfirm(true)} className="w-full">
-                      <Play className="h-4 w-4 mr-2" />
-                      Start Retro
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+              {/* Tombol Start Retro di bagian bawah */}
+              {isFacilitator && (
+                <div className="mt-auto pt-4">
+                  <Button onClick={() => setShowStartConfirm(true)} className="w-full">
+                    <Play className="h-4 w-4 mr-2" />
+                    Start Retro
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
 
