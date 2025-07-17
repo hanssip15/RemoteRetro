@@ -41,18 +41,7 @@ interface GroupSummary {
 }
 import { useRetroSocket } from "@/hooks/use-retro-socket"
 import { ShareLinkModal } from '@/components/share-link-modal';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { LogOut, User, Pen, Pencil, Trash2 } from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import Draggable from 'react-draggable';
-import { Label } from "recharts"
+
 import PrimeDirectivePhase from './phases/PrimeDirectivePhase';
 import IdeationPhase from './phases/IdeationPhase';
 import GroupingPhase from './phases/GroupingPhase';
@@ -60,7 +49,6 @@ import LabellingPhase from './phases/LabellingPhase';
 import VotingPhase from './phases/VotingPhase';
 import ActionItemsPhase from './phases/ActionItemsPhase';
 import FinalPhase from './phases/FinalPhase';
-import RetroHeader from './RetroHeader';
 
 export default function RetroPage() {
   const params = useParams()
@@ -698,6 +686,9 @@ export default function RetroPage() {
   const fetchRetroData = useCallback(async () => {
     try {
       const data = await apiService.getRetro(retroId)
+      if(data.retro.status === "draft"){
+        navigate(`/retro/${retroId}/lobby`)
+      }
       if (data.retro.format === "happy_sad_confused") {
         setFormat(["format_1", "format_2", "format_3"])
       } else {
