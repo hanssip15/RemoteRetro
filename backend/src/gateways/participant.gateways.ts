@@ -22,7 +22,8 @@ import {
         createdBy: string;
         createdAt: string;
         edited?: boolean;
-      }>
+      }>,
+      allUserVotes: { [userId: string]: { [groupIdx: number]: number } }
     }
   } = {};
   
@@ -51,7 +52,8 @@ import {
           itemPositions: {},
           itemGroups: {},
           signatureColors: {},
-          actionItems: []
+          actionItems: [],
+          allUserVotes: {}
         };
       }
       
@@ -130,7 +132,7 @@ import {
     @SubscribeMessage('item-position-update')
     handleItemPositionUpdate(client: Socket, data: { retroId: string; itemId: string; position: { x: number; y: number }; userId: string }) {
       // Update in-memory state
-      if (!retroState[data.retroId]) retroState[data.retroId] = { itemPositions: {}, itemGroups: {}, signatureColors: {}, actionItems: [] };
+      if (!retroState[data.retroId]) retroState[data.retroId] = { itemPositions: {}, itemGroups: {}, signatureColors: {}, actionItems: [], allUserVotes: {} };
       retroState[data.retroId].itemPositions[data.itemId] = data.position;
       // Broadcast position update to all participants in the retro
       this.server.to(`retro:${data.retroId}`).emit(`item-position-update:${data.retroId}`, {
@@ -149,7 +151,7 @@ import {
       signatureColors: { [signature: string]: string };
       userId: string 
     }) {
-      if (!retroState[data.retroId]) retroState[data.retroId] = { itemPositions: {}, itemGroups: {}, signatureColors: {}, actionItems: [] };
+      if (!retroState[data.retroId]) retroState[data.retroId] = { itemPositions: {}, itemGroups: {}, signatureColors: {}, actionItems: [], allUserVotes: {} };
       retroState[data.retroId].itemGroups = data.itemGroups;
       retroState[data.retroId].signatureColors = data.signatureColors;
       // Broadcast grouping update to all participants in the retro
@@ -164,7 +166,7 @@ import {
     // Handler baru: user minta state terkini
     @SubscribeMessage('request-retro-state')
     handleRequestRetroState(client: Socket, data: { retroId: string }) {
-      const state = retroState[data.retroId] || { itemPositions: {}, itemGroups: {}, signatureColors: {}, actionItems: [] };
+      const state = retroState[data.retroId] || { itemPositions: {}, itemGroups: {}, signatureColors: {}, actionItems: [], allUserVotes: {} };
       client.emit(`retro-state:${data.retroId}`, state);
     }
 
@@ -203,15 +205,70 @@ import {
       userId: string;
       userVotes: { [groupId: number]: number };
     }) {
+      console.log(`🔧 Backend: ===== VOTE UPDATE RECEIVED =====`);
+      console.log(`🔧 Backend: Received vote-update from user ${data.userId}`);
+      console.log(`🔧 Backend: Full data received:`, data);
+      
+      // Initialize retro state if it doesn't exist
+      if (!retroState[data.retroId]) {
+        retroState[data.retroId] = {
+          itemPositions: {},
+          itemGroups: {},
+          signatureColors: {},
+          actionItems: [],
+          allUserVotes: {}
+        };
+        console.log(`🔧 Backend: Initialized new retro state for ${data.retroId}`);
+      }
+      
+      console.log(`🔧 Backend: userVotes received:`, data.userVotes);
+      console.log(`🔧 Backend: userVotes type:`, typeof data.userVotes);
+      console.log(`🔧 Backend: userVotes keys:`, Object.keys(data.userVotes));
+      console.log(`🔧 Backend: userVotes values:`, Object.values(data.userVotes));
+      
+      // Log setiap key-value pair untuk debugging
+      Object.entries(data.userVotes).forEach(([key, value]) => {
+        console.log(`🔧 Backend: Key: ${key}, Value: ${value}, Type: ${typeof value}`);
+      });
+      
+      // Calculate total votes
+      const totalVotes = Object.values(data.userVotes).reduce((sum: number, votes: number) => sum + votes, 0);
+      console.log(`🔧 Backend: Total votes for user ${data.userId}: ${totalVotes}`);
+      
+      // Validate vote count (should be 0-3)
+      if (totalVotes < 0 || totalVotes > 3) {
+        console.log(`🔧 Backend: Invalid vote count ${totalVotes} for user ${data.userId}, ignoring update`);
+        return;
+      }
+      
+      // Log previous state
+      console.log(`🔧 Backend: Previous allUserVotes for user ${data.userId}:`, retroState[data.retroId].allUserVotes[data.userId]);
+      
+      // Update allUserVotes for this user
+      retroState[data.retroId].allUserVotes[data.userId] = { ...data.userVotes };
+      
+      console.log(`🔧 Backend: Updated allUserVotes for user ${data.userId}:`, data.userVotes);
+      console.log(`🔧 Backend: Current allUserVotes state:`, retroState[data.retroId].allUserVotes);
+      
+      // Log all users' vote counts
+      Object.entries(retroState[data.retroId].allUserVotes).forEach(([userId, userVotes]) => {
+        const userTotalVotes = Object.values(userVotes).reduce((sum: number, votes: number) => sum + votes, 0);
+        console.log(`🔧 Backend: User ${userId} total votes: ${userTotalVotes}`);
+      });
       
       // Broadcast vote update to all participants in the retro
-      this.server.to(`retro:${data.retroId}`).emit(`vote-update:${data.retroId}`, {
+      const broadcastData = {
         groupId: data.groupId,
         votes: data.votes,
         userId: data.userId,
         userVotes: data.userVotes,
+        allUserVotes: retroState[data.retroId].allUserVotes,
         timestamp: new Date().toISOString()
-      });
+      };
+      
+      console.log(`🔧 Backend: Broadcasting vote update:`, broadcastData);
+      this.server.to(`retro:${data.retroId}`).emit(`vote-update:${data.retroId}`, broadcastData);
+      console.log(`🔧 Backend: ===== VOTE UPDATE COMPLETED =====`);
       
     }
 
@@ -248,7 +305,8 @@ import {
           itemPositions: {},
           itemGroups: {},
           signatureColors: {},
-          actionItems: []
+          actionItems: [],
+          allUserVotes: {}
         };
       }
       

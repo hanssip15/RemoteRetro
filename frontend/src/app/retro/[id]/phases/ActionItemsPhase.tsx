@@ -114,10 +114,10 @@ export default function ActionItemsPhase({
         setShowShareModal={setShowShareModal}
         handleLogout={handleLogout}
       />
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] w-full h-full min-h-screen bg-gray-50">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] w-full h-full bg-gray-50">
         {/* Panel kiri: feedback/group */}
-        <div className="flex flex-col bg-white pb-56">
-          <div className="flex flex-row flex-wrap gap-8 mt-8 w-full justify-center min-h-full">
+        <div className="flex flex-col bg-white">
+          <div className="flex flex-row flex-wrap gap-8 p-8 w-full justify-center">
             {labellingItems && labellingItems.length > 0 ? (
               labellingItems.sort((a: any, b: any) => b.votes - a.votes).map((group: any, idx: number) => {
                 return (
@@ -147,7 +147,6 @@ export default function ActionItemsPhase({
               </div>
             )}
           </div>
-          <div className="h-40" />
         </div>
         {/* Panel kanan: Action Items */}
         <div className="w-[400px] border-l bg-white flex flex-col p-6 h-full min-h-screen">

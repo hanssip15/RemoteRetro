@@ -72,11 +72,11 @@ export default function FinalPhase({
         setShowShareModal={setShowShareModal}
         handleLogout={handleLogout}
       />
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] w-full h-full min-h-screen bg-gray-50">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] w-full h-full bg-gray-50">
         {/* Panel kiri: feedback/group */}
-        <div className="flex flex-col bg-white pb-56">
+        <div className="flex flex-col bg-white">
           {/* Card group kiri (read-only) */}
-          <div className="flex flex-row flex-wrap gap-8 mt-8 w-full justify-center min-h-full">
+          <div className="flex flex-row flex-wrap gap-8 p-8 w-full justify-center">
           {labellingItems && labellingItems.length > 0 ? (
             labellingItems.sort((a: any, b: any) => b.votes - a.votes).map((group: any, idx: number) => {
               return (            <div key={group.id} className="bg-white border rounded-lg shadow-sm w-auto min-w-[220px] max-w-[350px] px-4 py-3">
