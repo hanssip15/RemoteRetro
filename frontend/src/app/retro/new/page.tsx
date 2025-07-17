@@ -167,37 +167,29 @@ export default function NewRetroPage() {
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6" noValidate>
                 <div className="space-y-2">
-                  <Label htmlFor="title">Retrospective Title *</Label>
+                  <Label htmlFor="title">Retrospective Title (optional)</Label>
                   <Input
                     id="title"
                     name="title"
-                    placeholder="e.g., Sprint 24 Retrospective (Press Enter to submit)"
+                    placeholder="e.g., Sprint 24 Retrospective (optional - press Enter to submit)"
                     value={title}
                     onChange={handleTitleChange}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
-
-                        
                         e.preventDefault()
                         e.stopPropagation()
-                        
-                        // Check if title is filled and format is selected
+                        // Check if format is selected and not submitting
                         const validFormats = ['happy_sad_confused', 'start_stop_continue']
                         const isValidFormat = selectedFormat && validFormats.includes(selectedFormat)
-                        
-                        if (title.trim() && isValidFormat && !isSubmitting) {
-                          
+                        if (isValidFormat && !isSubmitting) {
                           // Trigger form submission by clicking the submit button
                           const submitButton = e.currentTarget.closest('form')?.querySelector('button[type="submit"]') as HTMLButtonElement
                           if (submitButton && !submitButton.disabled) {
                             submitButton.click()
                           }
                         } else {
-                          
                           // Show validation message
-                          if (!title.trim()) {
-                            alert("Please enter a retrospective title")
-                          } else if (!isValidFormat) {
+                          if (!isValidFormat) {
                             alert("Please select a valid format")
                           } else if (isSubmitting) {
                             alert("Please wait, form is being submitted")
@@ -208,10 +200,9 @@ export default function NewRetroPage() {
                     required
                     disabled={isSubmitting}
                   />
-                  {title.trim() && selectedFormat && ['happy_sad_confused', 'start_stop_continue'].includes(selectedFormat) && (
-                    <div className="text-sm text-green-600 flex items-center">
-                      <span className="mr-1">✓</span>
-                      Form ready to submit (press Enter or click Create button)
+                  {selectedFormat && ['happy_sad_confused', 'start_stop_continue'].includes(selectedFormat) && !title.trim() && (
+                    <div className="text-sm text-gray-500">
+                      Title will be auto-generated if empty
                     </div>
                   )}
                 </div>

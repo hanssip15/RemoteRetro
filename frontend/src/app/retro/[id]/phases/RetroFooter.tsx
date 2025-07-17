@@ -158,14 +158,21 @@ export default function RetroFooter({
                     )}
                   </div>
                   <span className="text-xs text-gray-900 mt-1 font-medium">{p.user.name}{p.role ? ' (Facilitator)' : ''}</span>
-                  {/* ALL VOTES IN indicator for any participant */}
-                  {(() => {
-                    const userVoteObj = allUserVotes?.[p.user.id] || {};
-                    const totalVotes = Object.values(userVoteObj).reduce((a: number, b) => a + Number(b), 0);
-                    return totalVotes >= maxVotes ? (
-                      <span className="text-xs font-bold text-green-600 mt-1">ALL VOTES IN</span>
-                    ) : null;
-                  })()}
+                  {/* ALL VOTES IN indicator: selalu sediakan space agar avatar tidak bergerak */}
+                  <div className="text-xs font-bold mt-1" style={{ minHeight: 16 }}>
+                    {(() => {
+                      const userVoteObj = allUserVotes?.[p.user.id] || {};
+                      const totalVotes = (Object.values(userVoteObj) as number[]).reduce((a: number, b: number) => a + Number(b), 0);
+                      const hasUsedAllVotes = totalVotes >= maxVotes;
+                      console.log(`🔍 ${p.user.name}: votes=${totalVotes}, maxVotes=${maxVotes}, hasUsedAllVotes=${hasUsedAllVotes}`);
+                      console.log(`🔍 ${p.user.name}: userVoteObj=`, userVoteObj);
+                      return hasUsedAllVotes ? (
+                        <span className="text-green-600">ALL VOTES IN</span>
+                      ) : (
+                        <span style={{ opacity:0 }}>ALL VOTES IN</span>
+                      );
+                    })()}
+                  </div>
                   {/* Typing indicator: selalu sediakan space agar avatar tidak bergerak */}
                   <div className="flex space-x-1 mt-1" style={{ minHeight: 12 }}>
                     {typingParticipants.includes(p.user.id) ? (
