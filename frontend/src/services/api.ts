@@ -340,6 +340,9 @@ class ApiService {
       method: 'DELETE',
     });
   }
+  async getUserByEmail(email: string): Promise<User> {
+    return this.request<User>(`/users/${email}`);
+  }
 
   // Dashboard endpoints
   async getDashboardRetros(userId: string, page = 1, limit = 3): Promise<{
@@ -401,9 +404,16 @@ export const api = Object.assign(apiService, {
   getCurrentUser: async (): Promise<any> => {
     const userData = sessionStorage.getItem('user_data');
     if (!userData) {
-      throw new Error('No user data found in session');
+      return null; // or handle as needed
     }
-    return JSON.parse(userData);
+    const user = JSON.parse(userData);
+    const userDb = await apiService.getUserByEmail(user.email);
+    if (userDb === null) {
+      sessionStorage.removeItem('auth_token');
+      sessionStorage.removeItem('user_data');
+      return null; // or handle as needed
+    }
+    return user;
   },
   // Set auth token and user data
   setAuthToken: (token: string, userData?: any) => {

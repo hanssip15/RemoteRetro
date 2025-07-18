@@ -8,6 +8,7 @@ import { Plus, Calendar, Users, TrendingUp, RefreshCw, ChevronLeft, ChevronRight
 import { Link } from "react-router-dom"
 import { apiService, Retro } from "@/services/api"
 import { api } from '../../services/api'
+import { useNavigate } from "react-router-dom"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -50,40 +51,7 @@ export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
-
-  // Check authentication and fetch user info first
-  // useEffect(() => {
-  //   const initializeDashboard = async () => {
-  //     try {
-  //       setLoading(true)
-  //       setError(null)
-        
-  //       // Step 1: Check if user is authenticated
-  //       const authStatus = api.isAuthenticated()
-  //       setIsAuthenticated(authStatus)
-  //       if (authStatus) {
-  //         const userData = await api.getCurrentUser();
-  //         setUser(userData);
-  //         await fetchDashboardData();
-  //       } else {
-  //         setError('User not authenticated. Please login first.')
-  //         setLoading(false)
-  //         return
-  //       }
-
-
-  //     } catch (err) {
-  //       console.error('Failed to initialize dashboard:', err)
-  //       setError('Failed to load dashboard. Please try logging in again.')
-  //       // Clear invalid session data
-  //       api.removeAuthToken()
-  //     } finally {
-  //       setLoading(false)
-  //     }
-  //   }
-  //   initializeDashboard()
-  // }, [])
-
+  const navigate = useNavigate();
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -91,6 +59,9 @@ export default function DashboardPage() {
         setIsAuthenticated(authStatus)
         if (authStatus) {
           const userData = await api.getCurrentUser()
+          if (userData === null) {
+            navigate('/login')
+          }
           setUser(userData)
         } else {
           setError('User not authenticated. Please login first.')
