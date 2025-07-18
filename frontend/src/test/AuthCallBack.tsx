@@ -10,7 +10,7 @@ const AuthCallback = () => {
     const token = params.get('token');
 
     if (token) {
-      localStorage.setItem('auth_token', token); // 👈 store the JWT
+      sessionStorage.setItem('auth_token', token); // 👈 store the JWT
       navigate('/dashboard'); // or home page
     } else {
       navigate('/login'); // fallback

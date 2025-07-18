@@ -33,8 +33,8 @@ export default function RetroLobbyPage() {
   const [isOngoing, setIsOngoing] = useState(false)
   const [isPromoting, setIsPromoting] = useState(false)
 
-  // Get current user from localStorage
-  const userData = localStorage.getItem('user_data');
+  // Get current user from sessionStorage
+  const userData = sessionStorage.getItem('user_data');
   const currentUser = userData ? JSON.parse(userData) : null;
 
 
@@ -194,8 +194,8 @@ export default function RetroLobbyPage() {
         showShareModal={showShareModal}
         setShowShareModal={setShowShareModal}
         handleLogout={() => {
-          localStorage.removeItem('auth_token');
-          localStorage.removeItem('user_data');
+          sessionStorage.removeItem('auth_token');
+          sessionStorage.removeItem('user_data');
           window.location.href = '/login';
         }}
       />

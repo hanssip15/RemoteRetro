@@ -101,7 +101,7 @@ export default function NewRetroPage() {
       }
       
       let user;
-      const userData = localStorage.getItem('user_data');
+      const userData = sessionStorage.getItem('user_data');
       if (userData) {
         user = JSON.parse(userData)
 

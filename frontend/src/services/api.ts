@@ -115,7 +115,7 @@ export interface CreateActionData {
 class ApiService {
   async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`;
-    const token = localStorage.getItem('auth_token');
+    const token = sessionStorage.getItem('auth_token');
     
     
     const config: RequestInit = {
@@ -141,8 +141,8 @@ class ApiService {
         // Handle authentication errors
         if (response.status === 401 || response.status === 403) {
           // Clear invalid session data
-          localStorage.removeItem('auth_token');
-          localStorage.removeItem('user_data');
+          sessionStorage.removeItem('auth_token');
+          sessionStorage.removeItem('user_data');
           throw new Error('Authentication failed. Please login again.');
         }
         
@@ -383,8 +383,8 @@ class ApiService {
 }
 // api.ts
 export const fetchProtectedData = async () => {
-  const token = localStorage.getItem('auth_token');
-  const res = await fetch('http://localhost:3001/protected-route', {
+  const token = sessionStorage.getItem('auth_token');
+  const res = await fetch(`${process.env.BASE_URL}/protected-route`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -399,7 +399,7 @@ export const apiService = new ApiService();
 export const api = Object.assign(apiService, {
   // Get current user info from session
   getCurrentUser: async (): Promise<any> => {
-    const userData = localStorage.getItem('user_data');
+    const userData = sessionStorage.getItem('user_data');
     if (!userData) {
       throw new Error('No user data found in session');
     }
@@ -407,22 +407,22 @@ export const api = Object.assign(apiService, {
   },
   // Set auth token and user data
   setAuthToken: (token: string, userData?: any) => {
-    localStorage.setItem('auth_token', token);
+    sessionStorage.setItem('auth_token', token);
     if (userData) {
-      localStorage.setItem('user_data', JSON.stringify(userData));
+      sessionStorage.setItem('user_data', JSON.stringify(userData));
     }
   },
   // Remove auth token and user data (logout)
   removeAuthToken: () => {
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('user_data');
+    sessionStorage.removeItem('auth_token');
+    sessionStorage.removeItem('user_data');
   },
   // Check if user is authenticated
   isAuthenticated: (): boolean => {
-    return !!(localStorage.getItem('auth_token') && localStorage.getItem('user_data'));
+    return !!(sessionStorage.getItem('auth_token') && sessionStorage.getItem('user_data'));
   },
   // Set user data in session
   setUserData: (userData: any) => {
-    localStorage.setItem('user_data', JSON.stringify(userData));
+    sessionStorage.setItem('user_data', JSON.stringify(userData));
   }
 }); 

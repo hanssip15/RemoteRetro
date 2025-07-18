@@ -51,7 +51,7 @@ export default function RetroPage() {
   const [optimisticUpdates, setOptimisticUpdates] = useState<{ [itemId: string]: { content: string; category: string } }>({})
   const [showShareModal, setShowShareModal] = useState(false);
   const [user] = useState(() => {
-    const userData = localStorage.getItem('user_data');
+    const userData = sessionStorage.getItem('user_data');
     return userData ? JSON.parse(userData) : null;
   });
   const [isPhaseChanging] = useState(false);
@@ -868,8 +868,8 @@ export default function RetroPage() {
   }, [retro?.format])
 
   const handleLogout = useCallback(() => {
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('user_data');
+    sessionStorage.removeItem('auth_token');
+    sessionStorage.removeItem('user_data');
     window.location.href = '/login';
   }, []);
 
