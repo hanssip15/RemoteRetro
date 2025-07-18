@@ -7,14 +7,6 @@ import { PhaseConfirmModal } from '@/components/ui/dialog';
 import { getCategoryEmoji } from '@/lib/utils';
 import useEnterToCloseModal from "@/hooks/useEnterToCloseModal";
 
-function getIdeaCategoryIcon(category: string) {
-  switch (category) {
-    case "format_1": return <span role="img" aria-label="happy">😊</span>;
-    case "format_2": return <span role="img" aria-label="sad">😢</span>;
-    case "format_3": return <span role="img" aria-label="confused">😕</span>;
-    default: return null;
-  }
-}
 
 export default function VotingPhase(props: any) {
   const {
@@ -398,7 +390,8 @@ export default function VotingPhase(props: any) {
       </div>
       <div className="h-40" />
       <RetroFooter
-        title={<div className="flex flex-col items-start justify-center"><div className="text-xl font-semibold">Voting: {votesLeft} Votes Left</div></div>}
+        left={<div className="flex flex-col items-start text-left"><div className="text-xl font-semibold">Voting: {votesLeft} Votes Left</div></div>}
+        title={null}
         center={<div></div>}
         right={isCurrentFacilitator && (
           <>

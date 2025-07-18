@@ -1,15 +1,13 @@
 "use client"
 // import { io } from 'socket.io-client';
-import { useSocket } from "@/hooks/use-socket"
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 
 import { useEffect, useState, useCallback } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { ShareLinkModal } from "@/components/share-link-modal"
-import { ArrowLeft, Users, Clock, Share2, Play, RefreshCw, Crown, User } from "lucide-react"
+import { Users, Play, Crown, User } from "lucide-react"
 import RetroHeader from '../RetroHeader';
 import { Link } from "react-router-dom"
 import { apiService, Retro, Participant, api } from "@/services/api"
@@ -26,14 +24,12 @@ export default function RetroLobbyPage() {
   const [retro, setRetro] = useState<Retro>()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [userRole, setUserRole] = useState<boolean>(false)
   const [showShareModal, setShowShareModal] = useState(false)
   const [showStartConfirm, setShowStartConfirm] = useState(false)
   const [isJoining, setIsJoining] = useState(false)
   const [joinError, setJoinError] = useState<string | null>(null)
   const [participants, setParticipants] = useState<Participant[]>([]);
-  const [showJoinModal, setShowJoinModal] = useState(false)
-  const [socket, setSocket] = useState<any>(null)
+  const [socket] = useState<any>(null)
   const [isOngoing, setIsOngoing] = useState(false)
   const [isPromoting, setIsPromoting] = useState(false)
 
@@ -140,13 +136,6 @@ export default function RetroLobbyPage() {
       setIsPromoting(false);
     }
   }, [retroId, selectedParticipant, fetchLobbyData]);
-
-
-  const { isConnected } = useSocket({
-    retroId,
-    onParticipantUpdate: fetchLobbyData,
-    onRetroStarted: handleChangeView,
-  });
   
   const shareUrl = typeof window !== "undefined" ? window.location.href : ""
   const facilitator = participants.find((p) => p.role === true)

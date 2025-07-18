@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -34,7 +34,6 @@ interface GroupingInterfaceProps {
 
 export function GroupingInterface({
   retroId,
-  feedbackItems,
   onGroupingComplete,
   isFacilitator,
 }: GroupingInterfaceProps) {
@@ -43,27 +42,7 @@ export function GroupingInterface({
   const [newGroupTitle, setNewGroupTitle] = useState("")
   const [isCreatingGroup, setIsCreatingGroup] = useState(false)
 
-  useEffect(() => {
-    // Separate grouped and ungrouped items
-    const grouped = feedbackItems.filter((item) => item.group_id)
-    const ungrouped = feedbackItems.filter((item) => !item.group_id)
-    setUngroupedItems(ungrouped)
 
-    // Fetch existing groups
-    fetchGroups()
-  }, [feedbackItems])
-
-  const fetchGroups = async () => {
-    try {
-      const response = await fetch(`/api/retros/${retroId}/groups`)
-      if (response.ok) {
-        const groupsData = await response.json()
-        setGroups(groupsData)
-      }
-    } catch (error) {
-      console.error("Error fetching groups:", error)
-    }
-  }
 
   const createGroup = async () => {
     if (!newGroupTitle.trim()) return
@@ -194,7 +173,13 @@ export function GroupingInterface({
             {ungroupedItems.map((item) => (
               <div key={item.id} className="relative">
                 <FeedbackCardV2
-                  item={item}
+                  item={{
+                    ...item,
+                    votes: 0,
+                    type: "",
+                    session_phase: item.session_phase ?? 0,
+                    created_at: item.created_at ?? "",
+                  }}
                   onUpdate={() => {}} // Read-only during grouping
                   onDelete={() => {}} // Read-only during grouping
                   showSessionBadge={true}
@@ -291,7 +276,13 @@ export function GroupingInterface({
                 {group.items.map((item) => (
                   <div key={item.id} className="relative">
                     <FeedbackCardV2
-                      item={item}
+                      item={{
+                        ...item,
+                        votes: 0,
+                        type: "",
+                        session_phase: item.session_phase ?? 0,
+                        created_at: item.created_at ?? "",
+                      }}
                       onUpdate={() => {}}
                       onDelete={() => {}}
                       showSessionBadge={true}

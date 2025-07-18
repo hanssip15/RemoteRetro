@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router-dom"
+import { Link } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Users, MessageSquare, BarChart3, Zap } from "lucide-react"
@@ -6,13 +6,12 @@ import { api } from "@/services/api"
 import { useEffect, useState   } from "react"
 
 export default function HomePage() {
-  const navigate = useNavigate()
   const [authStatus, setAuthStatus] = useState(false)
   useEffect(() => {
     const authStatus = api.isAuthenticated()
     setAuthStatus(authStatus)
                 }, [])
-  const apiUrl = import.meta.env.VITE_API_URL;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Header */}

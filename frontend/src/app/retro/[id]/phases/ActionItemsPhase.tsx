@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import RetroFooter from './RetroFooter';
 import { Button } from '@/components/ui/button';
 import RetroHeader from '../RetroHeader';
-import { Pencil, Trash2, Lightbulb } from 'lucide-react';
+import { Pencil, Trash2 } from 'lucide-react';
 import { PhaseConfirmModal } from '@/components/ui/dialog';
 import { api, apiService } from '@/services/api';
 import { getCategoryEmoji } from '@/lib/utils';
@@ -17,8 +17,6 @@ export default function ActionItemsPhase({
   showShareModal,
   setShowShareModal,
   handleLogout,
-  groupLabels,
-  userVotes,
   actionItems,
   actionInput,
   actionAssignee,
@@ -41,8 +39,6 @@ export default function ActionItemsPhase({
   handleDeleteActionItem,
   broadcastPhaseChange,
   labellingItems,
-  socket,
-  isConnected,
 }: any) {
   // Debug logging
 
@@ -64,15 +60,6 @@ export default function ActionItemsPhase({
   }, []);
 
   useEnterToCloseModal(showModal, () => setShowModal(false));
-
-  function getIdeaCategoryIcon(category: string) {
-    switch (category) {
-      case "format_1": return <span role="img" aria-label="happy">😊</span>;
-      case "format_2": return <span role="img" aria-label="sad">😢</span>;
-      case "format_3": return <span role="img" aria-label="confused">😕</span>;
-      default: return null;
-    }
-  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -119,7 +106,7 @@ export default function ActionItemsPhase({
         <div className="flex flex-col bg-white">
           <div className="flex flex-row flex-wrap gap-8 p-8 w-full justify-center">
             {labellingItems && labellingItems.length > 0 ? (
-              labellingItems.sort((a: any, b: any) => b.votes - a.votes).map((group: any, idx: number) => {
+              labellingItems.sort((a: any, b: any) => b.votes - a.votes).map((group: any) => {
                 return (
                   <div key={group.id} className="bg-white border rounded-lg shadow-sm min-w-[350px] max-w-[400px] w-full p-4">
                     <div className="mb-2 flex items-center justify-between">

@@ -52,7 +52,7 @@ export function PhaseManager({ isFacilitator, onPhaseChange }: PhaseManagerProps
   ])
 
   const [currentPhaseIndex, setCurrentPhaseIndex] = useState(0)
-  const currentPhase = phases[currentPhaseIndex]
+  // const currentPhase = phases[currentPhaseIndex]
 
   const moveToNextPhase = () => {
     if (currentPhaseIndex < phases.length - 1) {
