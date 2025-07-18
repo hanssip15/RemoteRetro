@@ -13,9 +13,9 @@ const LoginPage = () => {
       navigate('/dashboard');
     }
   }, [navigate]);
-
+  const url = import.meta.env.VITE_API_URL || '';
   const handleGoogleLogin = () => {
-    window.location.href = 'http://localhost:3001/auth/google';
+    window.location.href = `${url}/auth/google`;
   };
 
   return (

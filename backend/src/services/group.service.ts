@@ -1,8 +1,6 @@
 // src/group/group.service.ts
 
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../services/prisma.service';
-import { Prisma, Group } from '@prisma/client';
 import { GroupEntity } from 'src/entities/group.entity';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -13,7 +11,6 @@ export class GroupService {
   constructor(
     @InjectRepository(GroupEntity)
     private groupRepository: Repository<GroupEntity>,
-    // private prisma: PrismaService,
   ) 
   {}
 

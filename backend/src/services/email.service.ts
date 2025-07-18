@@ -23,8 +23,8 @@ export class EmailService {
     this.transporter = nodemailer.createTransport({
       service: 'gmail', // or your preferred email service
       auth: {
-        user: process.env.EMAIL_USER || 'mochamadfathurrabbani@gmail.com',
-        pass: process.env.EMAIL_PASSWORD || 'ouls zlny qfsa fmdg',
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASSWORD,
       },
       // For development - allows less secure apps
       secure: false,
@@ -44,7 +44,7 @@ export class EmailService {
     for (const email of participantEmails) {
       try {
         await this.transporter.sendMail({
-          from: process.env.EMAIL_USER || 'your-email@gmail.com',
+          from: process.env.EMAIL_USER ,
           to: email,
           subject: `Action Items from Retrospective: ${retroTitle}`,
           html: htmlContent,

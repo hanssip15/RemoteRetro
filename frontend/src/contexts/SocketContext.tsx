@@ -32,7 +32,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     console.log('🔌 Connecting to WebSocket server...');
     isConnectingRef.current = true;
 
-    socketRef.current = io('http://localhost:3001', {
+    socketRef.current = io(import.meta.env.VITE_API_URL, {
       transports: ['websocket', 'polling'],
       timeout: 10000,
       reconnection: true,

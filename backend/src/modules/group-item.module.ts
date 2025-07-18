@@ -7,10 +7,9 @@ import { GroupItemService } from '../services/group-item.service';
 import { GroupItemController } from '../controllers/group-item.controller';
 import { ParticipantGateway } from '../gateways/participant.gateways';
 import { GroupItemEntity } from '../entities/group-item.entity';
-import { PrismaService } from '../services/prisma.service'; 
 @Module({
   imports: [TypeOrmModule.forFeature([RetroItem, Retro, Participant, GroupItemEntity])],
   controllers: [GroupItemController],
-  providers: [GroupItemService, ParticipantGateway, PrismaService],
+  providers: [GroupItemService, ParticipantGateway],
 })
 export class GroupItemModule {}

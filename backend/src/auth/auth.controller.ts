@@ -55,7 +55,8 @@ export class AuthController {
 
     // Send token and user data to frontend
     const userDataEncoded = encodeURIComponent(JSON.stringify(userData));
-    return res.redirect(`http://localhost:5173/auth/callback?token=${token}&userData=${userDataEncoded}`);
+    const frontendUrl = process.env.FRONTEND_URL; // Use environment variable or default to localhost
+    return res.redirect(`${frontendUrl}/auth/callback?token=${token}&userData=${userDataEncoded}`);
   }
 
   @Get('me')
