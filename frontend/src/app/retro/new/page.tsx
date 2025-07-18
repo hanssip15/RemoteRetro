@@ -143,8 +143,8 @@ export default function NewRetroPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
-        <div className="max-w-2xl mx-auto">
-          <div className="flex items-center space-x-4 mb-8">
+        <div className="max-w-full sm:max-w-2xl mx-auto">
+          <div className="flex items-center space-x-2 sm:space-x-4 mb-6 sm:mb-8">
             <Link to="/dashboard" onClick={(e) => {
               if (isSubmitting) {
                 e.preventDefault()
@@ -160,13 +160,13 @@ export default function NewRetroPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-2xl">Create New Retrospective</CardTitle>
-              <CardDescription>Set up a new retrospective session for your team</CardDescription>
+              <CardTitle className="text-xl sm:text-2xl">Create New Retrospective</CardTitle>
+              <CardDescription className="text-sm sm:text-base">Set up a new retrospective session for your team</CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-6" noValidate>
-                <div className="space-y-2">
-                  <Label htmlFor="title">Retrospective Title (optional)</Label>
+              <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6" noValidate>
+                <div className="space-y-1 sm:space-y-2">
+                  <Label htmlFor="title" className="text-sm sm:text-base">Retrospective Title (optional)</Label>
                   <Input
                     id="title"
                     name="title"
@@ -198,24 +198,25 @@ export default function NewRetroPage() {
                     }}
                     required
                     disabled={isSubmitting}
+                    className="text-sm sm:text-base px-2 sm:px-4 py-2 sm:py-2"
                   />
                   {selectedFormat && ['happy_sad_confused', 'start_stop_continue'].includes(selectedFormat) && !title.trim() && (
-                    <div className="text-sm text-gray-500">
+                    <div className="text-xs sm:text-sm text-gray-500">
                       Title will be auto-generated if empty
                     </div>
                   )}
                 </div>
 
-                <div className="mb-6">
-                  <Label htmlFor="format">Select Format *</Label>
-                  <div className="text-sm text-gray-500 mb-2">
+                <div className="mb-4 sm:mb-6">
+                  <Label htmlFor="format" className="text-sm sm:text-base">Select Format *</Label>
+                  <div className="text-xs sm:text-sm text-gray-500 mb-1 sm:mb-2">
                     {selectedFormat ? `Selected: ${RETRO_FORMATS.find(f => f.key === selectedFormat)?.label}` : "Please select a format"}
                   </div>
-                  <div className="space-y-4">
+                  <div className="space-y-2 sm:space-y-4">
                     {RETRO_FORMATS.map((format) => (
                       <div
                         key={format.key}
-                        className={`flex items-center p-4 rounded-lg border cursor-pointer transition-all duration-150 ${
+                        className={`flex items-center p-2 sm:p-4 rounded-lg border cursor-pointer transition-all duration-150 ${
                           selectedFormat === format.key
                             ? "border-blue-500 bg-blue-50 shadow"
                             : "border-gray-200 hover:border-blue-300"
@@ -231,10 +232,10 @@ export default function NewRetroPage() {
                         role="button"
                         aria-label={`Select ${format.label} format`}
                       >
-                        <span className="text-3xl mr-4">{format.icon}</span>
+                        <span className="text-xl sm:text-3xl mr-2 sm:mr-4">{format.icon}</span>
                         <div>
-                          <div className="font-semibold">{format.label}</div>
-                          <div className="text-gray-500 text-sm">{format.description}</div>
+                          <div className="font-semibold text-sm sm:text-base">{format.label}</div>
+                          <div className="text-xs sm:text-sm text-gray-500 max-w-[220px] sm:max-w-full">{format.description}</div>
                           <div className="text-xs text-gray-400 mt-1">
                             Suggested time: {format.suggestedTime}
                           </div>
@@ -244,16 +245,17 @@ export default function NewRetroPage() {
                   </div>
                 </div>
 
-                <div className="flex justify-end space-x-4 pt-6">
+                <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-4 pt-4 sm:pt-6 items-center sm:items-end w-full">
                   <Link to="/dashboard" onClick={(e) => {
                     if (isSubmitting) {
                       e.preventDefault()
                       return
                     }
-                  }}>
+                  }} className="w-full sm:w-auto">
                     <Button 
                       variant="outline" 
                       disabled={isSubmitting}
+                      className="w-full sm:w-auto"
                       onClick={(e) => {
                         if (isSubmitting) {
                           e.preventDefault()
@@ -264,7 +266,7 @@ export default function NewRetroPage() {
                       Cancel
                     </Button>
                   </Link>
-                  <Button type="submit" disabled={isSubmitting}>
+                  <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
                     {isSubmitting ? "Creating..." : "Create Retrospective"}
                   </Button>
                 </div>
