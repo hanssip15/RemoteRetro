@@ -1,11 +1,8 @@
-import React, { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import RetroFooter from './RetroFooter';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { FeedbackCard } from '@/components/feedback-card';
-import { ArrowLeft, Users, Clock, Share2 } from 'lucide-react';
-import { Link } from 'react-router-dom';
 import RetroHeader from '../RetroHeader';
 import { PhaseConfirmModal } from '@/components/ui/dialog';
 import useEnterToCloseModal from "@/hooks/useEnterToCloseModal";
@@ -14,8 +11,8 @@ export default function IdeationPhase(props: any) {
   const {
     retro, participants, user, currentUserRole, showShareModal, setShowShareModal, handleLogout,
     isCurrentFacilitator, setPhase, broadcastPhaseChange,
-    currentUserParticipant, inputCategory, setInputCategory, inputText, handleInputTextChange,
-    handleKeyDown, isAddingItem, handleAdd, items, getCategoryDisplayName, typingParticipants,
+    inputCategory, setInputCategory, inputText, handleInputTextChange,
+    isAddingItem, items, getCategoryDisplayName, typingParticipants,
     setShowRoleModal, setSelectedParticipant, updatingItemId, handleUpdateItem, handleDeleteItem
   } = props;
 

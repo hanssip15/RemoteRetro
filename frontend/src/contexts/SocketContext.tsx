@@ -22,7 +22,8 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   const isConnectingRef = useRef(false);
   const [isConnected, setIsConnected] = useState(false);
 
-  const connect = useCallback((retroId: string) => {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const connect = useCallback(() => {
     if (socketRef.current?.connected || isConnectingRef.current) {
       console.log('Socket already connected or connecting, skipping...');
       return;
@@ -94,7 +95,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     } else {
       // Connect first, then join room
       console.log(`🔌 Connecting first, then joining room: ${retroId}`);
-      connect(retroId);
+      connect();
     }
   }, [connect]);
 

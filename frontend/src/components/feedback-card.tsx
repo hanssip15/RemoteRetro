@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Heart, Edit2, Trash2, Check, X } from "lucide-react"
+import { Edit2, Trash2, Check, X } from "lucide-react"
 
 interface FeedbackCardProps {
   item: {

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import RetroFooter from './RetroFooter';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,7 +10,7 @@ export default function PrimeDirectivePhase(props: any) {
   const {
     retro, participants, user, currentUserRole, showShareModal, setShowShareModal, handleLogout,
     isCurrentFacilitator, setPhase, broadcastPhaseChange,
-    currentUserParticipant, typingParticipants,
+    typingParticipants,
     setShowRoleModal, setSelectedParticipant
   } = props;
 

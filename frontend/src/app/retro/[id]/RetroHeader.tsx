@@ -1,4 +1,3 @@
-import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Users, Clock, Share2, User, LogOut } from 'lucide-react';
@@ -18,7 +17,6 @@ export default function RetroHeader({
   participants,
   user,
   currentUserRole,
-  showShareModal,
   setShowShareModal,
   handleLogout,
 }: {

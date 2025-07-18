@@ -20,7 +20,7 @@ export default defineConfig({
         manualChunks: {
           // Split vendor libraries
           'react-vendor': ['react', 'react-dom'],
-          'ui-vendor': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-button'],
+          'ui-vendor': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu'],
           'utils-vendor': ['clsx', 'class-variance-authority', 'tailwind-merge'],
           'socket-vendor': ['socket.io-client'],
         },

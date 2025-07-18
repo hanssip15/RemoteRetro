@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import RetroFooter from './RetroFooter';
 import { Button } from '@/components/ui/button';
 import RetroHeader from '../RetroHeader';
@@ -151,7 +151,8 @@ export default function LabellingPhase(props: any) {
       </div>
       <div className="h-40" />
       <RetroFooter
-        title={<div className="flex flex-col items-start justify-center"><div className="text-2xl font-semibold mb-1">Labelling</div><div className="text-gray-500">Arrive at sensible group labels</div></div>}
+        left={<div className="flex flex-col items-start text-left"><div className="text-2xl font-semibold mb-1">Labelling</div><div className="text-gray-500">Arrive at sensible group labels</div></div>}
+        title={null}
         center={<div></div>}
         right={isCurrentFacilitator && (
           <>

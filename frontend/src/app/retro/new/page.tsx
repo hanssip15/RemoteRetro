@@ -10,7 +10,6 @@ import { Label } from "@/components/ui/label"
 import { ArrowLeft } from "lucide-react"
 import { Link, useNavigate } from "react-router-dom"
 import { api, apiService } from "@/services/api"
-import { userInfo } from "node:os"
 
 const RETRO_FORMATS = [
   {

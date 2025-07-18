@@ -42,7 +42,7 @@ export default function TestApiPage() {
     } catch (error) {
       console.error("Test error:", error)
       setResult({
-        error: error.message,
+        error: error instanceof Error ? error.message : 'Unknown error',
       })
     } finally {
       setLoading(false)
@@ -64,7 +64,7 @@ export default function TestApiPage() {
       })
     } catch (error) {
       setResult({
-        error: error.message,
+        error: error instanceof Error ? error.message : 'Unknown error',
       })
     } finally {
       setLoading(false)

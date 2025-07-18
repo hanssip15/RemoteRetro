@@ -1,19 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import RetroFooter from './RetroFooter';
 import { Button } from '@/components/ui/button';
 import RetroHeader from '../RetroHeader';
-import { Lightbulb } from 'lucide-react';
 import { getCategoryEmoji } from '@/lib/utils';
 import useEnterToCloseModal from "@/hooks/useEnterToCloseModal";
 
-function getIdeaCategoryIcon(category: string) {
-  switch (category) {
-    case "format_1": return <span role="img" aria-label="happy">😊</span>;
-    case "format_2": return <span role="img" aria-label="sad">😢</span>;
-    case "format_3": return <span role="img" aria-label="confused">😕</span>;
-    default: return null;
-  }
-}
 
 export default function FinalPhase({
   retro,
@@ -23,8 +14,6 @@ export default function FinalPhase({
   showShareModal,
   setShowShareModal,
   handleLogout,
-  groupLabels,
-  userVotes,
   actionItems,
   typingParticipants,
   isCurrentFacilitator,
@@ -78,7 +67,7 @@ export default function FinalPhase({
           {/* Card group kiri (read-only) */}
           <div className="flex flex-row flex-wrap gap-8 p-8 w-full justify-center">
           {labellingItems && labellingItems.length > 0 ? (
-            labellingItems.sort((a: any, b: any) => b.votes - a.votes).map((group: any, idx: number) => {
+            labellingItems.sort((a: any, b: any) => b.votes - a.votes).map((group: any) => {
               return (            <div key={group.id} className="bg-white border rounded-lg shadow-sm w-auto min-w-[220px] max-w-[350px] px-4 py-3">
                 <div className="mb-2 flex items-center justify-between">
                   <span className="text-lg font-semibold text-gray-400">{group.label || 'Unlabeled'}</span>
@@ -129,7 +118,8 @@ export default function FinalPhase({
         </div>
       </div>
       <RetroFooter
-        title={<div className="text-xl font-semibold">This retro is all wrapped up!</div>}
+        left={<div className="text-xl font-semibold text-left">This retro is all wrapped up!</div>}
+        title={null}
         center={<div className="text-gray-600">Contents are read-only.</div>}
         right={<div className="flex flex-row items-center gap-2">
           <Button className="flex items-center px-8 py-2 text-base font-semibold" style={{ minWidth: 180 }} onClick={() => window.location.href = '/dashboard'} variant="phasePrimary">Visit your dashboard <span className="ml-2">&rarr;</span></Button>

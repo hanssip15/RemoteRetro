@@ -6,6 +6,7 @@ import Draggable from 'react-draggable';
 import { PhaseConfirmModal } from '@/components/ui/dialog';
 import { apiService } from '@/services/api';
 import useEnterToCloseModal from "@/hooks/useEnterToCloseModal";
+import HighContrastToggle from '@/components/HighContrastToggle';
 
 export default function GroupingPhase({
   retro,
@@ -18,17 +19,15 @@ export default function GroupingPhase({
   items = [],
   itemPositions,
   highContrast,
+  setHighContrast,
   itemGroups = {},
   signatureColors,
   handleDrag,
   handleStop,
   getGroupSummary,
-  saveGroupData,
-  isPhaseChanging,
   broadcastPhaseChange,
   draggingByOthers,
   isCurrentFacilitator,
-  currentUserParticipant,
   typingParticipants,
   setShowRoleModal,
   setSelectedParticipant,
@@ -40,6 +39,8 @@ export default function GroupingPhase({
   itemGroups?: { [id: string]: string };
   [key: string]: any;
   setItemGroups: (groups: { [id: string]: string }) => void;
+  highContrast: boolean;
+  setHighContrast: (val: boolean) => void;
 }) {
   const [showModal, setShowModal] = useState(true);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -152,29 +153,12 @@ export default function GroupingPhase({
             </Draggable>
           );
         })}
-        {/* High Contrast toggle kiri bawah (fixed) */}
-        <div className="fixed left-4 bottom-4 flex items-center gap-2 z-10 bg-white border rounded px-2 py-1 shadow">
-          <span className="text-gray-700 text-lg">
-            <svg width="22" height="22" fill="none" viewBox="0 0 20 20"><path d="M10 2a8 8 0 100 16V2z" fill="#222"/><circle cx="10" cy="10" r="8" stroke="#888" strokeWidth="2"/></svg>
-          </span>
-          <span className="text-base text-gray-900 font-medium">High Contrast</span>
-          <label className="ml-2 relative inline-flex items-center cursor-pointer">
-            <input 
-              type="checkbox" 
-              className="sr-only peer" 
-              checked={highContrast}
-              onChange={(e) => {}}
-              readOnly
-            />
-            <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:bg-green-500 transition-colors"></div>
-            <div className="absolute left-1 top-1 bg-white w-3 h-3 rounded-full transition-all peer-checked:translate-x-4"></div>
-          </label>
-        </div>
         {/* Footer modular */}
         <div className="h-40" />
         <RetroFooter
-          title={<div className="flex flex-col items-start justify-center"><div className="text-lg font-semibold">Grouping</div><div className="text-xs text-gray-500">{(() => {const summary = getGroupSummary();return `${summary.totalGroups} groups, ${summary.totalGroupedItems} items grouped`;})()}</div></div>}
-          center={<div></div>}
+          title={null}
+          left={<HighContrastToggle highContrast={highContrast} onToggle={() => setHighContrast(!highContrast)} />}
+          center={<div className="flex flex-col items-center justify-center"><div className="text-lg font-semibold">Grouping</div><div className="text-xs text-gray-500">{(() => {const summary = getGroupSummary();return `${summary.totalGroups} groups, ${summary.totalGroupedItems} items grouped`;})()}</div></div>}
           right={isCurrentFacilitator && (
             <>
               <Button

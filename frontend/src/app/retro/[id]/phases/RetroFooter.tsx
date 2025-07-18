@@ -15,8 +15,8 @@ import {
 } from '@/components/ui/dialog';
 
 export default function RetroFooter({
-  title, center, right, participants = [], typingParticipants = [], children, isCurrentFacilitator, user, setShowRoleModal, setSelectedParticipant, 
-  votesLeft,
+  left, // tambahkan prop left
+  title, center, right, participants = [], typingParticipants = [], children, isCurrentFacilitator, user,
   allUserVotes = {},
   maxVotes = 3
 }: any) {
@@ -195,11 +195,11 @@ export default function RetroFooter({
         )}
         {/* Card putih/footer utama */}
         <div className="w-full bg-white border-t rounded-t-xl shadow-lg">
-          {(title || center || right) && (
-            <div className="container mx-auto px-4 py-4 flex flex-row items-center justify-between">
-              <div>{title}</div>
-              <div>{center}</div>
-              <div>{right}</div>
+          {(left || title || center || right) && (
+            <div className="container mx-auto px-4 py-4 flex flex-row items-center justify-between gap-4">
+              <div className="min-w-[180px] flex items-center">{left}</div>
+              <div className="flex-1 flex flex-col items-center">{center}</div>
+              <div className="flex items-center">{right}</div>
             </div>
           )}
           {children}

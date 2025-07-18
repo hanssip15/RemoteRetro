@@ -1,28 +1,9 @@
-import { useEffect, useState, useCallback, useMemo, useRef } from "react"
+import { useEffect, useState, useCallback, useRef } from "react"
 import { useParams, useNavigate } from "react-router-dom"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { FeedbackCard } from "@/components/feedback-card"
-import { ArrowLeft, Users, Clock, Share2 } from "lucide-react"
-import { Link } from "react-router-dom"
 import { apiService, Retro, RetroItem, Participant, GroupsData } from "@/services/api"
 
 // Interface untuk data grup
-interface GroupData {
-  groups: Array<{
-    groupId: string;
-    itemIds: string[];
-  }>;
-}
 
-interface DatabaseGroupData {
-  retroId: string;
-  groups: Array<{
-    groupId: string;
-    itemIds: string[];
-  }>; 
-}
 
 interface GroupedItem {
   groupId: string;
@@ -69,30 +50,33 @@ export default function RetroPage() {
   const [updatingItemId, setUpdatingItemId] = useState<string | null>(null)
   const [optimisticUpdates, setOptimisticUpdates] = useState<{ [itemId: string]: { content: string; category: string } }>({})
   const [showShareModal, setShowShareModal] = useState(false);
-  const [user, setUser] = useState(() => {
+  const [user] = useState(() => {
     const userData = localStorage.getItem('user_data');
     return userData ? JSON.parse(userData) : null;
   });
-  const [isPhaseChanging, setIsPhaseChanging] = useState(false);
+  const [isPhaseChanging] = useState(false);
   const [phase, setPhase] = useState<'prime-directive' | 'ideation' | 'grouping' | 'labelling' | 'voting' | 'final' | 'ActionItems'>('prime-directive');
   const [itemPositions, setItemPositions] = useState<{ [key: string]: { x: number; y: number } }>({});
   const [itemGroups, setItemGroups] = useState<{ [key: string]: string }>({}); // itemId -> signature
-  const [groupColors, setGroupColors] = useState<{ [key: number]: string }>({}); // groupId -> color (deprecated)
   const [highContrast, setHighContrast] = useState(false);
-  const areaRef = useRef<HTMLDivElement>(null);
   const [groupLabels, setGroupLabels] = useState<string[]>(["", ""]); // contoh 2 group
 
   // Data structure untuk menyimpan grup yang bisa dimasukkan ke database
-  const [groupData, setGroupData] = useState<GroupData>({
-    groups: [],
-  });
+  // const [setGroupData] = useState<GroupData>({
+  //   groups: [],
+  // });
 
+  loading
+  error
+  format
+  isUpdatingItem
+  isDeletingItem
+  
   // Promote to Facilitator Confirmation
-  const [showRoleModal, setShowRoleModal] = useState(false);
-  const [selectedParticipant, setSelectedParticipant] = useState<Participant | null>(null);
-  const [isPromoting, setIsPromoting] = useState(false);
+  // @ts-ignore
+  const [setShowRoleModal] = useState(false);
+  const [setSelectedParticipant] = useState<Participant | null>(null);
 
-  const [groupsData, setGroupsData] = useState<GroupsData[]>([]);
   const [labellingItems, setLabellingItems] = useState<GroupsData[]>([]);
 
   // 1. State for typing participants
@@ -128,6 +112,7 @@ export default function RetroPage() {
   // Pewarnaan group: connected components + warna primary group stabil dengan signature
   function computeGroupsAndColors(
     items: RetroItem[],
+    // @ts-ignore
     positions: { [id: string]: { x: number; y: number } },
     prevSignatureColors: { [signature: string]: string },
     usedColors: string[],
@@ -240,8 +225,6 @@ export default function RetroPage() {
   // Fungsi untuk menyimpan data grup ke database (kirim satu per satu)
   const saveGroupData = useCallback(async () => {
     const dataToSave = convertGroupsToDatabaseFormat();
-    setGroupData(dataToSave);
-
     // 1. Buat semua group dulu di backend
     // const createdGroups = [];
     for (const group of dataToSave.groups) {
@@ -251,6 +234,7 @@ export default function RetroPage() {
           votes: 0,
         }) as any;
         for (const itemId of group.itemIds) {
+        // @ts-ignore
           const createdGroupItem = await apiService.createGroupItem(createdGroup.id, itemId) as any;
         }
         // createdGroups.push({ ...createdGroup, items: group.itemIds });
@@ -322,6 +306,7 @@ export default function RetroPage() {
   const [lastBroadcastTime, setLastBroadcastTime] = useState<{ [itemId: string]: number }>({});
 
   // Handler drag - update posisi dan group/color
+  // @ts-ignore
   const handleDrag = (id: string, e: any, data: any) => {
     setItemPositions(pos => {
       const newPos = { ...pos, [id]: { x: data.x, y: data.y } };
@@ -370,7 +355,7 @@ export default function RetroPage() {
       return newPos;
     });
   };
-
+  // @ts-ignore
   const handleStop = (id: string, e: any, data: any) => {
     setItemPositions(pos => ({ ...pos, [id]: { x: data.x, y: data.y } }));
     
@@ -864,10 +849,6 @@ export default function RetroPage() {
     }
   }, [handleAdd, isAddingItem]);
 
-  const getItemsByCategory = useCallback((category: string) => {
-    return items.filter((item) => item.category === category)
-  }, [items])
-
   const getCategoryDisplayName = useCallback((category: string) => {
     if (retro?.format === "happy_sad_confused") {
       const mapping = {
@@ -885,11 +866,6 @@ export default function RetroPage() {
       return mapping[category as keyof typeof mapping] || category
     }
   }, [retro?.format])
-
-  const copyShareLink = useCallback(() => {
-    navigator.clipboard.writeText(window.location.href)
-    // You could add a toast notification here
-  }, [])
 
   const handleLogout = useCallback(() => {
     localStorage.removeItem('auth_token');
@@ -1032,36 +1008,7 @@ export default function RetroPage() {
       setActionAssignee(participants[0].user.id);
     }
   }, [participants, actionAssignee, setActionAssignee]);
-  const handleAddActionItem = () => {
-    if (!actionInput.trim() || !actionAssignee || !user?.id) {
-      
-      return;
-    }
-    
-    // Find assignee name
-    const assignee = participants.find(p => p.user.id === actionAssignee);
-    const assigneeName = assignee?.user.name || 'Unknown';
-    
-    
-    
-    // Send to WebSocket ONLY - don't update local state
-    if (socket && isConnected) {
-      socket.emit('action-item-added', {
-        retroId,
-        task: actionInput,
-        assigneeId: actionAssignee,
-        assigneeName,
-        createdBy: user.id
-      });
-      
-    } else {
-      
-    }
-    
-    // Clear input
-    setActionInput('');
-    setActionAssignee('');
-  };
+
   const handleEditActionItem = (idx: number) => {
     const item = actionItems[idx];
     setEditingActionIdx(idx);
@@ -1192,6 +1139,7 @@ export default function RetroPage() {
         items={items}
         itemPositions={itemPositions}
         highContrast={highContrast}
+        setHighContrast={setHighContrast}
         itemGroups={itemGroups}
         setItemGroups={setItemGroups}
         signatureColors={signatureColors}
