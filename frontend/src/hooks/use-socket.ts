@@ -43,7 +43,7 @@ export const useSocket = ({
     isConnectingRef.current = true;
 
     // Connect to WebSocket server
-    socketRef.current = io('http://localhost:3001', {
+    socketRef.current = io(import.meta.env.VITE_API_URL, {
       transports: ['websocket', 'polling'],
       timeout: 10000,
       reconnection: true,

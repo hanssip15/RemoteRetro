@@ -10,8 +10,8 @@ start "Frontend" cmd /k "cd frontend && npm run dev -- --host"
 
 echo.
 echo Project is starting...
-echo Backend will be available at: http://localhost:3000
-echo Frontend will be available at: http://localhost:5173
+echo Backend will be available at: 
+echo Frontend will be available at:
 echo.
 echo Press any key to exit this script...
 pause > nul 

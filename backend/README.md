@@ -70,6 +70,18 @@ $ mau deploy
 
 With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
 
+## Environment Variables
+
+Create a `.env` file in the `backend/` directory with the following variables:
+
+```
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+GOOGLE_CALLBACK_URL=http://localhost:3001/auth/google/callback
+```
+
+Replace the values as needed for your environment.
+
 ## Resources
 
 Check out a few resources that may come in handy when working with NestJS:

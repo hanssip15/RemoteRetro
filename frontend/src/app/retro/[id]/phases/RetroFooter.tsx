@@ -165,8 +165,6 @@ export default function RetroFooter({
                       const userVoteObj = allUserVotes?.[p.user.id] || {};
                       const totalVotes = (Object.values(userVoteObj) as number[]).reduce((a: number, b: number) => a + Number(b), 0);
                       const hasUsedAllVotes = totalVotes >= maxVotes;
-                      console.log(`🔍 ${p.user.name}: votes=${totalVotes}, maxVotes=${maxVotes}, hasUsedAllVotes=${hasUsedAllVotes}`);
-                      console.log(`🔍 ${p.user.name}: userVoteObj=`, userVoteObj);
                       return hasUsedAllVotes ? (
                         <span className="text-green-600">ALL VOTES IN</span>
                       ) : (

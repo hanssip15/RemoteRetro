@@ -16,8 +16,9 @@ async function bootstrap() {
   app.useWebSocketAdapter(new IoAdapter(app));
   
   // Enable CORS
+  const corsOrigins = process.env.CORS_ORIGIN?.split(',') || [];
   app.enableCors({
-    origin: ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:3001'], // Frontend URLs
+    origin: corsOrigins,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
@@ -31,8 +32,9 @@ async function bootstrap() {
   }));
 
   const port = process.env.PORT || 3001; // Use 3001 for backend to avoid conflict with frontend
+  const url = process.env.URL;
   await app.listen(port);
-  console.log(`Application is running on: http://localhost:${port}`);
-  
+  console.log(`Application is running on: ${url}:${port}`);
+  // console.log(`CORS enabled for origins: ${corsOrigins.join(', ')}`);
 }
 bootstrap();

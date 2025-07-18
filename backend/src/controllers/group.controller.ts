@@ -11,8 +11,6 @@ import {
 } from '@nestjs/common';
 import { GroupService } from '../services/group.service';
 import { GroupItemService } from '../services/group-item.service';
-import { PrismaService } from '../services/prisma.service';
-import { Prisma, Retro } from '@prisma/client';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { GroupEntity } from 'src/entities/group.entity';
@@ -24,7 +22,6 @@ export class GroupController {
     private groupRepository: Repository<GroupEntity>,
     private readonly groupService: GroupService,
     private readonly groupItemService: GroupItemService,
-    private readonly prismaService: PrismaService,
   ) {}
 
 
