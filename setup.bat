@@ -9,7 +9,7 @@ call npm install
 echo.
 echo Installing frontend dependencies...
 cd frontend
-call npm install --legacy-peer-deps
+call npm install
 cd ..
 
 echo.
