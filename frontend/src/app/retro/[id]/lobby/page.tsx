@@ -12,6 +12,7 @@ import RetroHeader from '../RetroHeader';
 import { Link } from "react-router-dom"
 import { apiService, Retro, Participant, api } from "@/services/api"
 import { PhaseConfirmModal } from '@/components/ui/dialog';
+import { useSocket } from '@/hooks/use-socket';
 
 
 export default function RetroLobbyPage() {
@@ -117,6 +118,11 @@ export default function RetroLobbyPage() {
     }
   }, [retroId, navigate, socket, isOngoing, currentUser?.id])
 
+  const { isConnected } = useSocket({
+    retroId,
+    onParticipantUpdate: fetchLobbyData,
+    onRetroStarted: handleChangeView,
+  });
   
 
 
