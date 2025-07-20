@@ -53,26 +53,26 @@ export default function DashboardPage() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
   const navigate = useNavigate();
   useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const authStatus = api.isAuthenticated()
-        setIsAuthenticated(authStatus)
-        if (authStatus) {
-          const userData = await api.getCurrentUser()
-          if (userData === null) {
-            navigate('/login')
-          }
-          setUser(userData)
-        } else {
-          setError('User not authenticated. Please login first.')
+  const fetchUser = async () => {
+    try {
+      
+        const userData = await api.getCurrentUser();
+        if (!userData) {
+          api.removeAuthToken(); 
+          navigate('/login');
+        return;
         }
-      } catch (err) {
-        setError('Failed to fetch user. Please try again.')
-        api.removeAuthToken()
-      }
+        setUser(userData);
+    } catch (err) {
+      console.error(err);
+      setError('Failed to fetch user. Please try again.');
+      await api.removeAuthToken();
+      navigate('/login');
     }
-    fetchUser()
-  }, [])
+  };
+
+  fetchUser();
+}, []);
 
   useEffect(() => {
   if (!user?.id) return

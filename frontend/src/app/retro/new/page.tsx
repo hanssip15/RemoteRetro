@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ArrowLeft } from "lucide-react"
 import { Link, useNavigate } from "react-router-dom"
-import { api, apiService } from "@/services/api"
+import { api, apiService, User } from "@/services/api"
 
 const RETRO_FORMATS = [
   {
@@ -38,7 +38,31 @@ export default function NewRetroPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [title, setTitle] = useState("")
   const [selectedFormat, setSelectedFormat] = useState<string>("happy_sad_confused")
-  
+  const [user, setUser] = useState<User | null>(null)
+
+   useEffect(() => {
+  const fetchUser = async () => {
+    try {
+        const userData = await api.getCurrentUser();
+        if (!userData) {
+          api.removeAuthToken(); // optional logout
+          navigate('/login');
+        return;
+        }
+
+        setUser(userData);
+
+    } catch (err) {
+      console.error(err);
+      // setError('Failed to fetch user. Please try again.');
+      await api.removeAuthToken();
+      navigate('/login');
+    }
+  };
+
+  fetchUser();
+}, []);
+
   useEffect(() => {
     const authStatus = api.isAuthenticated()
 
@@ -94,23 +118,14 @@ export default function NewRetroPage() {
         format: selectedFormat,
       })
 
-
-
       if (!retro || !retro.id) {
         throw new Error("No retro ID returned from API")
       }
       
-      let user;
-      const userData = sessionStorage.getItem('user_data');
-      if (userData) {
-        user = JSON.parse(userData)
-
-      } else {
-
+      if (!user) {
         throw new Error("User data not found. Please login again.")
-      }
 
-
+      } 
       await apiService.addParticipant(retro.id, { 
         userId: user.id,
         role: true

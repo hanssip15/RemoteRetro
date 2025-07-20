@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from "react"
 import { useParams, useNavigate } from "react-router-dom"
-import { apiService, Retro, RetroItem, Participant, GroupsData } from "@/services/api"
+import { apiService, Retro, RetroItem, Participant, GroupsData, api , User} from "@/services/api"
 
 // Interface untuk data grup
 
@@ -50,16 +50,14 @@ export default function RetroPage() {
   const [updatingItemId, setUpdatingItemId] = useState<string | null>(null)
   const [optimisticUpdates, setOptimisticUpdates] = useState<{ [itemId: string]: { content: string; category: string } }>({})
   const [showShareModal, setShowShareModal] = useState(false);
-  const [user] = useState(() => {
-    const userData = sessionStorage.getItem('user_data');
-    return userData ? JSON.parse(userData) : null;
-  });
+  const [user, setUser] = useState<User | null>(null)
   const [isPhaseChanging] = useState(false);
   const [phase, setPhase] = useState<'prime-directive' | 'ideation' | 'grouping' | 'labelling' | 'voting' | 'final' | 'ActionItems'>('prime-directive');
   const [itemPositions, setItemPositions] = useState<{ [key: string]: { x: number; y: number } }>({});
   const [itemGroups, setItemGroups] = useState<{ [key: string]: string }>({}); // itemId -> signature
   const [highContrast, setHighContrast] = useState(false);
   const [groupLabels, setGroupLabels] = useState<string[]>(["", ""]); // contoh 2 group
+  
 
   // Data structure untuk menyimpan grup yang bisa dimasukkan ke database
   // const [setGroupData] = useState<GroupData>({
@@ -109,6 +107,27 @@ export default function RetroPage() {
     );
   }
 
+  useEffect(() => {
+  const fetchUser = async () => {
+    try {
+      
+        const userData = await api.getCurrentUser();
+        if (!userData) {
+          api.removeAuthToken(); 
+          navigate('/login');
+        return;
+        }
+        setUser(userData);
+    } catch (err) {
+      console.error(err);
+      setError('Failed to fetch user. Please try again.');
+      await api.removeAuthToken();
+      navigate('/login');
+    }
+  };
+
+  fetchUser();
+}, []);
   // Pewarnaan group: connected components + warna primary group stabil dengan signature
   function computeGroupsAndColors(
     items: RetroItem[],

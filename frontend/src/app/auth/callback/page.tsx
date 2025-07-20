@@ -4,31 +4,25 @@ import { api } from '../../../services/api'; // pastikan path ini benar
 
 const AuthCallbackPage = () => {
   const navigate = useNavigate();
-  const location = useLocation();
 
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const token = params.get('token');
-    const userData = params.get('userData');
-
-    if (token) {
-      let userInfo = null;
-      if (userData) {
-        try {
-          userInfo = JSON.parse(decodeURIComponent(userData));
-        } catch (error) {
-          console.error('Error parsing user data:', error);
-        }
+useEffect(() => {
+  const fetchAndRedirect = async () => {
+    try {
+      const user = await api.getCurrentUser();
+      if (user) {
+        navigate('/dashboard');
+      } else {
+        navigate('/login');
       }
-      
-      api.setAuthToken(token, userInfo);
-      console.log('Token and user data saved, redirecting to dashboard...');
-      navigate('/dashboard');
-    } else {
-      console.error('No token found in URL');
+    } catch (err) {
+      console.error('Error during auth callback:', err);
       navigate('/login');
     }
-  }, [location, navigate]);
+  };
+
+  fetchAndRedirect();
+}, []);
+
 
   return (
     <div style={{ 
