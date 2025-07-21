@@ -196,10 +196,13 @@ export default function RetroFooter({
         {/* Card putih/footer utama */}
         <div className="w-full bg-white border-t rounded-t-xl shadow-lg">
           {(left || title || center || right) && (
-            <div className="container mx-auto px-4 py-4 flex flex-row items-center justify-between gap-4">
-              <div className="min-w-[180px] flex items-center">{left}</div>
-              <div className="flex-1 flex flex-col items-center">{center}</div>
-              <div className="flex items-center">{right}</div>
+            <div className="container mx-auto px-4 py-4 flex flex-row items-center justify-between gap-4 md:gap-4 md:flex-row">
+              <div className="flex-1 flex flex-row items-center justify-between md:flex-col md:items-center md:justify-center">
+                {/* Title/center di kiri mobile, center di tengah desktop */}
+                <div className="flex items-center text-base font-semibold">{title}{center}</div>
+                {/* Tombol next di kanan mobile, kanan desktop */}
+                <div className="flex items-center ml-auto">{right}</div>
+              </div>
             </div>
           )}
           {children}
