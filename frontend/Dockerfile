@@ -9,7 +9,6 @@ RUN npm install
 # Copy all local files into the image.
 COPY . .
 
-NO_CACHE=1
 RUN npm run build
 
 FROM node:20-slim
