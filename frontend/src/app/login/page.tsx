@@ -13,9 +13,8 @@ const LoginPage = () => {
       navigate('/dashboard');
     }
   }, [navigate]);
-  const url = import.meta.env.VITE_API_URL;
   const handleGoogleLogin = () => {
-    window.location.href = `${url}/auth/google`;
+    window.location.href = `${import.meta.env.VITE_API_URL}/auth/google`;
   };
 
   return (
