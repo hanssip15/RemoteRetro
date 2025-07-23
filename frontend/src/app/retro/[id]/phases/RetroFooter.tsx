@@ -16,7 +16,7 @@ import {
 
 export default function RetroFooter({
   left, // tambahkan prop left
-  title, center, right, participants = [], typingParticipants = [], children, isCurrentFacilitator, user,
+  center, right, participants = [], typingParticipants = [], children, isCurrentFacilitator, user,
   allUserVotes = {},
   maxVotes = 3
 }: any) {
