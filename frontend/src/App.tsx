@@ -28,9 +28,6 @@ const LoadingSpinner = () => (
 function App() {
   return (
     <SocketProvider>
-      <h1>
-        Isi Variabel: {import.meta.env.VITE_API_URL || "VARIABEL TIDAK DITEMUKAN"}
-      </h1>
       <Router>
         <Suspense fallback={<LoadingSpinner />}>
           <Routes>
