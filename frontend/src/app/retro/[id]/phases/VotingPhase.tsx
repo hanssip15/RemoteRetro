@@ -390,29 +390,45 @@ export default function VotingPhase(props: any) {
       </div>
       <div className="h-40" />
       <RetroFooter
-        left={<div className="flex flex-col items-start text-left"><div className="text-xl font-semibold">Voting: {votesLeft} Votes Left</div></div>}
-        title={null}
-        center={<div></div>}
-        right={isCurrentFacilitator && (
+        left={
           <>
-            <Button
-              onClick={() => setShowConfirm(true)}
-              className="flex items-center px-8 py-2 text-base font-semibold"
-              variant="phasePrimary"
-            >
-              Next: Action Items <span className="ml-2">&#8594;</span>
-            </Button>
-            <PhaseConfirmModal
-              open={showConfirm}
-              onOpenChange={setShowConfirm}
-              title="Is your team satisfied with their votes?"
-              onConfirm={handleSaveVotesAndProceed}
-              onCancel={() => {}}
-              confirmLabel="Yes"
-              cancelLabel="No"
-            />
+            {/* Mobile: kiri, title & subtitle */}
+            <div className="flex flex-col items-start text-left md:hidden">
+              <div className="text-2xl font-semibold mb-1">Voting</div>
+              <div className="text-gray-500">{votesLeft} Votes Left</div>
+            </div>
+            {/* Desktop: kosong (atau tambahkan high contrast jika ada) */}
           </>
-        )}
+        }
+        center={
+          // Desktop only: title & subtitle di tengah
+          <div className="hidden md:flex flex-col items-center justify-center">
+            <div className="text-2xl font-semibold mb-1">Voting</div>
+            <div className="text-gray-500">{votesLeft} Votes Left</div>
+          </div>
+        }
+        right={
+          isCurrentFacilitator && (
+            <>
+              <Button
+                onClick={() => setShowConfirm(true)}
+                className="flex items-center px-1 py-1 text-sm md:px-8 md:py-2 md:text-base font-semibold"
+                variant="phasePrimary"
+              >
+                Action Items <span className="ml-2">&#8594;</span>
+              </Button>
+              <PhaseConfirmModal
+                open={showConfirm}
+                onOpenChange={setShowConfirm}
+                title="Is your team satisfied with their votes?"
+                onConfirm={handleSaveVotesAndProceed}
+                onCancel={() => {}}
+                confirmLabel="Yes"
+                cancelLabel="No"
+              />
+            </>
+          )
+        }
         participants={participants}
         typingParticipants={typingParticipants}
         isCurrentFacilitator={isCurrentFacilitator}
