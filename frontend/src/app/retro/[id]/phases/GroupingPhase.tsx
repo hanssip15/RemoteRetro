@@ -156,49 +156,79 @@ export default function GroupingPhase({
         {/* Footer modular */}
         <div className="h-40" />
         <RetroFooter
-          left={<div className="hidden md:block"><HighContrastToggle highContrast={highContrast} onToggle={() => setHighContrast(!highContrast)} /></div>}
-          center={<div className="flex flex-col items-center justify-center"><div className="text-lg font-semibold">Grouping</div><div className="text-xs text-gray-500">{(() => {const summary = getGroupSummary();return `${summary.totalGroups} groups, ${summary.totalGroupedItems} items grouped`;})()}</div></div>}
-          right={isCurrentFacilitator && (
+          left={
             <>
-              <Button
-                onClick={() => setShowConfirm(true)}
-                className="flex items-center px-8 py-2 text-base font-semibold"
-                variant="phasePrimary"
-              >
-                Next: Labelling <span className="ml-2">&#8594;</span>
-              </Button>
-              <PhaseConfirmModal
-                open={showConfirm}
-                onOpenChange={setShowConfirm}
-                title="Has your team finished grouping the ideas?"
-                onConfirm={async () => {
-                  // Cek jika belum ada grup, assign setiap item ke grup sendiri
-                  const sigCount: { [sig: string]: number } = {};
-                  (Object.values(itemGroups || {}) as string[]).forEach((sig: string) => { sigCount[sig] = (sigCount[sig] || 0) + 1; });
-                  const allUnique = Object.values(sigCount).every((count: number) => count === 1);
-                  const noGroups = !itemGroups || Object.keys(itemGroups).length === 0 || allUnique;
-                  if (noGroups && items && items.length > 0) {
-                    const newGroups: { [id: string]: string } = {};
-                    // 1. Buat grup di backend untuk setiap item
-                    for (const item of items) {
-                      // Buat grup baru (label = 'unlabeled')
-                      const group = await apiService.createGroup(retro.id, { label: 'unlabeled', votes: 0 });
-                      // Assign item ke grup
-                      await apiService.createGroupItem(group.id.toString(), item.id);
-                      newGroups[item.id] = group.id.toString();
-                    }
-                    setItemGroups(newGroups); // update state global
-                    if (typeof setPhase === 'function') setPhase('labelling');
-                  } 
-                   if (typeof broadcastPhaseChange === 'function') broadcastPhaseChange('labelling');
-                    else if (typeof setPhase === 'function') setPhase('labelling');
-                }}
-                onCancel={() => {}}
-                confirmLabel="Yes"
-                cancelLabel="No"
-              />
+              {/* Mobile: kiri, title & summary */}
+              <div className="flex flex-col items-start text-left md:hidden">
+                <div className="text-lg font-semibold">Grouping</div>
+                <div className="text-xs text-gray-500">
+                  {(() => {
+                    const summary = getGroupSummary();
+                    return `${summary.totalGroups} groups, ${summary.totalGroupedItems} items grouped`;
+                  })()}
+                </div>
+              </div>
+              {/* Desktop: high contrast toggle */}
+              <div className="hidden md:block">
+                <HighContrastToggle highContrast={highContrast} onToggle={() => setHighContrast(!highContrast)} />
+              </div>
             </>
-          )}
+          }
+          center={
+            // Desktop only: title & summary di tengah
+            <div className="hidden md:flex flex-col items-center justify-center">
+              <div className="text-lg font-semibold">Grouping</div>
+              <div className="text-xs text-gray-500">
+                {(() => {
+                  const summary = getGroupSummary();
+                  return `${summary.totalGroups} groups, ${summary.totalGroupedItems} items grouped`;
+                })()}
+              </div>
+            </div>
+          }
+          right={
+            isCurrentFacilitator && (
+              <>
+                <Button
+                  onClick={() => setShowConfirm(true)}
+                  className="flex items-center px-1 py-1 text-xs md:px-8 md:py-2 md:text-base font-semibold"
+                  variant="phasePrimary"
+                >
+                  Next: Labelling <span className="ml-2">&#8594;</span>
+                </Button>
+                <PhaseConfirmModal
+                  open={showConfirm}
+                  onOpenChange={setShowConfirm}
+                  title="Has your team finished grouping the ideas?"
+                  onConfirm={async () => {
+                    // Cek jika belum ada grup, assign setiap item ke grup sendiri
+                    const sigCount: { [sig: string]: number } = {};
+                    (Object.values(itemGroups || {}) as string[]).forEach((sig: string) => { sigCount[sig] = (sigCount[sig] || 0) + 1; });
+                    const allUnique = Object.values(sigCount).every((count: number) => count === 1);
+                    const noGroups = !itemGroups || Object.keys(itemGroups).length === 0 || allUnique;
+                    if (noGroups && items && items.length > 0) {
+                      const newGroups: { [id: string]: string } = {};
+                      // 1. Buat grup di backend untuk setiap item
+                      for (const item of items) {
+                        // Buat grup baru (label = 'unlabeled')
+                        const group = await apiService.createGroup(retro.id, { label: 'unlabeled', votes: 0 });
+                        // Assign item ke grup
+                        await apiService.createGroupItem(group.id.toString(), item.id);
+                        newGroups[item.id] = group.id.toString();
+                      }
+                      setItemGroups(newGroups); // update state global
+                      if (typeof setPhase === 'function') setPhase('labelling');
+                    } 
+                     if (typeof broadcastPhaseChange === 'function') broadcastPhaseChange('labelling');
+                      else if (typeof setPhase === 'function') setPhase('labelling');
+                  }}
+                  onCancel={() => {}}
+                  confirmLabel="Yes"
+                  cancelLabel="No"
+                />
+              </>
+            )
+          }
           participants={participants}
           typingParticipants={typingParticipants}
           isCurrentFacilitator={isCurrentFacilitator}

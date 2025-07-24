@@ -158,7 +158,7 @@ export default function LabellingPhase(props: any) {
           <>
             <Button
               onClick={() => setShowConfirm(true)}
-              className="flex items-center px-8 py-2 text-base font-semibold"
+              className="flex items-center px-1 py-1 text-sm md:px-8 md:py-2 md:text-base font-semibold"
               variant="phasePrimary"
             >
               Next: Voting <span className="ml-2">&#8594;</span>

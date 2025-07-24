@@ -242,7 +242,7 @@ export default function ActionItemsPhase({
         
       >
         <div className="w-full bg-white border-t">
-          <div className="container mx-auto px-4 py-4 flex flex-row items-center gap-2">
+          <div className="container mx-auto px-2 sm:px-4 pt-7 pb-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-white">
             <div className="flex items-center gap-2 w-full md:w-auto">
               <label className="font-medium mr-2 mb-1">Assignee:</label>
               <select
@@ -259,6 +259,7 @@ export default function ActionItemsPhase({
                 )}
               </select>
             </div>
+            <div className="flex flex-row gap-2 w-full">
             <input
               type="text"
               placeholder="Ex. automate the linting process"
@@ -281,11 +282,12 @@ export default function ActionItemsPhase({
             >
               Add
             </Button>
+            </div>
             {isCurrentFacilitator && (
               <>
                 <Button
                   onClick={() => setShowConfirm(true)}
-                  className="flex items-center ml-4 px-8 py-2 rounded text-base font-semibold"
+                  className="flex items-center px-8 py-2 text-base font-semibold w-full sm:w-auto"
                   variant="phasePrimary"
                   disabled= {actionItems.length === 0}
                 >

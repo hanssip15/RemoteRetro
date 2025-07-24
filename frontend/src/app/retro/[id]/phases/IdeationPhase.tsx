@@ -164,7 +164,7 @@ export default function IdeationPhase(props: any) {
             <label className="font-medium mr-2 mb-1">Category:</label>
             <select
               className="w-28 max-w-[120px] text-sm sm:text-base py-1 sm:py-2 px-2 sm:px-3 pr-6 sm:pr-8 rounded-md border appearance-none"
-              style={{ fontSize: '13px', height: '32px' }}
+              style={{ fontSize: '13px', height: '40px' }}
               value={inputCategory}
               onChange={e => setInputCategory(e.target.value)}
               disabled={isAddingItem}
