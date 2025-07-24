@@ -7,18 +7,20 @@ import { api } from '../../services/api';
 const LoginPage = () => {
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      const isAuth = await api.isAuthenticated();
-      if (isAuth) {
-        navigate('/dashboard');
-      }
-    };
-  
-    checkAuth();
-  }, [navigate]);
+useEffect(() => {
+  const checkAuth = async () => {
+    const isAuth = await api.isAuthenticated();
+    if (isAuth) {
+      navigate('/dashboard');
+    }
+  };
+
+  checkAuth();
+}, []);
+
+  const BASE_URL = import.meta.env.VITE_API_URL || '';
   const handleGoogleLogin = () => {
-    window.location.href = `${import.meta.env.VITE_API_URL}/auth/google`;
+    window.location.href = `${BASE_URL}/auth/google`;
   };
 
   return (

@@ -16,7 +16,7 @@ import {
 
 export default function RetroFooter({
   left, // tambahkan prop left
-  center, right, participants = [], typingParticipants = [], children, isCurrentFacilitator, user,
+  title, center, right, participants = [], typingParticipants = [], children, isCurrentFacilitator, user,
   allUserVotes = {},
   maxVotes = 3
 }: any) {
@@ -195,8 +195,8 @@ export default function RetroFooter({
         )}
         {/* Card putih/footer utama */}
         <div className="w-full bg-white border-t rounded-t-xl shadow-lg">
-          {(left || center || right) && (
-            <div className="container mx-auto px-4 py-4 flex flex-row items-center justify-between gap-4 md:gap-4 md:flex-row">
+          {(left || title || center || right) && (
+            <div className="container mx-auto px-4 py-4 flex flex-row items-center justify-between gap-4">
               <div className="min-w-[180px] flex items-center">{left}</div>
               <div className="flex-1 flex flex-col items-center">{center}</div>
               <div className="flex items-center">{right}</div>

@@ -19,7 +19,6 @@ export default function IdeationPhase(props: any) {
   const [showModal, setShowModal] = useState(true);
   const [showConfirm, setShowConfirm] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const [activeMobileCategory, setActiveMobileCategory] = useState('format_1');
 
   useEffect(() => {
     setShowModal(true);
@@ -79,41 +78,8 @@ export default function IdeationPhase(props: any) {
       />
       {/* Board */}
       <div className="container mx-auto px-4 py-8 flex-1 pb-56">
-        {/* Mobile: Tab emoji dan list filter */}
-        <div className="sm:hidden">
-          <div className="flex justify-between items-center mb-2 border-b">
-            {['format_1', 'format_2', 'format_3'].map((cat, idx) => (
-              <button
-                key={cat}
-                className={`flex-1 py-2 text-2xl border-b-2 transition-colors ${activeMobileCategory === cat ? 'border-blue-500 bg-blue-50' : 'border-transparent'}`}
-                onClick={() => setActiveMobileCategory(cat)}
-              >
-                {retro?.format === "happy_sad_confused"
-                  ? (idx === 0 ? '😀' : idx === 1 ? '😢' : '🤔')
-                  : (idx === 0 ? '🟢' : idx === 1 ? '🛑' : '🔄')}
-              </button>
-            ))}
-          </div>
-          <div className="bg-white rounded-b-lg shadow p-2">
-            {items.filter((item:any) => item.category === activeMobileCategory).map((item:any) => (
-              <FeedbackCard
-                key={`${item.id}-${item.category}`}
-                item={{ ...item, author: item.author || "Anonymous" }}
-                currentUser={user}
-                userRole={currentUserRole}
-                onUpdate={handleUpdateItem}
-                onDelete={handleDeleteItem}
-                getCategoryDisplayName={getCategoryDisplayName}
-                isUpdating={updatingItemId === item.id}
-              />
-            ))}
-            {items.filter((item:any) => item.category === activeMobileCategory).length === 0 && (
-              <div className="text-center text-gray-400 py-4">No items yet</div>
-            )}
-          </div>
-        </div>
-        {/* Desktop: 3 kolom */}
-        <div className="hidden sm:grid lg:grid-cols-3 gap-6">
+        <div className="grid lg:grid-cols-3 gap-6">
+          {/* Card per kategori */}
           {[0,1,2].map(idx => (
             <Card className="h-fit" key={idx}>
               <CardHeader>
@@ -156,14 +122,13 @@ export default function IdeationPhase(props: any) {
         setShowRoleModal={setShowRoleModal}
         setSelectedParticipant={setSelectedParticipant}
       >
-        {/* Footer form: mobile = vertikal, desktop = horizontal */}
-        <div className="container mx-auto px-2 sm:px-4 pt-7 pb-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-white">
-          {/* Dropdown kategori */}
-          <div className="flex items-center gap-2 mb-0">
+        {/* Hanya form input yang putih, tanpa sisa putih di atas */}
+        <div className="container mx-auto px-4 pt-7 pb-4 flex flex-row items-center gap-2 bg-white">
+          {/* Dropdown assignee */}
+          <div className="flex items-center gap-2">
             <label className="font-medium mr-2 mb-1">Category:</label>
             <select
-              className="w-28 max-w-[120px] text-sm sm:text-base py-1 sm:py-2 px-2 sm:px-3 pr-6 sm:pr-8 rounded-md border appearance-none"
-              style={{ fontSize: '13px', height: '32px' }}
+              className="w-32 px-3 pr-8 py-2 rounded-md border text-base"
               value={inputCategory}
               onChange={e => setInputCategory(e.target.value)}
               disabled={isAddingItem}
@@ -173,40 +138,36 @@ export default function IdeationPhase(props: any) {
               <option value="format_3">{getCategoryDisplayName("format_3")}</option>
             </select>
           </div>
-          {/* Input + Submit */}
-          <div className="flex flex-row gap-2 w-full">
-            <input
-              ref={inputRef}
-              type="text"
-              placeholder="Ex. we have a linter!"
-              className="border rounded px-2 py-1 flex-1"
-              value={inputText}
-              onChange={handleInputTextChange}
-              onKeyDown={e => {
-                if (e.key === 'Enter' && !isAddingItem && inputText.trim()) {
-                  handleAddAndFocus();
-                } else if (props.handleKeyDown) {
-                  props.handleKeyDown(e);
-                }
-              }}
-              disabled={isAddingItem}
-            />
-            <Button
-              onClick={handleAddAndFocus}
-              disabled={isAddingItem || !inputText.trim()}
-              className="px-4 py-1"
-              type="submit"
-              variant="phaseSecondary"
-            >
-              {isAddingItem ? "Adding..." : "Submit"}
-            </Button>
-          </div>
-          {/* Tombol Grouping */}
+          <input
+            ref={inputRef}
+            type="text"
+            placeholder="Ex. we have a linter!"
+            className="border rounded px-2 py-1 flex-1"
+            value={inputText}
+            onChange={handleInputTextChange}
+            onKeyDown={e => {
+              if (e.key === 'Enter' && !isAddingItem && inputText.trim()) {
+                handleAddAndFocus();
+              } else if (props.handleKeyDown) {
+                props.handleKeyDown(e);
+              }
+            }}
+            disabled={isAddingItem}
+          />
+          <Button
+            onClick={handleAddAndFocus}
+            disabled={isAddingItem || !inputText.trim()}
+            className="px-4 py-1"
+            type="submit"
+            variant="phaseSecondary"
+          >
+            {isAddingItem ? "Adding..." : "Submit"}
+          </Button>
           {isCurrentFacilitator && (
             <>
               <Button
                 onClick={() => setShowConfirm(true)}
-                className="flex items-center px-8 py-2 text-base font-semibold w-full sm:w-auto"
+                className="flex items-center px-8 py-2 text-base font-semibold"
                 variant="phasePrimary"
                 disabled={items.length === 0}
               >

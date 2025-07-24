@@ -139,7 +139,7 @@ export default function RetroLobbyPage() {
     }
   }, [retroId, navigate, socket, isOngoing, user?.id])
 
-  const { isConnected: _isConnected } = useSocket({
+  const { isConnected } = useSocket({
     retroId,
     onParticipantUpdate: fetchLobbyData,
     onRetroStarted: handleChangeView,
@@ -211,7 +211,7 @@ export default function RetroLobbyPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50">
       {/* Header sticky pakai RetroHeader */}
       <RetroHeader
         retro={retro}
@@ -228,42 +228,46 @@ export default function RetroLobbyPage() {
       />
 
       {/* Lobby Content */}
-      <div className="flex-1 container mx-auto px-2 py-4 sm:px-4 sm:py-8 flex flex-col">
-        <div className="grid flex-1 min-h-0 lg:grid-cols-2 gap-4 sm:gap-8">
+      <div className="container mx-auto px-4 py-8">
+        <div className="grid lg:grid-cols-2 gap-8">
           {/* Kolom kiri: Participants */}
-          <Card className="mb-4 lg:mb-0 h-full flex flex-col">
+          <Card>
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2 text-base sm:text-lg">
-                <Users className="h-4 w-4 sm:h-5 sm:w-5" />
+              <CardTitle className="flex items-center space-x-2">
+                <Users className="h-5 w-5" />
                 <span>Participants ({participants.length})</span>
               </CardTitle>
             </CardHeader>
-            <CardContent className="flex-1 flex flex-col justify-center">
-              <div className="space-y-2 sm:space-y-3 w-full">
+            <CardContent className="h-[420px] flex items-center justify-center">
+              <div className="space-y-3 w-full">
                 {participants.map((participant) => (
-                  <div key={participant.id} className="flex items-center justify-between p-2 sm:p-3 bg-gray-50 rounded-lg">
-                    <div className="flex items-center space-x-2 sm:space-x-3">
-                      <div className="w-8 h-8 sm:w-12 sm:h-12 bg-indigo-100 rounded-full flex items-center justify-center">
-                        <Avatar
-                          className={`h-8 w-8 sm:h-12 sm:w-12 border-3 ${participant.role ? 'border-blue-500' : 'border-gray-200'} group-hover:border-indigo-500 transition`}
-                          title={`${participant.user.name} ${participant.role ? '(Facilitator)' : '(Participant)'}`}
-                        >
-                          <AvatarImage 
-                            src={participant.user.imageUrl || participant.user.image_url || undefined} 
-                            alt={participant.user.name} 
-                            loading="lazy"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).style.display = 'none';
-                            }}
-                          />
-                          <AvatarFallback>
-                            {participant.user.name?.charAt(0)?.toUpperCase() }
-                          </AvatarFallback>
-                        </Avatar>
+                  <div key={participant.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
+                        {/* <span className="text-sm font-medium text-indigo-600">
+                          {participant.user.name.charAt(0).toUpperCase()}
+                        </span>
+                         */}
+                         <Avatar
+                      className={`h-12 w-12 border-3 ${participant.role ? 'border-blue-500' : 'border-gray-200'} group-hover:border-indigo-500 transition`}
+                      title={`${participant.user.name} ${participant.role ? '(Facilitator)' : '(Participant)'}`}
+                    >
+                      <AvatarImage 
+                        src={participant.user.imageUrl || participant.user.image_url || undefined} 
+                        alt={participant.user.name} 
+                        loading="lazy"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                      <AvatarFallback>
+                        {participant.user.name?.charAt(0)?.toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
                       </div>
                       <div>
-                        <p className="font-medium text-sm sm:text-base">{participant.user.name}</p>
-                        <p className="text-xs sm:text-sm text-gray-500">
+                        <p className="font-medium">{participant.user.name}</p>
+                        <p className="text-sm text-gray-500">
                           {participant.role === true ? "Facilitator" : "Participant"}
                         </p>
                       </div>
@@ -291,7 +295,7 @@ export default function RetroLobbyPage() {
                 ))}
                 {participants.length === 0 && (
                   <div className="flex w-full h-full items-center justify-center">
-                    <p className="text-gray-500 text-center text-sm">No participants yet</p>
+                    <p className="text-gray-500 text-center">No participants yet</p>
                   </div>
                 )}
                 
@@ -299,36 +303,36 @@ export default function RetroLobbyPage() {
             </CardContent>
           </Card>
           {/* Kolom kanan: Retrospective Details */}
-          <Card className="mb-4 lg:mb-0 h-full flex flex-col">
+          <Card>
             <CardHeader>
-              <CardTitle className="text-base sm:text-lg">Retrospective Details</CardTitle>
+              <CardTitle>Retrospective Details</CardTitle>
             </CardHeader>
-            <CardContent className="flex-1 flex flex-col justify-between">
-              <div className="flex-1 space-y-3 sm:space-y-4">
+            <CardContent className="h-[420px] flex flex-col">
+              <div className="flex-1 space-y-4">
                 <div>
-                  <h3 className="font-medium text-gray-900 text-sm sm:text-base">Title</h3>
-                  <p className="text-gray-600 text-sm sm:text-base">{retro?.title}</p>
+                  <h3 className="font-medium text-gray-900">Title</h3>
+                  <p className="text-gray-600">{retro?.title}</p>
                 </div>
-                <div className="grid grid-cols-2 gap-2 sm:gap-4">
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <h3 className="font-medium text-gray-900 text-sm sm:text-base">Status</h3>
-                    <p className="text-gray-600 text-sm sm:text-base">{retro?.status}</p>
+                    <h3 className="font-medium text-gray-900">Status</h3>
+                    <p className="text-gray-600">{retro?.status}</p>
                   </div>
                   <div>
-                    <h3 className="font-medium text-gray-900 text-sm sm:text-base">Format</h3>
-                    <p className="text-gray-600 text-sm sm:text-base">{retro?.format || "-"}</p>
+                    <h3 className="font-medium text-gray-900">Format</h3>
+                    <p className="text-gray-600">{retro?.format || "-"}</p>
                   </div>
                 </div>
                 {facilitator && (
                   <div>
-                    <h3 className="font-medium text-gray-900 text-sm sm:text-base">Facilitator</h3>
-                    <p className="text-gray-600 text-sm sm:text-base">{facilitator.user.name}</p>
+                    <h3 className="font-medium text-gray-900">Facilitator</h3>
+                    <p className="text-gray-600">{facilitator.user.name}</p>
                   </div>
                 )}
               </div>
               {/* Tombol Start Retro di bagian bawah */}
               {isFacilitator && (
-                <div className="pt-4">
+                <div className="mt-auto pt-4">
                   <Button onClick={() => setShowStartConfirm(true)} className="w-full">
                     <Play className="h-4 w-4 mr-2" />
                     Start Retro
