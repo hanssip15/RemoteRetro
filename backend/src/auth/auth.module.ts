@@ -12,9 +12,11 @@ import { UsersModule } from '../modules/user.module';
   imports: [
     UsersModule,
     PassportModule,
-    JwtModule.register({
-      secret: process.env.JWT_SECRET || 'your_fallback_secret_key_here',
-      signOptions: { expiresIn: '1d' },
+    JwtModule.registerAsync({
+      useFactory: async () => ({
+        secret: process.env.JWT_SECRET || 'fallback',
+        signOptions: { expiresIn: '1d' },
+      }),
     }),
   ],
   controllers: [AuthController],

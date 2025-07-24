@@ -7,10 +7,10 @@ import { useParams, useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ShareLinkModal } from "@/components/share-link-modal"
-import { Users, Play, Crown, User } from "lucide-react"
+import { Users, Play, Crown } from "lucide-react"
 import RetroHeader from '../RetroHeader';
 import { Link } from "react-router-dom"
-import { apiService, Retro, Participant, api } from "@/services/api"
+import { apiService, Retro, Participant, api, User } from "@/services/api"
 import { PhaseConfirmModal } from '@/components/ui/dialog';
 import { useSocket } from '@/hooks/use-socket';
 
@@ -33,11 +33,32 @@ export default function RetroLobbyPage() {
   const [socket] = useState<any>(null)
   const [isOngoing, setIsOngoing] = useState(false)
   const [isPromoting, setIsPromoting] = useState(false)
+  const [user, setUser] = useState<User | null>(null)
 
   // Get current user from sessionStorage
-  const userData = sessionStorage.getItem('user_data');
-  const currentUser = userData ? JSON.parse(userData) : null;
 
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+          const userData = await api.getCurrentUser();
+          if (!userData) {
+            api.removeAuthToken(); // optional logout
+            navigate('/login');
+          return;
+          }
+  
+          setUser(userData);
+  
+      } catch (err) {
+        console.error(err);
+        // setError('Failed to fetch user. Please try again.');
+        await api.removeAuthToken();
+        navigate('/login');
+      }
+    };
+  
+    fetchUser();
+  }, []);
 
   const fetchLobbyData = useCallback(async () => {
     if (!retroId) return;
@@ -72,13 +93,13 @@ export default function RetroLobbyPage() {
 
   // Auto-join participant function
   const checkAndJoinParticipant = useCallback(async () => {
-    if (!currentUser || !retroId) return;
-    const participant = participants.find((p) => p.user.id === currentUser.id);
+    if (!user || !retroId) return;
+    const participant = participants.find((p) => p.user.id === user.id);
     if (!participant) {
       try {
         setIsJoining(true);
         await apiService.addParticipant(retroId, {
-          userId: currentUser.id,
+          userId: user.id,
           role: false,
         });
         await fetchLobbyData();
@@ -88,7 +109,7 @@ export default function RetroLobbyPage() {
         setIsJoining(false);
       }
     }
-  }, [currentUser, retroId, participants, fetchLobbyData]);
+  }, [user, retroId, participants, fetchLobbyData]);
 
   
   useEffect(() => {
@@ -109,16 +130,16 @@ export default function RetroLobbyPage() {
       setIsOngoing(true)
       await apiService.updateRetro(retroId, { status: "ongoing" })
       // Set initial phase to prime-directive
-      await apiService.updatePhase(retroId, 'prime-directive', currentUser?.id || '')
+      await apiService.updatePhase(retroId, 'prime-directive', user?.id || '')
       handleChangeView()
     } catch (error) {
       console.error("Error starting retro:", error)
       const errorMessage = error instanceof Error ? error.message : 'Failed to start retro'
       alert(`Failed to start retro: ${errorMessage}`)
     }
-  }, [retroId, navigate, socket, isOngoing, currentUser?.id])
+  }, [retroId, navigate, socket, isOngoing, user?.id])
 
-  const { isConnected: _isConnected } = useSocket({
+  const { isConnected } = useSocket({
     retroId,
     onParticipantUpdate: fetchLobbyData,
     onRetroStarted: handleChangeView,
@@ -145,7 +166,7 @@ export default function RetroLobbyPage() {
   
   const shareUrl = typeof window !== "undefined" ? window.location.href : ""
   const facilitator = participants.find((p) => p.role === true)
-  const isFacilitator = currentUser?.id === facilitator?.user.id
+  const isFacilitator = user?.id === facilitator?.user.id
 
   
   
@@ -195,7 +216,7 @@ export default function RetroLobbyPage() {
       <RetroHeader
         retro={retro}
         participants={participants}
-        user={currentUser}
+        user={user}
         currentUserRole={isFacilitator}
         showShareModal={showShareModal}
         setShowShareModal={setShowShareModal}
@@ -206,7 +227,7 @@ export default function RetroLobbyPage() {
         }}
       />
 
-      {/* Lobby Content */}
+   \ {/* Lobby Content */}
       <div className="flex-1 container mx-auto px-2 py-4 sm:px-4 sm:py-8 flex flex-col">
         <div className="grid flex-1 min-h-0 lg:grid-cols-2 gap-4 sm:gap-8">
           {/* Kolom kiri: Participants */}
@@ -236,7 +257,7 @@ export default function RetroLobbyPage() {
                             }}
                           />
                           <AvatarFallback>
-                            {participant.user.name?.charAt(0)?.toUpperCase() || <User className="h-4 w-4" />}
+                            {participant.user.name?.charAt(0)?.toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
                       </div>
