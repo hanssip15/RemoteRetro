@@ -161,8 +161,7 @@ export default function GroupingPhase({
         {/* Footer modular */}
         <div className="h-40" />
         <RetroFooter
-          title={null}
-          left={<HighContrastToggle highContrast={highContrast} onToggle={() => setHighContrast(!highContrast)} />}
+          left={<div className="hidden md:block"><HighContrastToggle highContrast={highContrast} onToggle={() => setHighContrast(!highContrast)} /></div>}
           center={<div className="flex flex-col items-center justify-center"><div className="text-lg font-semibold">Grouping</div><div className="text-xs text-gray-500">{(() => {const summary = getGroupSummary();return `${summary.totalGroups} groups, ${summary.totalGroupedItems} items grouped`;})()}</div></div>}
           right={isCurrentFacilitator && (
             <>
