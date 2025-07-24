@@ -30,6 +30,7 @@ import LabellingPhase from './phases/LabellingPhase';
 import VotingPhase from './phases/VotingPhase';
 import ActionItemsPhase from './phases/ActionItemsPhase';
 import FinalPhase from './phases/FinalPhase';
+import { Vote } from "lucide-react";
 
 export default function RetroPage() {
   const params = useParams()
@@ -57,7 +58,7 @@ export default function RetroPage() {
   const [itemGroups, setItemGroups] = useState<{ [key: string]: string }>({}); // itemId -> signature
   const [highContrast, setHighContrast] = useState(false);
   const [groupLabels, setGroupLabels] = useState<string[]>(["", ""]); // contoh 2 group
-  
+  const [allUserVotes, setAllUserVotes] = useState<{ [userId: string]: { [groupIdx: number]: number } }>({});
 
   // Data structure untuk menyimpan grup yang bisa dimasukkan ke database
   // const [setGroupData] = useState<GroupData>({
@@ -76,8 +77,6 @@ export default function RetroPage() {
   const [setSelectedParticipant] = useState<Participant | null>(null);
 
   const [labellingItems, setLabellingItems] = useState<GroupsData[]>([]);
-
-  // 1. State for typing participants
   const [typingParticipants, setTypingParticipants] = useState<string[]>([]);
   const typingTimeouts = useRef<{ [userId: string]: NodeJS.Timeout }>({});
 
@@ -361,14 +360,14 @@ export default function RetroPage() {
         setUsedColors(newUsedColors);
         
         // Broadcast grouping update to other users
-        if (socket && isConnected && user) {
-          socket.emit('grouping-update', {
-            retroId: retroId,
-            itemGroups: itemToGroup,
-            signatureColors: newSignatureColors,
-            userId: user.id
-          });
-        }
+        // if (socket && isConnected && user) {
+        //   socket.emit('grouping-update', {
+        //     retroId: retroId,
+        //     itemGroups: itemToGroup,
+        //     signatureColors: newSignatureColors,
+        //     userId: user.id
+        //   });
+        // }
       }, 50); // Slightly longer delay to ensure DOM is updated
       
       return newPos;
@@ -377,7 +376,7 @@ export default function RetroPage() {
   // @ts-ignore
   const handleStop = (id: string, e: any, data: any) => {
     setItemPositions(pos => ({ ...pos, [id]: { x: data.x, y: data.y } }));
-    
+  
     // Final grouping computation after drag stops
     setTimeout(() => {
       const { itemToGroup, newSignatureColors, newUsedColors } = computeGroupsAndColors(
@@ -403,6 +402,8 @@ export default function RetroPage() {
       }
     }, 100);
   };
+
+  
 
   // Load phase from retro data when component mounts or retro changes
   useEffect(() => {
@@ -660,6 +661,49 @@ export default function RetroPage() {
     onActionItemsUpdate: handleActionItemsUpdate,
     onRetroState: handleRetroState,
   });
+
+  useEffect(() => {
+    if (socket && retroId && user) {
+      socket.emit('request-item-positions', {
+        retroId,
+        userId: user.id
+      });
+  
+      socket.on(`initial-item-positions:${retroId}`, (data: { positions: { [key: string]: { x: number, y: number } } }) => {
+        setItemPositions(data.positions); // update local state
+      });
+  
+      return () => {
+        socket.off(`initial-item-positions:${retroId}`);
+      };
+    }
+  }, [socket, retroId, user, itemPositions]);
+
+  useEffect(() => {
+  if (socket && retroId && user) {
+    // Minta data userVotes saat halaman di-load atau socket connect
+    socket.emit('request-user-votes', {
+      retroId,
+      userId: user.id
+    });
+
+    // Terima hasil userVotes
+    socket.on(`user-votes:${retroId}:${user.id}`, (data: { userVotes: { [groupId: number]: number } }) => {
+      if (data && data.userVotes) {
+        console.log('✅ Fetched userVotes after reconnect:', data.userVotes);
+        setUserVotes(data.userVotes);
+      }
+    });
+
+    // Cleanup listener saat komponen unmount
+    return () => {
+      socket.off(`user-votes:${retroId}:${user.id}`);
+    };
+  }
+}, [socket, retroId, user]);
+
+
+ 
 
   // Fungsi untuk mengirim phase change ke semua partisipan
   const broadcastPhaseChange = useCallback(async (newPhase: 'prime-directive' | 'ideation' | 'grouping' | 'labelling' | 'voting' | 'final' | 'ActionItems') => {
@@ -1007,6 +1051,22 @@ export default function RetroPage() {
       return { ...prev, [groupIdx]: next };
     });
   };
+  useEffect(() => {
+    if (socket && retroId && user) {
+      socket.emit('request-voting-result', {
+        retroId,
+        userId: user.id
+      });
+  
+      socket.on(`initial-voting-result:${retroId}`, (data: { allUserVotes: { [userId: string]: { [groupIdx: number]: number } } }) => {
+        setAllUserVotes(data.allUserVotes); // update local state
+      });
+  
+      return () => {
+        socket.off(`initial-voting-result:${retroId}`);
+      };
+    }
+  }, [socket, retroId, user, userVotes]);
   const [actionItems, setActionItems] = useState<Array<{
     id?: string;
     assignee?: string;
@@ -1077,6 +1137,23 @@ export default function RetroPage() {
     }
   };
 
+  useEffect(() => {
+    if (socket && retroId && user) {
+      socket.emit('req-all-votes', {
+        retroId,
+        userId: user.id
+      });
+  
+      // 3. Listen for response
+      socket.on(`initial-item-positions:${retroId}`, (data: { positions: { [key: string]: { x: number, y: number } } }) => {
+        setItemPositions(data.positions); // update local state
+      });
+  
+      return () => {
+        socket.off(`initial-item-positions:${retroId}`);
+      };
+    }
+  }, [socket, retroId, user, itemPositions]);
   // Phase switching
   if (phase === 'prime-directive') return (
     <>
@@ -1220,6 +1297,7 @@ export default function RetroPage() {
         retro={retro}
         participants={participants}
         user={user}
+        allUserVotes={allUserVotes}
         currentUserRole={currentUserRole}
         showShareModal={showShareModal}
         setShowShareModal={setShowShareModal}

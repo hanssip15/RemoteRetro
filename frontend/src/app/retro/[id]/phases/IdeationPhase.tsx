@@ -32,7 +32,6 @@ export default function IdeationPhase(props: any) {
 
   useEnterToCloseModal(showModal, () => setShowModal(false));
 
-  // Handler submit yang sudah ada
   const handleAddAndFocus = (...args: any[]) => {
     if (props.handleAdd) {
       props.handleAdd(...args);

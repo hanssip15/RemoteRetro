@@ -12,6 +12,7 @@ export default function GroupingPhase({
   retro,
   participants,
   user,
+  allUserVotes,
   currentUserRole,
   showShareModal,
   setShowShareModal,
@@ -49,6 +50,8 @@ export default function GroupingPhase({
     setShowModal(true);
   }, []);
 
+  
+
   useEnterToCloseModal(showModal, () => setShowModal(false));
 
   // Cek jika tidak ada grup yang terbentuk, assign setiap item ke grup sendiri
@@ -76,6 +79,8 @@ export default function GroupingPhase({
     // Default: pakai itemGroups asli
     return itemGroups;
   }, [itemGroups, items]);
+
+  
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">

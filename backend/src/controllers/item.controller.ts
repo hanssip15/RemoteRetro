@@ -1,6 +1,8 @@
 import { Controller, Post, Body, Get, Param, Delete, Put, Req, ForbiddenException, HttpCode, HttpStatus } from '@nestjs/common';
 import { RetroItemsService } from '../services/item.service';
 import { CreateRetroItemDto } from '../dto/create-item.dto';
+import { UseGuards } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 import { Request } from 'express';
 
 @Controller('retros/:retroId/items')
@@ -25,23 +27,25 @@ export class RetroItemsController {
     return this.retroItemsService.findByRetroId(retroId);
   }
 
-  @Put(':itemId')
-  async update(
-    @Param('retroId') retroId: string,
-    @Param('itemId') itemId: string,
-    @Body() body: { content: string; category: string; userId?: string },
-    @Req() req: Request
-  ) {
-    // Extract user ID from request body or headers
-    const userId = body.userId || this.extractUserId(req);
-    if (!userId) {
-      throw new ForbiddenException('User ID is required');
-    }
+@Put(':itemId')
+@UseGuards(AuthGuard('jwt')) // memastikan route dilindungi
+async update(
+  @Param('retroId') retroId: string,
+  @Param('itemId') itemId: string,
+  @Body() body: { content: string; category: string },
+  @Req() req: Request
+) {
+  const user = req.user as any; // kamu bisa buat interface untuk type user
+  const userId = user?.sub; // pastikan `sub` adalah ID user dari JWT payload
 
-    return this.retroItemsService.update(itemId, body.content, body.category, userId, retroId);
+  if (!userId) {
+    throw new ForbiddenException('User ID is required');
   }
 
+  return this.retroItemsService.update(itemId, body.content, body.category, userId, retroId);
+}
   @Delete(':itemId')
+  @UseGuards(AuthGuard('jwt')) // memastikan route dilindungi
   @HttpCode(HttpStatus.OK)
   async remove(
     @Param('retroId') retroId: string,
@@ -49,7 +53,9 @@ export class RetroItemsController {
     @Req() req: Request
   ) {
     // Extract user ID from request (assuming it's in headers or body)
-    const userId = this.extractUserId(req);
+    const user = req.user as any; // kamu bisa buat interface untuk type user
+    const userId = user?.sub; // pastikan `sub` adalah ID user dari JWT payload
+
     if (!userId) {
       throw new ForbiddenException('User ID is required');
     }
@@ -65,23 +71,4 @@ export class RetroItemsController {
   }
 
 
-
-  private extractUserId(req: Request): string | null {
-    // Try to get user ID from different sources
-    const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      try {
-        // Decode JWT token to get user ID
-        const jwtService = new (require('@nestjs/jwt').JwtService)();
-        const token = authHeader.substring(7);
-        const payload = jwtService.decode(token);
-        return payload?.sub || payload?.userId;
-      } catch (error) {
-        console.log('Error decoding JWT:', error.message);
-      }
-    }
-
-    // Fallback to body or query
-    return (req.body as any)?.userId || (req.query as any)?.userId || null;
-  }
 }

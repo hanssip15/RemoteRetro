@@ -16,14 +16,14 @@ export default function VotingPhase(props: any) {
     userVotes, handleVote, socket, isConnected, setLabellingItems
   } = props;
 
-  // State untuk menyimpan votes semua peserta
   const [allUserVotes, setAllUserVotes] = useState<{ [userId: string]: { [groupIdx: number]: number } }>({});
+  const [voteTotals, setVoteTotals] = useState<Record<number, number>>({});
 
   // Function untuk update votes di database (tanpa broadcast untuk menghindari duplikasi)
   const updateVotesInDatabase = useCallback(async (groupId: number, newVotes: number) => {
     try {
-      await apiService.updateVotes(groupId, newVotes);
-      console.log('✅ Database updated successfully for group', groupId, 'with votes:', newVotes);
+      // await apiService.updateVotes(groupId, newVotes);
+      // console.log('✅ Database updated successfully for group', groupId, 'with votes:', newVotes);
     } catch (error) {
       console.error('❌ Failed to update votes:', error);
     }
@@ -34,45 +34,23 @@ export default function VotingPhase(props: any) {
 
   // Enhanced vote handler that updates database and broadcasts
   const handleVoteWithBroadcast = useCallback((groupIdx: number, delta: number) => {
-    console.log('📊 handleVoteWithBroadcast called with:', { groupIdx, delta });
-    console.log('📊 userVotes before handleVote:', userVotes);
-    
-    // Calculate the new userVotes manually
+
     const currentUserVotes = userVotes[groupIdx] || 0;
     const newUserVotes = Math.max(0, currentUserVotes + delta);
     
     // Check if this vote change is valid
     const totalCurrentVotes = (Object.values(userVotes) as number[]).reduce((sum: number, votes: number) => sum + votes, 0);
     const totalNewVotes = totalCurrentVotes + delta;
-    
-    console.log('📊 Vote validation:', {
-      currentUserVotes,
-      newUserVotes,
-      totalCurrentVotes,
-      totalNewVotes,
-      maxVotes,
-      delta,
-      isValid: totalNewVotes >= 0 && totalNewVotes <= maxVotes
-    });
-    
-    // Only proceed if vote change is valid
     if (totalNewVotes < 0 || totalNewVotes > maxVotes) {
       console.log('❌ Invalid vote change, aborting');
       return;
     }
     
     const updatedUserVotes = { ...userVotes, [groupIdx]: newUserVotes };
-    
-    console.log('📊 Calculated updatedUserVotes:', updatedUserVotes);
-    console.log('📊 Total votes in updatedUserVotes:', (Object.values(updatedUserVotes) as number[]).reduce((sum: number, votes: number) => sum + votes, 0));
-    
-    // Call the original handleVote function first
     handleVote(groupIdx, delta);
     
-    console.log('📊 userVotes after handleVote:', userVotes);
-    
-    // Update database and broadcast if vote was successful
-    const group = labellingItems[groupIdx];
+    console.log('📊 userVotes after handleVote:', userVotes);    
+    const group = labellingItems.find((g:any) => g.id === groupIdx);
     if (group && group.id) {
       const currentVotes = group.votes || 0;
       const newVotes = currentVotes + delta;
@@ -87,17 +65,10 @@ export default function VotingPhase(props: any) {
       );
       
       // Update database and broadcast - ONLY ONCE
-      updateVotesInDatabase(group.id, Math.max(0, newVotes));
+     // updateVotesInDatabase(group.id, Math.max(0, newVotes));
       
       // Broadcast vote update with allUserVotes - use calculated userVotes
       if (socket && isConnected && user) {
-        console.log('📊 Broadcasting vote update with updatedUserVotes:', updatedUserVotes);
-        console.log('📊 updatedUserVotes type:', typeof updatedUserVotes);
-        console.log('📊 updatedUserVotes keys:', Object.keys(updatedUserVotes));
-        console.log('📊 updatedUserVotes values:', Object.values(updatedUserVotes));
-        console.log('📊 Total votes in updatedUserVotes:', (Object.values(updatedUserVotes) as number[]).reduce((a: number, b: number) => a + b, 0));
-        
-        // Log setiap key-value pair untuk debugging
         Object.entries(updatedUserVotes).forEach(([key, value]) => {
           console.log(`📊 Key: ${key}, Value: ${value}, Type: ${typeof value}`);
         });
@@ -117,6 +88,8 @@ export default function VotingPhase(props: any) {
     }
   }, [handleVote, labellingItems, setLabellingItems, updateVotesInDatabase, socket, isConnected, user, retro?.id, userVotes, maxVotes]);
 
+
+  
   // Function untuk menyimpan semua votes ke database saat facilitator menekan Action Items
   const handleSaveVotesAndProceed = useCallback(async () => {
     try {
@@ -125,7 +98,7 @@ export default function VotingPhase(props: any) {
       // Save votes for all groups to database
       const savePromises = labellingItems.map(async (group: any) => {
         if (group && group.id) {
-          console.log(`🔄 Saving votes for group ${group.id}: ${group.votes || 0}`);
+          // console.log(`🔄 Saving votes for group ${group.id}: ${group.votes || 0}`);
           await apiService.updateVotes(group.id, group.votes || 0);
         }
       });
@@ -224,10 +197,7 @@ export default function VotingPhase(props: any) {
       console.log('📊 Received vote-update:', data);
       
       if (data.allUserVotes) {
-        console.log('📊 Setting allUserVotes:', data.allUserVotes);
-        console.log('📊 allUserVotes type:', typeof data.allUserVotes);
-        console.log('📊 allUserVotes keys:', Object.keys(data.allUserVotes));
-        
+
         // Log setiap user dalam allUserVotes
         Object.entries(data.allUserVotes).forEach(([userId, userVotes]) => {
           const totalVotes = (Object.values(userVotes) as number[]).reduce((sum: number, votes: number) => sum + votes, 0);
@@ -267,12 +237,7 @@ export default function VotingPhase(props: any) {
   // Debug logging untuk allUserVotes
   useEffect(() => {
     console.log('📊 Current allUserVotes state:', allUserVotes);
-    console.log('📊 Max votes:', maxVotes);
-    console.log('📊 Number of participants with votes:', Object.keys(allUserVotes).length);
-    console.log('📊 Current user votes:', userVotes);
-    console.log('📊 Current user total votes:', (Object.values(userVotes) as number[]).reduce((a: number, b: number) => a + Number(b), 0));
-    
-    // Log untuk setiap participant
+
     participants.forEach((p: any) => {
       const userVoteObj = allUserVotes?.[p.user.id] || {};
       const totalVotes = (Object.values(userVoteObj) as number[]).reduce((a: number, b: number) => a + Number(b), 0);
@@ -304,6 +269,20 @@ export default function VotingPhase(props: any) {
       });
     }
   }, [userVotes, user?.id]);
+
+  useEffect(() => {
+    const totals: Record<number, number> = {};
+  
+    for (const userVotes of Object.values(allUserVotes)) {
+      for (const [indexStr, vote] of Object.entries(userVotes)) {
+        const index = Number(indexStr);
+        totals[index] = (totals[index] || 0) + vote;
+      }
+    }
+  
+    setVoteTotals(totals);
+    console.log("Totals Of Votes", totals)
+  }, [allUserVotes]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -347,7 +326,7 @@ export default function VotingPhase(props: any) {
               <div className="mb-2 flex items-center justify-between">
                 <div className="flex flex-col">
                   <span className="text-lg font-semibold text-gray-400">{group.label}</span>
-                  {/* <span className="text-sm text-gray-500">Total Votes: {group.votes || 0}</span> */}
+                  <span className="text-sm text-gray-500">Total Votes: {group.votes || 0}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="relative flex items-center">
@@ -359,8 +338,8 @@ export default function VotingPhase(props: any) {
                     size="icon"
                     variant="outline"
                     className="h-7 w-7 px-0"
-                    onClick={() => handleVoteWithBroadcast(idx, -1)}
-                    disabled={(userVotes[idx] || 0) <= 0}
+                    onClick={() => handleVoteWithBroadcast(group.id, -1)}
+                    disabled={(userVotes[group.id] || 0) <= 0}
                   >
                     -
                   </Button>
@@ -368,12 +347,12 @@ export default function VotingPhase(props: any) {
                     size="icon"
                     variant="outline"
                     className="h-7 w-7 px-0"
-                    onClick={() => handleVoteWithBroadcast(idx, 1)}
+                    onClick={() => handleVoteWithBroadcast(group.id, 1)}
                     disabled={votesLeft <= 0}
                   >
                     +
                   </Button>
-                  <span className="w-5 text-center font-semibold">{userVotes[idx] || 0}</span>
+                  <span className="w-5 text-center font-semibold">{userVotes[group.id] || 0}</span>
                 </div>
               </div>
               <div className="flex flex-col gap-2">
@@ -395,6 +374,13 @@ export default function VotingPhase(props: any) {
         center={<div></div>}
         right={isCurrentFacilitator && (
           <>
+          <Button 
+          onClick={() => console.log("ws coy",allUserVotes)}
+          className="flex items-center px-8 py-2 text-base font-semibold"
+          variant="phasePrimary"
+          >
+            console.log
+          </Button>
             <Button
               onClick={() => setShowConfirm(true)}
               className="flex items-center px-8 py-2 text-base font-semibold"
