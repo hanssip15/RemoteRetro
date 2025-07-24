@@ -387,7 +387,7 @@ class ApiService {
 // api.ts
 export const fetchProtectedData = async () => {
   const token = sessionStorage.getItem('auth_token');
-  const res = await fetch(`${process.env.BASE_URL}/protected-route`, {
+  const res = await fetch(`${import.meta.env.VITE_API_URL}/protected-route`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -400,39 +400,53 @@ export const fetchProtectedData = async () => {
 export const apiService = new ApiService();
 
 export const api = Object.assign(apiService, {
-  // Get current user info from session
   getCurrentUser: async (): Promise<any> => {
-    const userData = sessionStorage.getItem('user_data');
-    if (!userData) {
-      return null; // or handle as needed
-    }
-    const user = JSON.parse(userData);
-    const userDb = await apiService.getUserByEmail(user.email);
-    if (userDb === null) {
-      sessionStorage.removeItem('auth_token');
-      sessionStorage.removeItem('user_data');
-      return null; // or handle as needed
-    }
-    return user;
-  },
-  // Set auth token and user data
-  setAuthToken: (token: string, userData?: any) => {
-    sessionStorage.setItem('auth_token', token);
-    if (userData) {
-      sessionStorage.setItem('user_data', JSON.stringify(userData));
+    try {
+      console.log('Fetching current user...');
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/me`, {
+        credentials: 'include', // penting agar cookie dikirim
+      });
+
+      if (!res.ok) {
+        return null;
+      }
+
+      const user = await res.json();
+      return user;
+    } catch (error) {
+      console.error('Failed to fetch current user:', error);
+      return null;
     }
   },
-  // Remove auth token and user data (logout)
-  removeAuthToken: () => {
-    sessionStorage.removeItem('auth_token');
-    sessionStorage.removeItem('user_data');
+
+  // Tidak perlu lagi menyetel token atau user secara manual
+  setAuthToken: (_token: string, _userData?: any) => {
+    // Tidak melakukan apa-apa karena token dikelola otomatis oleh cookie
   },
-  // Check if user is authenticated
-  isAuthenticated: (): boolean => {
-    return !!(sessionStorage.getItem('auth_token') && sessionStorage.getItem('user_data'));
+
+  // Logout dari backend dan bersihkan apa pun di frontend (kalau perlu)
+  removeAuthToken: async () => {
+    try {
+      await fetch(`${import.meta.env.VITE_API_URL}/auth/logout`, {
+        credentials: 'include',
+      });
+    } catch (error) {
+      console.error('Failed to logout:', error);
+    }
   },
-  // Set user data in session
+
+  // Cek apakah user sudah login dengan cara memanggil API
+  isAuthenticated: async (): Promise<boolean> => {
+    console.log('Checking authentication status...');
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/me`, {
+        credentials: 'include', // penting agar cookie dikirim
+      });
+
+    return !!res.ok;
+  },
+
+  // Simpan user data kalau mau secara lokal (tidak wajib)
   setUserData: (userData: any) => {
     sessionStorage.setItem('user_data', JSON.stringify(userData));
   }
-}); 
+});

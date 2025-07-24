@@ -20,7 +20,6 @@ export class AuthController {
   async googleCallback(@Req() req: Request, @Res() res: Response) {
     const { name, email, imageUrl } = req.user as { id: string; name: string; email: string; imageUrl: string };
     
-    
     let user = await this.usersService.findByEmail(email);
 
     if (!user) {
@@ -54,14 +53,21 @@ export class AuthController {
     };
 
     // Send token and user data to frontend
-    const userDataEncoded = encodeURIComponent(JSON.stringify(userData));
     const frontendUrl = process.env.FRONTEND_URL; // Use environment variable or default to localhost
-    return res.redirect(`${frontendUrl}/auth/callback?token=${token}&userData=${userDataEncoded}`);
+    res.cookie('token', token, {
+      httpOnly: false,
+      secure: false,
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 1000
+    });
+    return res.redirect(`${frontendUrl}/auth/callback`);
   }
 
   @Get('me')
   @UseGuards(AuthGuard('jwt'))
   async getCurrentUser(@Req() req: Request) {
+    console.log('Current user request:', req.user);
+    console.log('Current user request cookies:', req.cookies);
     // req.user contains the decoded JWT payload
     const user = req.user as any;
     return {
@@ -71,4 +77,10 @@ export class AuthController {
       imageUrl: user?.imageUrl
     };
   }
+  @Get('logout')
+  logout(@Res() res: Response) {
+    res.clearCookie('token');
+    return res.json({ message: 'Logged out successfully' });
+  }
+
 }

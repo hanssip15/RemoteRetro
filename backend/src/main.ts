@@ -3,6 +3,8 @@ import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { IoAdapter } from '@nestjs/platform-socket.io';
 import * as dotenv from 'dotenv';
+import * as cookieParser from 'cookie-parser';
+
 
 // Load environment variables
 dotenv.config();
@@ -14,6 +16,7 @@ async function bootstrap() {
   
   // Enable WebSocket adapter
   app.useWebSocketAdapter(new IoAdapter(app));
+  app.use(cookieParser());
   
   // Enable CORS
   const corsOrigins = process.env.CORS_ORIGIN?.split(',') || [];
@@ -32,9 +35,9 @@ async function bootstrap() {
   }));
 
   const port = process.env.PORT || 3001; // Use 3001 for backend to avoid conflict with frontend
-  const url = process.env.URL;
+  const url = process.env.BASE_URL;
   await app.listen(port);
-  console.log(`Application is running on: ${url}:${port}`);
+  console.log(`Application is running on: ${url}`);
   // console.log(`CORS enabled for origins: ${corsOrigins.join(', ')}`);
 }
 bootstrap();
