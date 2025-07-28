@@ -183,53 +183,6 @@ export default function RetroLobbyPage() {
   const facilitator = participants.find((p) => p.role === true)
   const isFacilitator = user?.id === facilitator?.user.id
 
-// const leaveRetro = async () => {
-//     if (!userId) {
-//       console.error('User ID is undefined. Cannot leave retro.');
-//       return;
-//     }
-//     try {
-//       await apiService.leaveParticipant(retroId, userId);
-//     } catch (error) {
-//       console.error('Failed to leave retro:', error);
-//     }
-//   };
-
-//   // Handle browser/tab close
-//   useBeforeUnload(() => {
-//     sessionStorage.setItem('leavingRetro', 'true'); // Sementara
-//     leaveRetro();
-//     return; // Return undefined to prevent default dialog
-//   });
-
-//   // Handle route change within the app
-//   useEffect(() => {
-//     const currentPath = window.location.pathname;
-    
-//     const handleClick = (event: MouseEvent) => {
-//       const target = event.target as HTMLAnchorElement;
-//       if (target.tagName === 'A' && target.href) {
-//         const url = new URL(target.href);
-//         if (url.pathname !== currentPath) {
-//           leaveRetro();
-//         }
-//       }
-//     };
-
-//     document.addEventListener('click', handleClick);
-
-//     return () => {
-//       document.removeEventListener('click', handleClick);
-//     };
-//   }, [retroId, userId]);
-
-//   useEffect(() => {
-//   if (sessionStorage.getItem('leavingRetro') === 'true') {
-//     sessionStorage.removeItem('leavingRetro');
-//     console.log("User kembali setelah refresh, jangan keluarkan lagi.");
-//     // Jangan kirim leaveRetro lagi
-//   }
-// }, []);
 
 
 
