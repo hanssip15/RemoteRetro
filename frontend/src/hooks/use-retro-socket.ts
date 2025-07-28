@@ -1,8 +1,9 @@
-import { useEffect, useMemo } from 'react';
-import { useSocketContext } from '@/contexts/SocketContext';
+import { useEffect, useMemo, useCallback, useRef } from 'react';
+import { io, Socket } from 'socket.io-client';
 
 interface UseRetroSocketOptions {
   retroId: string;
+  userId: string;
   onItemAdded?: (item: any) => void;
   onItemUpdated?: (item: any) => void;
   onItemDeleted?: (itemId: string) => void;
@@ -21,6 +22,7 @@ interface UseRetroSocketOptions {
 
 export const useRetroSocket = ({
   retroId,
+  userId,
   onItemAdded,
   onItemUpdated,
   onItemDeleted,
@@ -36,8 +38,9 @@ export const useRetroSocket = ({
   onActionItemsUpdate,
   onRetroState,
 }: UseRetroSocketOptions) => {
-  const { socket, isConnected, joinRoom, leaveRoom } = useSocketContext();
-
+  // const { socket} = useRetroSocket();
+    const socketRef = useRef<Socket>();
+    const isConnectingRef = useRef(false);
   // Memoize callbacks to prevent unnecessary re-renders
   const callbacks = useMemo(() => ({
     onItemAdded,
@@ -55,23 +58,102 @@ export const useRetroSocket = ({
     onActionItemsUpdate,
     onRetroState,
   }), [onItemAdded, onItemUpdated, onItemDeleted, onItemsUpdate, onParticipantUpdate, onRetroStarted, onPhaseChange, onItemPositionUpdate, onGroupingUpdate, onVoteUpdate, onVoteSubmission, onLabelUpdate, onActionItemsUpdate, onRetroState]);
+    const connect = useCallback(() => {
+      if (socketRef.current?.connected || isConnectingRef.current) {
+        console.log('Socket already connected or connecting, skipping...');
+        return;
+      }
+  
+      console.log('🔌 Connecting to WebSocket server...');
+      isConnectingRef.current = true;
+  
+      // Connect to WebSocket server
+      socketRef.current = io(import.meta.env.VITE_API_URL, {
+        transports: ['websocket', 'polling'],
+        timeout: 10000,
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+        query: {
+          retroId : retroId,
+          userId : userId
+        },
+      });
+  
+      // Connection events
+      socketRef.current.on('connect', () => {
+        console.log('✅ Connected to WebSocket server');
+        isConnectingRef.current = false;
+        // Join the retro room
+        socketRef.current?.emit('join-retro-room', retroId);
+      });
+  
+      socketRef.current.on('connect_error', (error) => {
+        console.error('❌ Socket connection error:', error);
+        isConnectingRef.current = false;
+      });
+  
+      socketRef.current.on('disconnect', (reason) => {
+        console.log('🔌 Disconnected from WebSocket server:', reason);
+        isConnectingRef.current = false;
+      });
+  
+      socketRef.current.on('reconnect', (attemptNumber) => {
+        console.log('🔄 Reconnected to WebSocket server, attempt:', attemptNumber);
+        // Re-join the retro room after reconnection
+        socketRef.current?.emit('join-retro-room', retroId);
+      });
+  
+      socketRef.current.on(`participants-update:${retroId}`, () => {
+        console.log('👥 Participants updated via WebSocket');
+        callbacks.onParticipantUpdate?.();
+      });
+  
+      socketRef.current.on(`retro-started:${retroId}`, () => {
+        console.log('🚀 Retro started via WebSocket');
+        callbacks.onRetroStarted?.();
+      });
+    }, [retroId, callbacks]);
+  
+    const disconnect = useCallback(() => {
+      if (socketRef.current) {
+        console.log('🔌 Disconnecting from WebSocket server...');
+        socketRef.current.emit('leave-retro-room', retroId);
+        socketRef.current.disconnect();
+        socketRef.current = undefined;
+        isConnectingRef.current = false;
+      }
+    }, [retroId]);
+
 
   // Join room when component mounts or retroId changes
-  useEffect(() => {
-    if (retroId) {
-      joinRoom(retroId);
+    useEffect(() => {
+    if (!retroId || !userId) {
+      console.warn('Retro ID or User ID is not provided, skipping socket connection.');
+      return;
     }
+    connect();
 
     return () => {
-      if (retroId) {
-        leaveRoom(retroId);
-      }
+      disconnect();
     };
-  }, [retroId, joinRoom, leaveRoom]);
+  }, [retroId, userId]); // Remove callbacks from dependency array
+
+  // useEffect(() => {
+  //   if (retroId) {
+  //     joinRoom(retroId);
+  //   }
+
+  //   return () => {
+  //     if (retroId) {
+  //       leaveRoom(retroId);
+  //     }
+  //   };
+  // }, [retroId, joinRoom, leaveRoom]);
 
   // Set up event listeners
   useEffect(() => {
-    if (!socket || !retroId) {
+    if (!socketRef || !retroId) {
       return;
     }
 
@@ -132,42 +214,48 @@ export const useRetroSocket = ({
     };
 
     // Add event listeners - ensure each is added only once
-    socket.on(`item-added:${retroId}`, handleItemAdded);
-    socket.on(`item-updated:${retroId}`, handleItemUpdated);
-    socket.on(`item-deleted:${retroId}`, handleItemDeleted);
-    socket.on(`items-update:${retroId}`, handleItemsUpdate);
-    socket.on(`participants-update:${retroId}`, handleParticipantUpdate);
-    socket.on(`retro-started:${retroId}`, handleRetroStarted);
-    socket.on(`phase-change:${retroId}`, handlePhaseChange);
-    socket.on(`item-position-update:${retroId}`, handleItemPositionUpdate);
-    socket.on(`grouping-update:${retroId}`, handleGroupingUpdate);
-    socket.on(`vote-update:${retroId}`, handleVoteUpdate);
-    socket.on(`vote-submission:${retroId}`, handleVoteSubmission);
-    socket.on(`label-update:${retroId}`, handleLabelUpdate);
-    socket.on(`action-items-update:${retroId}`, handleActionItemsUpdate);
-    socket.on(`retro-state:${retroId}`, handleRetroState);
+    if (socketRef.current) {
+      socketRef.current.on(`item-added:${retroId}`, handleItemAdded);
+      socketRef.current.on(`item-updated:${retroId}`, handleItemUpdated);
+      socketRef.current.on(`item-deleted:${retroId}`, handleItemDeleted);
+      socketRef.current.on(`items-update:${retroId}`, handleItemsUpdate);
+      socketRef.current.on(`participants-update:${retroId}`, handleParticipantUpdate);
+      socketRef.current.on(`retro-started:${retroId}`, handleRetroStarted);
+      socketRef.current.on(`phase-change:${retroId}`, handlePhaseChange);
+      socketRef.current.on(`item-position-update:${retroId}`, handleItemPositionUpdate);
+      socketRef.current.on(`grouping-update:${retroId}`, handleGroupingUpdate);
+      socketRef.current.on(`vote-update:${retroId}`, handleVoteUpdate);
+      socketRef.current.on(`vote-submission:${retroId}`, handleVoteSubmission);
+      socketRef.current.on(`label-update:${retroId}`, handleLabelUpdate);
+      socketRef.current.on(`action-items-update:${retroId}`, handleActionItemsUpdate);
+      socketRef.current.on(`retro-state:${retroId}`, handleRetroState);
+    }
 
     // Cleanup function - ensure all listeners are removed
-    return () => {  
-      socket.off(`item-added:${retroId}`, handleItemAdded);
-      socket.off(`item-updated:${retroId}`, handleItemUpdated);
-      socket.off(`item-deleted:${retroId}`, handleItemDeleted);
-      socket.off(`items-update:${retroId}`, handleItemsUpdate);
-      socket.off(`participants-update:${retroId}`, handleParticipantUpdate);
-      socket.off(`retro-started:${retroId}`, handleRetroStarted);
-      socket.off(`phase-change:${retroId}`, handlePhaseChange);
-      socket.off(`item-position-update:${retroId}`, handleItemPositionUpdate);
-      socket.off(`grouping-update:${retroId}`, handleGroupingUpdate);
-      socket.off(`vote-update:${retroId}`, handleVoteUpdate);
-      socket.off(`vote-submission:${retroId}`, handleVoteSubmission);
-      socket.off(`label-update:${retroId}`, handleLabelUpdate);
-      socket.off(`action-items-update:${retroId}`, handleActionItemsUpdate);
-      socket.off(`retro-state:${retroId}`, handleRetroState);
+    return () => {
+      if (socketRef.current) {
+        socketRef.current.off(`item-added:${retroId}`, handleItemAdded);
+        socketRef.current.off(`item-updated:${retroId}`, handleItemUpdated);
+        socketRef.current.off(`item-deleted:${retroId}`, handleItemDeleted);
+        socketRef.current.off(`items-update:${retroId}`, handleItemsUpdate);
+        socketRef.current.off(`participants-update:${retroId}`, handleParticipantUpdate);
+        socketRef.current.off(`retro-started:${retroId}`, handleRetroStarted);
+        socketRef.current.off(`phase-change:${retroId}`, handlePhaseChange);
+        socketRef.current.off(`item-position-update:${retroId}`, handleItemPositionUpdate);
+        socketRef.current.off(`grouping-update:${retroId}`, handleGroupingUpdate);
+        socketRef.current.off(`vote-update:${retroId}`, handleVoteUpdate);
+        socketRef.current.off(`vote-submission:${retroId}`, handleVoteSubmission);
+        socketRef.current.off(`label-update:${retroId}`, handleLabelUpdate);
+        socketRef.current.off(`action-items-update:${retroId}`, handleActionItemsUpdate);
+        socketRef.current.off(`retro-state:${retroId}`, handleRetroState);
+      }
     };
-  }, [socket, retroId, callbacks]);
+  }, [socketRef, retroId, callbacks]);
 
   return {
-    isConnected,
-    socket,
+    socket: socketRef.current,
+    isConnected: socketRef.current?.connected || false,
+    connect,
+    disconnect,
   };
 };

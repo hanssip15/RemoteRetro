@@ -181,11 +181,6 @@ export default function VotingPhase(props: any) {
     }) => {
       
       if (data.allUserVotes) {
-
-        // Log setiap user dalam allUserVotes
-        Object.entries(data.allUserVotes).forEach(([userId, userVotes]) => {
-          const totalVotes = (Object.values(userVotes) as number[]).reduce((sum: number, votes: number) => sum + votes, 0);
-        });
         
         // Replace allUserVotes completely to ensure consistency
         setAllUserVotes(data.allUserVotes);
@@ -216,13 +211,7 @@ export default function VotingPhase(props: any) {
   }, [socket, retro?.id]);
 
   // Debug logging untuk allUserVotes
-  useEffect(() => {
-
-    participants.forEach((p: any) => {
-      const userVoteObj = allUserVotes?.[p.user.id] || {};
-      const totalVotes = (Object.values(userVoteObj) as number[]).reduce((a: number, b: number) => a + Number(b), 0);
-    });
-  }, [allUserVotes, participants, maxVotes, userVotes]);
+ 
 
   // Update allUserVotes locally when userVotes changes
   useEffect(() => {
@@ -300,7 +289,7 @@ export default function VotingPhase(props: any) {
       />
       <div className="flex-1 flex flex-col items-center justify-start w-full overflow-auto pb-40">
         <div className="flex flex-row flex-wrap gap-8 mt-8 w-full justify-center">
-        {labellingItems.map((group: any, idx: number) => (
+        {labellingItems.map((group: any) => (
             <div key={group.id} className="bg-white border rounded-lg shadow-sm min-w-[350px] max-w-[400px] w-full p-4">
               <div className="mb-2 flex items-center justify-between">
                 <div className="flex flex-col">

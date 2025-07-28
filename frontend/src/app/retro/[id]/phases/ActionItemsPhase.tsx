@@ -312,7 +312,7 @@ export default function ActionItemsPhase({
                       // Kirim email action items ke semua participant
                       const participantEmails = participants.map((p: any) => p.user.email).filter(Boolean);
                       await apiService.updateRetro(retro.id, { status: "completed" })
-                      await apiService.updatePhase(retro.id, 'final', user.id); 
+                      await apiService.updatePhase(retro.id, 'final'); 
                       await api.sendActionItemsEmail({
                         retroId: retro.id,
                         retroTitle: retro.title,

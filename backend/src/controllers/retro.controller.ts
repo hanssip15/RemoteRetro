@@ -73,7 +73,7 @@ export class RetroController {
     } else {
     }
 
-    return this.retroService.create(createRetroDto, userId);
+    return this.retroService.create(createRetroDto);
   }
 
   @Put(':id')
@@ -83,8 +83,8 @@ export class RetroController {
   }
 
   @Put(':id/phase')
-  async updatePhase(@Param('id') id: string, @Body() body: { phase: string; facilitatorId: string }) {
-    const retro = await this.retroService.updatePhase(id, body.phase, body.facilitatorId);
+  async updatePhase(@Param('id') id: string, @Body() body: { phase: string }) {
+    const retro = await this.retroService.updatePhase(id, body.phase);
     return retro;
   }
 
@@ -108,4 +108,8 @@ export class RetroController {
       return { error: error.message };
     }
   }
-} 
+  @Delete(':id/participants/:participantId')
+  async removeParticipant(@Param('id') id: string, @Param('participantId') participantId: string) {
+    await this.retroService.leave(id, participantId);
+  }
+}

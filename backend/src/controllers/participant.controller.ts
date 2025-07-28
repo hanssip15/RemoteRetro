@@ -22,9 +22,9 @@ export class ParticipantController {
     return this.participantService.join(retroId, joinRetroDto);
   }
 
-  @Delete(':id')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  async remove(@Param('id') id: string) {
-    await this.participantService.remove(id);
-  }
+  // @Delete(':id')
+  // @HttpCode(HttpStatus.NO_CONTENT)
+  // async remove(@Param('id') id: string) {
+  //   await this.participantService.remove(id);
+  // }
 } 

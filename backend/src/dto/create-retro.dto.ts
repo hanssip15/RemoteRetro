@@ -8,4 +8,10 @@ export class CreateRetroDto {
   @IsString()
   format?: string;
 
+  @IsString()
+  createdBy: string;
+
+  @IsString()
+  facilitator: string;
+
 } 

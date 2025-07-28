@@ -7,11 +7,11 @@ import { useEffect, useState   } from "react"
 
 export default function HomePage() {
   const [authStatus, setAuthStatus] = useState(false)
-  useEffect(() => {
-    const authStatus = api.isAuthenticated()
-    setAuthStatus(authStatus)
-                }, [])
-
+   useEffect(() => {
+    api.isAuthenticated().then((status: boolean) => {
+      setAuthStatus(status)
+    })
+  }, [])
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Header */}

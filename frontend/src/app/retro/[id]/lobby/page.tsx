@@ -3,7 +3,7 @@
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 
 import { useEffect, useState, useCallback } from "react"
-import { useParams, useNavigate } from "react-router-dom"
+import { useParams, useNavigate} from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ShareLinkModal } from "@/components/share-link-modal"
@@ -12,7 +12,7 @@ import RetroHeader from '../RetroHeader';
 import { Link } from "react-router-dom"
 import { apiService, Retro, Participant, api, User } from "@/services/api"
 import { PhaseConfirmModal } from '@/components/ui/dialog';
-import { useSocket } from '@/hooks/use-socket';
+import { useRetroSocket } from '@/hooks/use-retro-socket';
 
 
 export default function RetroLobbyPage() {
@@ -27,14 +27,14 @@ export default function RetroLobbyPage() {
   const [error, setError] = useState<string | null>(null)
   const [showShareModal, setShowShareModal] = useState(false)
   const [showStartConfirm, setShowStartConfirm] = useState(false)
-  const [isJoining, setIsJoining] = useState(false)
+  const [isJoining] = useState(false)
   const [joinError, setJoinError] = useState<string | null>(null)
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [socket] = useState<any>(null)
   const [isOngoing, setIsOngoing] = useState(false)
   const [isPromoting, setIsPromoting] = useState(false)
-  const [user, setUser] = useState<User | null>(null)
-
+  const [user, setUser] = useState<User>()
+  const [userId, setUserId] = useState<string>();
   // Get current user from sessionStorage
 
   useEffect(() => {
@@ -48,7 +48,7 @@ export default function RetroLobbyPage() {
           }
   
           setUser(userData);
-  
+          setUserId(userData.id);
       } catch (err) {
         console.error(err);
         // setError('Failed to fetch user. Please try again.');
@@ -92,31 +92,31 @@ export default function RetroLobbyPage() {
   }, [retroId, fetchLobbyData]);
 
   // Auto-join participant function
-  const checkAndJoinParticipant = useCallback(async () => {
-    if (!user || !retroId) return;
-    const participant = participants.find((p) => p.user.id === user.id);
-    if (!participant) {
-      try {
-        setIsJoining(true);
-        await apiService.addParticipant(retroId, {
-          userId: user.id,
-          role: false,
-        });
-        await fetchLobbyData();
-      } catch (error) {
-        console.error("Failed to join as participant:", error);
-      } finally {
-        setIsJoining(false);
-      }
-    }
-  }, [user, retroId, participants, fetchLobbyData]);
+  // const checkAndJoinParticipant = useCallback(async () => {
+  //   if (!user || !retroId) return;
+  //   const participant = participants.find((p) => p.user.id === user.id);
+  //   if (!participant) {
+  //     try {
+  //       setIsJoining(true);
+  //       await apiService.addParticipant(retroId, {
+  //         userId: user.id,
+  //         role: false,
+  //       });
+  //       await fetchLobbyData();
+  //     } catch (error) {
+  //       console.error("Failed to join as participant:", error);
+  //     } finally {
+  //       setIsJoining(false);
+  //     }
+  //   }
+  // }, [user, retroId, participants, fetchLobbyData]);
 
   
-  useEffect(() => {
-    if (!loading && retro && participants.length > 0) {
-      checkAndJoinParticipant();
-    }
-  }, [loading, retro, participants, checkAndJoinParticipant]);
+  // useEffect(() => {
+  //   if (!loading && retro && participants.length > 0) {
+  //     checkAndJoinParticipant();
+  //   }
+  // }, [loading, retro, participants, checkAndJoinParticipant]);
 
   const handleChangeView = async () => {
     navigate(`/retro/${retroId}`)
@@ -129,8 +129,7 @@ export default function RetroLobbyPage() {
       }
       setIsOngoing(true)
       await apiService.updateRetro(retroId, { status: "ongoing" })
-      // Set initial phase to prime-directive
-      await apiService.updatePhase(retroId, 'prime-directive', user?.id || '')
+      await apiService.updatePhase(retroId, 'prime-directive')
       handleChangeView()
     } catch (error) {
       console.error("Error starting retro:", error)
@@ -138,9 +137,25 @@ export default function RetroLobbyPage() {
       alert(`Failed to start retro: ${errorMessage}`)
     }
   }, [retroId, navigate, socket, isOngoing, user?.id])
+  // Ensure user is never null after authentication
+  // if (!user) {
+  //   // This should never happen after authentication check
+  //   throw new Error("User not found. This should not happen after authentication.");
+  // }
 
-  const { isConnected } = useSocket({
+
+  // useSocket({
+  //   retroId,
+  //   userId,
+  //   onParticipantUpdate: fetchLobbyData,
+  //   onRetroStarted: handleChangeView,
+  // });
+
+  
+
+  const {  } = useRetroSocket({
     retroId,
+    userId: userId!,
     onParticipantUpdate: fetchLobbyData,
     onRetroStarted: handleChangeView,
   });
@@ -168,8 +183,55 @@ export default function RetroLobbyPage() {
   const facilitator = participants.find((p) => p.role === true)
   const isFacilitator = user?.id === facilitator?.user.id
 
-  
-  
+// const leaveRetro = async () => {
+//     if (!userId) {
+//       console.error('User ID is undefined. Cannot leave retro.');
+//       return;
+//     }
+//     try {
+//       await apiService.leaveParticipant(retroId, userId);
+//     } catch (error) {
+//       console.error('Failed to leave retro:', error);
+//     }
+//   };
+
+//   // Handle browser/tab close
+//   useBeforeUnload(() => {
+//     sessionStorage.setItem('leavingRetro', 'true'); // Sementara
+//     leaveRetro();
+//     return; // Return undefined to prevent default dialog
+//   });
+
+//   // Handle route change within the app
+//   useEffect(() => {
+//     const currentPath = window.location.pathname;
+    
+//     const handleClick = (event: MouseEvent) => {
+//       const target = event.target as HTMLAnchorElement;
+//       if (target.tagName === 'A' && target.href) {
+//         const url = new URL(target.href);
+//         if (url.pathname !== currentPath) {
+//           leaveRetro();
+//         }
+//       }
+//     };
+
+//     document.addEventListener('click', handleClick);
+
+//     return () => {
+//       document.removeEventListener('click', handleClick);
+//     };
+//   }, [retroId, userId]);
+
+//   useEffect(() => {
+//   if (sessionStorage.getItem('leavingRetro') === 'true') {
+//     sessionStorage.removeItem('leavingRetro');
+//     console.log("User kembali setelah refresh, jangan keluarkan lagi.");
+//     // Jangan kirim leaveRetro lagi
+//   }
+// }, []);
+
+
 
   if (loading) {
     return (

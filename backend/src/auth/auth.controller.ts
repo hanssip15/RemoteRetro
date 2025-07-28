@@ -66,8 +66,7 @@ export class AuthController {
   @Get('me')
   @UseGuards(AuthGuard('jwt'))
   async getCurrentUser(@Req() req: Request) {
-    console.log('Current user request:', req.user);
-    console.log('Current user request cookies:', req.cookies);
+
     // req.user contains the decoded JWT payload
     const user = req.user as any;
     return {

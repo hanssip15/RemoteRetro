@@ -10,6 +10,7 @@ import { ParticipantGateway } from 'src/gateways/participant.gateways';
 
 @Injectable()
 export class RetroService {
+  eventEmitter: any;
   constructor(
     @InjectRepository(Retro)
     private retroRepository: Repository<Retro>,
@@ -52,12 +53,36 @@ export class RetroService {
     return { retro, participants };
   }
 
-  async create(createRetroDto: CreateRetroDto, userId?: string): Promise<Retro> {
+  async leave(retroId: string, userId: string): Promise<void> {
+  // Check if retro exists
+  const retro = await this.retroRepository.findOne({ where: { id: retroId } });
+  if (!retro) {
+    throw new NotFoundException('Retro not found');
+  }
+
+  // Find and remove participant
+  const participant = await this.participantRepository.findOne({
+    where: { 
+      retroId: retroId, 
+      userId: userId
+     },
+  });
+
+  if (participant) {
+    await this.participantRepository.remove(participant);
+    
+    // Emit WebSocket event to notify others
+    console.log(`Participant ${userId} left retro ${retroId}`);
+    this.participantGateway.broadcastParticipantUpdate(retroId);
+
+  }
+}
+
+  async create(createRetroDto: CreateRetroDto): Promise<Retro> {
     
     const retroData = {
       id: crypto.randomUUID(), // Generate UUID for ID
       ...createRetroDto,
-      createdBy: userId,
       status: 'draft',
       format: createRetroDto.format || 'happy_sad_confused' // Default format
     };
@@ -86,20 +111,13 @@ export class RetroService {
     return this.retroRepository.save(retro);
   }
 
-  async updatePhase(id: string, phase: string, facilitatorId: string): Promise<Retro> {
+  async updatePhase(id: string, phase: string): Promise<Retro> {
     const retro = await this.retroRepository.findOne({ where: { id } });
     if (!retro) {
       throw new NotFoundException(`Retro with ID ${id} not found`);
     }
 
     // Verify that the user is a facilitator
-    const participant = await this.participantRepository.findOne({
-      where: { retroId: id, userId: facilitatorId, role: true }
-    });
-
-    if (!participant) {
-      throw new NotFoundException('Only facilitators can change phases');
-    }
 
     retro.currentPhase = phase;
 
@@ -127,4 +145,5 @@ export class RetroService {
       where: { status, createdBy: userId },
     });
   }
+
 } 

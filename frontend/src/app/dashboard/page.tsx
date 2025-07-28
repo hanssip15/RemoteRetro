@@ -53,26 +53,27 @@ export default function DashboardPage() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
   const navigate = useNavigate();
   useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const authStatus = api.isAuthenticated()
-        setIsAuthenticated(authStatus)
-        if (authStatus) {
-          const userData = await api.getCurrentUser()
-          if (userData === null) {
-            navigate('/login')
-          }
-          setUser(userData)
-        } else {
-          setError('User not authenticated. Please login first.')
+  const fetchUser = async () => {
+    try {
+      
+        const userData = await api.getCurrentUser();
+        if (!userData) {
+          api.removeAuthToken(); 
+          navigate('/login');
+        return;
         }
-      } catch (err) {
-        setError('Failed to fetch user. Please try again.')
-        api.removeAuthToken()
-      }
+        setIsAuthenticated(true);
+        setUser(userData);
+    } catch (err) {
+      console.error(err);
+      setError('Failed to fetch user. Please try again.');
+      await api.removeAuthToken();
+      navigate('/login');
     }
-    fetchUser()
-  }, [])
+  };
+
+  fetchUser();
+}, []);
 
   useEffect(() => {
   if (!user?.id) return
@@ -294,35 +295,15 @@ export default function DashboardPage() {
 
       <div className="container mx-auto px-4 py-8"> 
 
-        <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-4 md:mb-8">
+        <div className="flex justify-between items-center mb-8">
           <div>
-            <h2 className="text-xl md:text-3xl font-bold text-gray-900 flex items-center">
+            <h2 className="text-3xl font-bold text-gray-900 flex items-center">
               Welcome back, {user?.name?.split(' ')[0] || 'User'}!
               {refreshing && <RefreshCw className="h-5 w-5 ml-2 animate-spin text-gray-400" />}
             </h2>
-            <p className="text-sm md:text-gray-600 mt-1 md:mt-2">Manage your retrospectives and track team progress</p>
-            {/* Button group for mobile */}
-            <div className="flex justify-center gap-2 mt-4 md:hidden">
-              <Button
-                variant="outline"
-                size="default"
-                className="flex items-center space-x-2 h-9 px-3"
-                onClick={() => fetchDashboardData(false, user?.id || '')}
-                disabled={refreshing}
-              >
-                <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
-                Refresh
-              </Button>
-              <Link to="/retro/new">
-                <Button className="flex items-center space-x-2 h-9 px-3" size="default">
-                  <Plus className="h-4 w-4" />
-                  <span>New Retro</span>
-                </Button>
-              </Link>
-            </div>
+            <p className="text-gray-600 mt-2">Manage your retrospectives and track team progress</p>
           </div>
-          {/* Button group for desktop */}
-          <div className="hidden md:flex items-center space-x-2">
+          <div className="flex items-center space-x-2">
             <Button
               variant="outline"
               size="default"
@@ -343,7 +324,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid gap-4 md:grid-cols-3 md:gap-6 mb-4 md:mb-8">
+        <div className="grid md:grid-cols-3 gap-6 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Retros</CardTitle>
@@ -402,26 +383,26 @@ export default function DashboardPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2 md:space-y-4">
+            <div className="space-y-4">
               {retros.length > 0 ? (
                 retros.map((retro) => (
                   <div
                     key={retro.id}
-                    className="flex flex-col md:flex-row md:items-center md:justify-between p-2 md:p-4 border rounded-lg hover:bg-gray-50 transition-colors"
+                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors"
                   >
                     <div className="flex-1">
-                      <h3 className="font-semibold text-base md:text-lg">{retro.title}</h3>
+                      <h3 className="font-semibold">{retro.title}</h3>
                       {retro.format && (
                         <div className="text-xs text-gray-600 mt-1 mb-1">
                           Format: {retro.format.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())}
                         </div>
                       )}
-                      <p className="text-xs md:text-sm text-gray-600">
+                      <p className="text-sm text-gray-600">
                         {formatDate(retro.createdAt)}
                       </p>
                     </div>
-                    <div className="flex items-center space-x-2 mt-2 md:mt-0 ml-0 md:ml-4">
-                      <Badge className={`${getStatusColor(retro.status)} border-0 text-xs md:text-sm`}>
+                    <div className="flex items-center space-x-2 ml-4">
+                      <Badge className={`${getStatusColor(retro.status)} border-0`}>
                         {getStatusLabel(retro.status)}
                       </Badge>
                       <Link to={`/retro/${retro.id}`}>
@@ -453,7 +434,7 @@ export default function DashboardPage() {
 
             {/* Pagination - only show if there are multiple pages */}
             {pagination && pagination.totalPages > 1 && (
-              <div className="flex items-center justify-between mt-4 md:mt-6 pt-4 border-t overflow-x-auto">
+              <div className="flex items-center justify-between mt-6 pt-4 border-t">
                 <div className="text-sm text-gray-500">
                   Page {pagination.page} of {pagination.totalPages}
                 </div>
@@ -500,7 +481,7 @@ export default function DashboardPage() {
                           variant={pageNum === pagination.page ? "default" : "outline"}
                           size="sm"
                           onClick={() => handlePageChange(pageNum)}
-                          className="w-8 h-8 p-0 text-xs md:text-base"
+                          className="w-8 h-8 p-0"
                         >
                           {pageNum}
                         </Button>
