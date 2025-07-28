@@ -133,7 +133,7 @@ export default function NewRetroPage() {
         role: true
       });
 
-      navigate(`/retro/${retro.id}/lobby`)
+      navigate(`/retro/${retro.id}`)
     } catch (error) {
 
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'

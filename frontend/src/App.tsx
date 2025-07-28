@@ -9,7 +9,6 @@ const HomePage = lazy(() => import('./app/page'));
 const DashboardPage = lazy(() => import('./app/dashboard/page'));
 const RetroPage = lazy(() => import('./app/retro/[id]/page'));
 const NewRetroPage = lazy(() => import('./app/retro/new/page'));
-const LobbyPage = lazy(() => import('./app/retro/[id]/lobby/page'));
 const DebugPage = lazy(() => import('./app/debug-db/page'));
 const TestApiPage = lazy(() => import('./app/test-api/page'));
 const LoginPage = lazy(() => import('./app/login/page'));
@@ -37,7 +36,6 @@ function App() {
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/retro/new" element={<NewRetroPage />} />
             <Route path="/retro/:id" element={<RetroPage />} />
-            <Route path="/retro/:id/lobby" element={<LobbyPage />} />
             <Route path="/debug-db" element={<DebugPage />} />
             <Route path="/test-api" element={<TestApiPage />} />
           </Routes>
