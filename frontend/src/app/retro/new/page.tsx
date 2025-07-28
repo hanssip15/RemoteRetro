@@ -38,7 +38,7 @@ export default function NewRetroPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [title, setTitle] = useState("")
   const [selectedFormat, setSelectedFormat] = useState<string>("happy_sad_confused")
-  const [user, setUser] = useState<User | null>(null)
+  const [user, setUser] = useState<User>()
 
    useEffect(() => {
   const fetchUser = async () => {
@@ -112,20 +112,22 @@ export default function NewRetroPage() {
 
     try {
 
+      if (!user) {
+        throw new Error("User data not found. Please login again.")
+      } 
 
       const retro = await apiService.createRetro({
         title: finalTitle,
         format: selectedFormat,
+        createdBy: user.id,
+        facilitator: user.id 
       })
 
       if (!retro || !retro.id) {
         throw new Error("No retro ID returned from API")
       }
       
-      if (!user) {
-        throw new Error("User data not found. Please login again.")
 
-      } 
       await apiService.addParticipant(retro.id, { 
         userId: user.id,
         role: true

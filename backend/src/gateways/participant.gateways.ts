@@ -5,9 +5,11 @@ import {
     OnGatewayConnection,
     OnGatewayDisconnect,
     SubscribeMessage,
+    MessageBody,
+    ConnectedSocket,
   } from '@nestjs/websockets';
   import { Server, Socket } from 'socket.io';
-  
+  import { ParticipantService } from 'src/services/participant.service';
   // Tambahkan di luar class (atau static property jika ingin lebih rapi)
   const retroState: {
     [retroId: string]: {
@@ -34,15 +36,45 @@ import {
     },
   })
   export class ParticipantGateway implements OnGatewayConnection, OnGatewayDisconnect {
+    
+    
     @WebSocketServer()
     server: Server;
-    
-    handleConnection(client: Socket) {
+    private socketUserMap: Map<string, { userId: string; retroId: string }> = new Map();
+
+    constructor(private readonly participantService: ParticipantService) {}
+
+    async handleConnection(client: Socket) {
+       const { userId, retroId } = client.handshake.query;
+
+    if (typeof userId === 'string' && typeof retroId === 'string') {
+      client.join(`retro:${retroId}`);
+      this.socketUserMap.set(client.id, { userId, retroId });
+      console.log(`User ${userId} connected to retro ${retroId} (socket: ${client.id})`);
+      const participant = await this.participantService.findParticipantByUserIdAndRetroId(userId, retroId);
+      if (!participant) {
+        console.log("participant not found, joining retro" + retroId + " for user " + userId);
+        const isFacilitator = await this.participantService.isFacilitator(retroId, userId);
+        await this.participantService.join(retroId, { userId, role: isFacilitator });
+      } else {
+        console.log("participant already join")
+      }
+
+
+      console.log("User :",this.socketUserMap)
     }
+  }
   
-    handleDisconnect(client: Socket) {
+    async handleDisconnect(client: Socket) {
+    const info = this.socketUserMap.get(client.id);
+    if (info) {
+      const { userId, retroId } = info;
+      console.log(`User ${userId} disconnected from retro ${retroId} (socket: ${client.id})`);
+      await this.participantService.leave(retroId, userId);
+      this.socketUserMap.delete(client.id);
     }
-  
+  }
+
     @SubscribeMessage('join-retro-room')
     handleJoinRetroRoom(client: Socket, retroId: string) {
       client.join(`retro:${retroId}`);
@@ -347,6 +379,34 @@ handleRequestUserVotes(
       // Broadcast to all clients in the retro room
       this.broadcastActionItemsUpdate(data.retroId, retroState[data.retroId].actionItems);
     }
+    // retro.gateway.ts
+   @SubscribeMessage('leave-room')
+async handleLeaveRoom(
+  @MessageBody() data: { retroId: string; userId: string },
+  @ConnectedSocket() client: Socket,
+): Promise<void> {
+  console.log('Received leave-room event:', data); // Log data yang diterima
+  const { retroId, userId } = data;
+
+  try {
+    // Cek apakah user sudah terdaftar
+    // const participant = await this.participantService.findParticipant(retroId, userId);
+    // if (!participant) {
+    //   console.log(`Participant with userId ${userId} not found in retro ${retroId}`);
+    //   return;
+    // }
+
+    // Hapus partisipan
+    console.log(`Removing participant ${userId} from retro ${retroId}`);
+    await this.participantService.removeParticipant(retroId, userId);
+    console.log(`Participant ${userId} removed from retro ${retroId}`);
+
+    // Emit event ke semua partisipan tentang keluar
+    this.server.to(retroId).emit('participant-left', { userId });
+  } catch (err) {
+    console.error('Error removing participant:', err);
+  }
+}
 
     // Handle action item updated
     @SubscribeMessage('action-item-updated')

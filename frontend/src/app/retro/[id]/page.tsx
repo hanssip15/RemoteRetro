@@ -30,7 +30,6 @@ import LabellingPhase from './phases/LabellingPhase';
 import VotingPhase from './phases/VotingPhase';
 import ActionItemsPhase from './phases/ActionItemsPhase';
 import FinalPhase from './phases/FinalPhase';
-import { Vote } from "lucide-react";
 
 export default function RetroPage() {
   const params = useParams()
@@ -59,7 +58,8 @@ export default function RetroPage() {
   const [highContrast, setHighContrast] = useState(false);
   const [groupLabels, setGroupLabels] = useState<string[]>(["", ""]); // contoh 2 group
   const [allUserVotes, setAllUserVotes] = useState<{ [userId: string]: { [groupIdx: number]: number } }>({});
-
+  const [userId, setUserId] = useState<string>();
+  
   // Data structure untuk menyimpan grup yang bisa dimasukkan ke database
   // const [setGroupData] = useState<GroupData>({
   //   groups: [],
@@ -117,6 +117,7 @@ export default function RetroPage() {
         return;
         }
         setUser(userData);
+        setUserId(userData.id);
     } catch (err) {
       console.error(err);
       setError('Failed to fetch user. Please try again.');
@@ -647,6 +648,7 @@ export default function RetroPage() {
   // Initialize WebSocket connection using the stable hook
   const { isConnected, socket } = useRetroSocket({
     retroId,
+    userId: userId!,
     onItemAdded: handleItemAdded,
     onItemUpdated: handleItemUpdated,
     onItemDeleted: handleItemDeleted,
@@ -715,13 +717,9 @@ export default function RetroPage() {
     try {
       // Jika phase berubah ke labelling, simpan data grouping terlebih dahulu
       if (newPhase === 'labelling') {
-        
-        await saveGroupData();
-        
-      }
-
-      
-      await apiService.updatePhase(retroId, newPhase, user.id);
+        await saveGroupData(); 
+      }      
+      await apiService.updatePhase(retroId, newPhase);
       
       // Phase change will be broadcasted via WebSocket from the server
       
@@ -746,7 +744,7 @@ export default function RetroPage() {
         throw new Error("No retro data in response")
       }
       setRetro(data.retro)
-      setParticipants(data.participants || [])
+      setParticipants(data.participants)
     } catch (error) {
       console.error("Error fetching retro data:", error)
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
@@ -756,24 +754,24 @@ export default function RetroPage() {
     }
   }, [retroId])
 
-  const checkAndJoinParticipant = useCallback(async () => {
-    if (!user || !retroId) return;
-    const participant = participants.find((p) => p.user.id === user.id);
-    if (!participant) {
-      try {
-        await apiService.addParticipant(retroId, {
-          userId: user.id,
-          role: false,
-        });
-        // Refresh data setelah join
-        const data = await apiService.getRetro(retroId);
-        setRetro(data.retro);
-        setParticipants(data.participants || []);
-      } catch (error) {
-        console.error("Failed to join as participant:", error);
-      }
-    }
-  }, [user, retroId, participants]);
+  // const checkAndJoinParticipant = useCallback(async () => {
+  //   if (!user || !retroId) return;
+  //   const participant = participants.find((p) => p.user.id === user.id);
+  //   if (!participant) {
+  //     try {
+  //       await apiService.addParticipant(retroId, {
+  //         userId: user.id,
+  //         role: false,
+  //       });
+  //       // Refresh data setelah join
+  //       const data = await apiService.getRetro(retroId);
+  //       setRetro(data.retro);
+  //       setParticipants(data.participants || []);
+  //     } catch (error) {
+  //       console.error("Failed to join as participant:", error);
+  //     }
+  //   }
+  // }, [user, retroId, participants]);
   const fetchItems = useCallback(async () => {
     try {
       const itemsData = await apiService.getItems(retroId)
@@ -948,11 +946,11 @@ export default function RetroPage() {
   }, [retroId, navigate, fetchRetroData, fetchItems])
 
   // Separate useEffect untuk checkAndJoinParticipant
-  useEffect(() => {
-    if (retro && participants.length > 0 && user) {
-      checkAndJoinParticipant()
-    }
-  }, [retro, participants, user, checkAndJoinParticipant])
+  // useEffect(() => {
+  //   if (retro && participants.length > 0 && user) {
+  //     checkAndJoinParticipant()
+  //   }
+  // }, [retro, participants, user, checkAndJoinParticipant])
   const isCurrentFacilitator = participants.find(x => x.role)?.user.id === user?.id;
   const currentUserParticipant = participants.find(x => x.user.id === user?.id);
   

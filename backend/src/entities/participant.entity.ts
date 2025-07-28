@@ -6,11 +6,13 @@ import {
   ManyToOne,
   JoinColumn,
   CreateDateColumn,
+  Unique,
 } from 'typeorm';
 import { Retro } from './retro.entity';
 import { User } from './user.entity';
 
 @Entity('participants')
+@Unique (['retroId', 'userId'])
 export class Participant {
   @PrimaryGeneratedColumn()
   id: number;
@@ -31,6 +33,7 @@ export class Participant {
 
   @Column({ type: 'boolean', default: false })
   role: boolean; // true = facilitator
+
 
   @CreateDateColumn({ name: 'joined_at', type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   joinedAt: Date;

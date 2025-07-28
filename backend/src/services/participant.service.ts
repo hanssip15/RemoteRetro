@@ -1,10 +1,11 @@
-import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, BadRequestException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Participant } from '../entities/participant.entity';
 import { Retro } from '../entities/retro.entity';
 import { JoinRetroDto } from '../dto/join-retro.dto';
 import { ParticipantGateway } from 'src/gateways/participant.gateways';
+
 
 @Injectable()
 export class ParticipantService {
@@ -14,6 +15,7 @@ export class ParticipantService {
     private participantRepository: Repository<Participant>,
     @InjectRepository(Retro)
     private retroRepository: Repository<Retro>,
+    @Inject(forwardRef(() => ParticipantGateway))
     private readonly participantGateway: ParticipantGateway,
 
   ) {}
@@ -26,46 +28,91 @@ export class ParticipantService {
     });
   }
 
+  async isFacilitator(retroId: string, userId: string): Promise<boolean> {
+    const participant = await this.retroRepository.findOne({
+      where: { id: retroId},
+    });
+
+    const isFacilitator = participant?.facilitator === userId;
+
+    return isFacilitator
+    
+  }
+
   async join(retroId: string, joinRetroDto: JoinRetroDto): Promise<Participant> {
-    const { userId, role } = joinRetroDto;
-    // Check if retro exists
-    const retro = await this.retroRepository.findOne({ where: { id: retroId } });
-    if (!retro) {
-      throw new NotFoundException('Retro not found');
-    }
+  const { userId, role } = joinRetroDto;
+  // Check if retro exists
+  const retro = await this.retroRepository.findOne({ where: { id: retroId } });
+  if (!retro) {
+    throw new NotFoundException('Retro not found');
+  }
 
-    // Check if retro is still available for joining
-    if (retro.status === 'completed') {
-      throw new BadRequestException('Retro is completed');
-    }
-    
-    const existingParticipant = await this.participantRepository.findOne({
-      where: { retroId, userId: userId },
-    });
+  // Check if retro is still available for joining
+  if (retro.status === 'completed') {
+    throw new BadRequestException('Retro is completed');
+  }
+  
+  // Cek dulu
+  const existingParticipant = await this.participantRepository.findOne({
+    where: { retroId, userId },
+  });
 
-    if (existingParticipant) {
-      throw new ConflictException('User already joined this retro');
-    }
+  if (existingParticipant) {
+    return existingParticipant;
+  }
 
-    const participant = this.participantRepository.create({
-      retroId,
-      userId: userId,
-      role: role,
-    });
+  const participant = this.participantRepository.create({
+    retroId,
+    userId,
+    role,
+  });
 
+  try {
     const savedParticipant = await this.participantRepository.save(participant);
+    this.participantGateway.broadcastParticipantUpdate(retroId);
+    return savedParticipant;
+  } catch (error: any) {
+    // Tangani error duplicate (unique constraint violation)
+    if (error.code === '23505') { // Postgres duplicate key
+      const again = await this.participantRepository.findOne({ where: { retroId, userId } });
+      if (again) return again;
+    }
+    throw error;
+  }
+}
+
+  async removeParticipant(retroId: string, userId: string): Promise<void> {
+    console.log(`Removing participant with userId: ${userId} from retroId: ${retroId}`);
+    const result = await this.participantRepository.delete({ retroId: retroId, userId: userId });
+    // if (result.affected === 0) {
+    //   throw new NotFoundException('Participant not found');
+    // }
+  }
+
+    async leave(retroId: string, userId: string): Promise<void> {
+  // Check if retro exists
+  const retro = await this.retroRepository.findOne({ where: { id: retroId } });
+  if (!retro) {
+    throw new NotFoundException('Retro not found');
+  }
+
+  // Find and remove participant
+  const participant = await this.participantRepository.findOne({
+    where: { 
+      retroId: retroId, 
+      userId: userId
+     },
+  });
+
+  if (participant) {
+    await this.participantRepository.remove(participant);
     
+    // Emit WebSocket event to notify others
+    console.log(`Participant ${userId} left retro ${retroId}`);
     this.participantGateway.broadcastParticipantUpdate(retroId);
 
-    return savedParticipant;
   }
-
-  async remove(id: string): Promise<void> {
-    const result = await this.participantRepository.delete(id);
-    if (result.affected === 0) {
-      throw new NotFoundException(`Participant with ID ${id} not found`);
-    }
-  }
+}
 
   async countUniqueMembers(): Promise<number> {
     const result = await this.participantRepository
@@ -89,15 +136,21 @@ export class ParticipantService {
     }
     
     const oldfacilitator = await this.participantRepository.findOne({ where: { role: true, retroId: retroId } });
-    
     if (oldfacilitator) {
       oldfacilitator.role = false;
       await this.participantRepository.save(oldfacilitator);
     }
+    retro.facilitator = participant.userId;
     participant.role = true;
+    await this.retroRepository.save(retro);
     await this.participantRepository.save(participant);
     this.participantGateway.broadcastParticipantUpdate(retroId);
     
     return participant;
+  }
+  async findParticipantByUserIdAndRetroId(userId: string, retroId: string): Promise<Participant | null> {
+    return this.participantRepository.findOne({
+      where: { userId, retroId },
+    });
   }
 } 

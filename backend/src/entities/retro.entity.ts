@@ -30,9 +30,11 @@ export class Retro {
   @CreateDateColumn({ name: 'created_at', type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;
 
-
   @Column({ name: 'created_by' })
   createdBy: string;
+
+  @Column({ name: 'facilitator' })
+  facilitator: string;
 
   @ManyToOne(() => User, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
   @JoinColumn({ name: 'created_by' })

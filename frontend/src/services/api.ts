@@ -63,6 +63,8 @@ export interface Participant {
 export interface CreateRetroData {
   title: string;
   format: string;
+  createdBy: string;
+  facilitator: string;
 }
 
 export interface CreateItemData {
@@ -329,13 +331,13 @@ class ApiService {
     });
   }
 
-  async updatePhase(retroId: string, phase: string, facilitatorId: string): Promise<Retro> {
+  async updatePhase(retroId: string, phase: string): Promise<Retro> {
     return this.request<Retro>(`/retros/${retroId}/phase`, {
       method: 'PUT',
-      body: JSON.stringify({ phase, facilitatorId }),
+      body: JSON.stringify({ phase}),
     });
   }
-  async removeParticipant(retroId: number, participantId: number): Promise<void> {
+  async leaveParticipant(retroId: string, participantId: string): Promise<void> {
     return this.request<void>(`/retros/${retroId}/participants/${participantId}`, {
       method: 'DELETE',
     });
