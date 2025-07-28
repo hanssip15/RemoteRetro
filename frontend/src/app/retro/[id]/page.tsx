@@ -532,10 +532,10 @@ export default function RetroPage() {
     setItems(newItems);
   }, []);
 
-  const handleParticipantUpdate = useCallback(() => {
-    // Refresh participants data
-    fetchRetroData();
-  }, []);
+  // const handleParticipantUpdate = useCallback(() => {
+  //   // Refresh participants data
+  //   fetchRetroData();
+  // }, []);
 
   const handlePhaseChange = useCallback((newPhase: 'prime-directive' | 'ideation' | 'grouping' | 'labelling' | 'voting' | 'final' | 'ActionItems') => {
     setPhase(newPhase);
@@ -655,7 +655,15 @@ export default function RetroPage() {
     onItemUpdated: handleItemUpdated,
     onItemDeleted: handleItemDeleted,
     onItemsUpdate: handleItemsUpdate,
-    onParticipantUpdate: handleParticipantUpdate,
+    onParticipantUpdate: async () => {
+      // Fetch ulang data partisipan dari backend dan update state di RetroPage
+      try {
+        const data = await apiService.getRetro(retroId);
+        setParticipants(data.participants);
+      } catch (e) {
+        // Optional: handle error
+      }
+    },
     onPhaseChange: handlePhaseChange,
     onItemPositionUpdate: handleItemPositionUpdate,
     onGroupingUpdate: handleGroupingUpdate,
@@ -734,9 +742,6 @@ export default function RetroPage() {
   const fetchRetroData = useCallback(async () => {
     try {
       const data = await apiService.getRetro(retroId)
-      if(data.retro.status === "draft"){
-        navigate(`/retro/${retroId}/lobby`)
-      }
       if (data.retro.format === "happy_sad_confused") {
         setFormat(["format_1", "format_2", "format_3"])
       } else {
@@ -1157,10 +1162,13 @@ export default function RetroPage() {
   // Phase switching
   if (phase === 'lobby') return (
     <RetroLobbyPage
-      // Tidak mengubah fitur FE, biarkan lobby mengelola datanya sendiri
-      // Jika ingin meneruskan props, bisa ditambahkan di sini
-      // Untuk sekarang, biarkan default agar tidak mengubah FE
-      // Untuk transisi ke fase berikutnya, lobby akan update phase retro di backend, lalu RetroPage akan auto-update phase
+      socket={socket}
+      isConnected={isConnected}
+      userId={userId || ''}
+      retroId={retroId}
+      participants={participants}
+      setParticipants={setParticipants}
+      retro={retro}
     />
   );
   if (phase === 'prime-directive') return (

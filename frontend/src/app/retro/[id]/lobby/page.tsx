@@ -2,8 +2,8 @@
 // import { io } from 'socket.io-client';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 
-import { useEffect, useState, useCallback } from "react"
-import { useParams, useNavigate} from "react-router-dom"
+import { useEffect, useState, useCallback, Dispatch, SetStateAction } from "react"
+import {useNavigate} from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ShareLinkModal } from "@/components/share-link-modal"
@@ -12,29 +12,32 @@ import RetroHeader from '../RetroHeader';
 import { Link } from "react-router-dom"
 import { apiService, Retro, Participant, api, User } from "@/services/api"
 import { PhaseConfirmModal } from '@/components/ui/dialog';
-import { useRetroSocket } from '@/hooks/use-retro-socket';
 
 
-export default function RetroLobbyPage() {
-  const params = useParams()
+interface RetroLobbyPageProps {
+  socket: any;
+  isConnected: boolean;
+  userId: string;
+  retroId: string;
+  participants: Participant[];
+  setParticipants: Dispatch<SetStateAction<Participant[]>>;
+  retro: Retro | null;
+}
+
+export default function RetroLobbyPage({ socket, retroId, participants, setParticipants, retro }: RetroLobbyPageProps) {
   const navigate = useNavigate()
-  const retroId = params.id as string
   const [selectedParticipant, setSelectedParticipant] = useState<Participant | null>(null);
   const [showRoleModal, setShowRoleModal] = useState(false);
   
-  const [retro, setRetro] = useState<Retro>()
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [error] = useState<string | null>(null)
   const [showShareModal, setShowShareModal] = useState(false)
   const [showStartConfirm, setShowStartConfirm] = useState(false)
   const [isJoining] = useState(false)
   const [joinError, setJoinError] = useState<string | null>(null)
-  const [participants, setParticipants] = useState<Participant[]>([]);
-  const [socket] = useState<any>(null)
   const [isOngoing, setIsOngoing] = useState(false)
   const [isPromoting, setIsPromoting] = useState(false)
   const [user, setUser] = useState<User>()
-  const [userId, setUserId] = useState<string>();
   // Get current user from sessionStorage
 
   useEffect(() => {
@@ -48,7 +51,6 @@ export default function RetroLobbyPage() {
           }
   
           setUser(userData);
-          setUserId(userData.id);
       } catch (err) {
         console.error(err);
         // setError('Failed to fetch user. Please try again.');
@@ -60,24 +62,12 @@ export default function RetroLobbyPage() {
     fetchUser();
   }, []);
 
-  const fetchLobbyData = useCallback(async () => {
-    if (!retroId) return;
-    
-    try {
-      console.log('🔄 Fetching lobby data for retro:', retroId);
-      const data = await apiService.getRetro(retroId);
-      if (data.retro.status === "ongoing") {
-        handleChangeView()
-      }
-      setRetro(data.retro);
-      setParticipants(data.participants);
-    } catch (error) {
-      console.error("Error fetching lobby data:", error);
-      setError("Failed to fetch lobby data");
-    } finally {
+  // Selesaikan loading jika user dan participants sudah ada
+  useEffect(() => {
+    if (user && participants && participants.length > 0) {
       setLoading(false);
     }
-  }, [retroId]);
+  }, [user, participants]);
 
   useEffect(() => {
     // Step 1: Check if user is authenticated
@@ -88,8 +78,7 @@ export default function RetroLobbyPage() {
     }
 
     if (!retroId) return;    
-    fetchLobbyData();
-  }, [retroId, fetchLobbyData]);
+  }, [retroId]);
 
   // Auto-join participant function
   // const checkAndJoinParticipant = useCallback(async () => {
@@ -153,21 +142,13 @@ export default function RetroLobbyPage() {
 
   
 
-  const {  } = useRetroSocket({
-    retroId,
-    userId: userId!,
-    onParticipantUpdate: fetchLobbyData,
-    onRetroStarted: handleChangeView,
-  });
-  
-
-
   const handlePromoteToFacilitator = useCallback(async () => {
     if (!selectedParticipant) return;
     try {
       setIsPromoting(true);
       await apiService.updateParticipantRole(retroId, selectedParticipant.id);
-      await fetchLobbyData();
+      await apiService.getRetro(retroId); // Refresh participants after role change
+      setParticipants(prev => prev.map(p => p.id === selectedParticipant.id ? { ...p, role: true } : p));
       setShowRoleModal(false);
       setSelectedParticipant(null);
     } catch (error) {
@@ -177,7 +158,7 @@ export default function RetroLobbyPage() {
     } finally {
       setIsPromoting(false);
     }
-  }, [retroId, selectedParticipant, fetchLobbyData]);
+  }, [retroId, selectedParticipant, setParticipants]);
   
   const shareUrl = typeof window !== "undefined" ? window.location.href : ""
   const facilitator = participants.find((p) => p.role === true)
