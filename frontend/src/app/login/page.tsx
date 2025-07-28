@@ -9,9 +9,19 @@ const LoginPage = () => {
 
 useEffect(() => {
   const checkAuth = async () => {
-    const isAuth = await api.isAuthenticated();
-    if (isAuth) {
-      navigate('/dashboard');
+    try {
+      const isAuth = await api.isAuthenticated();
+      if (isAuth) {
+        const user = await api.getCurrentUser(); // Tambahkan ini
+        if (user) {
+          // Simpan user ke storage/context jika perlu
+          navigate('/dashboard');
+        } else {
+          await api.removeAuthToken();
+        }
+      }
+    } catch (e) {
+      await api.removeAuthToken();
     }
   };
 
