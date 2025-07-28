@@ -30,6 +30,7 @@ import LabellingPhase from './phases/LabellingPhase';
 import VotingPhase from './phases/VotingPhase';
 import ActionItemsPhase from './phases/ActionItemsPhase';
 import FinalPhase from './phases/FinalPhase';
+import RetroLobbyPage from './lobby/page';
 
 export default function RetroPage() {
   const params = useParams()
@@ -52,7 +53,7 @@ export default function RetroPage() {
   const [showShareModal, setShowShareModal] = useState(false);
   const [user, setUser] = useState<User | null>(null)
   const [isPhaseChanging] = useState(false);
-  const [phase, setPhase] = useState<'prime-directive' | 'ideation' | 'grouping' | 'labelling' | 'voting' | 'final' | 'ActionItems'>('prime-directive');
+  const [phase, setPhase] = useState<'lobby' | 'prime-directive' | 'ideation' | 'grouping' | 'labelling' | 'voting' | 'final' | 'ActionItems'>('lobby');
   const [itemPositions, setItemPositions] = useState<{ [key: string]: { x: number; y: number } }>({});
   const [itemGroups, setItemGroups] = useState<{ [key: string]: string }>({}); // itemId -> signature
   const [highContrast, setHighContrast] = useState(false);
@@ -409,16 +410,17 @@ export default function RetroPage() {
   // Load phase from retro data when component mounts or retro changes
   useEffect(() => {
     if (retro?.currentPhase) {
-      // Map old phase names to new ones
       let mappedPhase = retro.currentPhase;
       if (retro.currentPhase === 'submit') {
         mappedPhase = 'ideation';
       }
-      setPhase(mappedPhase as 'prime-directive' | 'ideation' | 'grouping' | 'labelling' | 'voting' | 'final' | 'ActionItems');
+      setPhase(mappedPhase as typeof phase);
+    } else if (retro?.status === 'draft') {
+      setPhase('lobby');
     } else {
       setPhase('prime-directive');
     }
-  }, [retro?.currentPhase]);
+  }, [retro?.currentPhase, retro?.status]);
 
   useEffect(() => {
     if (phase === 'labelling') {
@@ -1153,6 +1155,14 @@ export default function RetroPage() {
     }
   }, [socket, retroId, user, itemPositions]);
   // Phase switching
+  if (phase === 'lobby') return (
+    <RetroLobbyPage
+      // Tidak mengubah fitur FE, biarkan lobby mengelola datanya sendiri
+      // Jika ingin meneruskan props, bisa ditambahkan di sini
+      // Untuk sekarang, biarkan default agar tidak mengubah FE
+      // Untuk transisi ke fase berikutnya, lobby akan update phase retro di backend, lalu RetroPage akan auto-update phase
+    />
+  );
   if (phase === 'prime-directive') return (
     <>
       <ShareLinkModal
