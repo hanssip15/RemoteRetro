@@ -33,7 +33,8 @@ export default function GroupingPhase({
   setSelectedParticipant,
   setPhase,
   getCategoryDisplayName,
-  setItemGroups
+  setItemGroups,
+  socket
 }: {
   items?: any[];
   itemGroups?: { [id: string]: string };
@@ -41,6 +42,7 @@ export default function GroupingPhase({
   setItemGroups: (groups: { [id: string]: string }) => void;
   highContrast: boolean;
   setHighContrast: (val: boolean) => void;
+  socket?: any;
 }) {
   const [showModal, setShowModal] = useState(true);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -50,6 +52,43 @@ export default function GroupingPhase({
   }, []);
 
   useEnterToCloseModal(showModal, () => setShowModal(false));
+
+  // 1. Render loading spinner jika posisi belum siap dari backend
+  const positionsReady = items.length > 0 && Object.keys(itemPositions || {}).length === items.length;
+  // 2. Sync otomatis posisi default ke backend jika backend belum punya data
+  useEffect(() => {
+    if (
+      items.length > 0 &&
+      Object.keys(itemPositions || {}).length === 0 &&
+      socket && user && retro
+    ) {
+      // Generate posisi default grid
+      const defaultPositions: { [key: string]: { x: number; y: number } } = {};
+      items.forEach((item: any, index: number) => {
+        defaultPositions[item.id] = {
+          x: 200 + (index % 3) * 220,
+          y: 100 + Math.floor(index / 3) * 70
+        };
+      });
+      // Emit ke backend
+      socket.emit('item-position-update', {
+        retroId: retro.id,
+        itemPositions: defaultPositions,
+        userId: user.id
+      });
+    }
+  }, [items, itemPositions, socket, user, retro]);
+
+  if (!positionsReady) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading grouping board...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Cek jika tidak ada grup yang terbentuk, assign setiap item ke grup sendiri
   const processedItemGroups = React.useMemo(() => {
