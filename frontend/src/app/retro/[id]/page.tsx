@@ -659,7 +659,7 @@ export default function RetroPage() {
       // Fetch ulang data partisipan dari backend dan update state di RetroPage
       try {
         const data = await apiService.getRetro(retroId);
-        setParticipants(data.participants);
+        setParticipants(data.participants.filter((p: any) => p.isActive === true));
       } catch (e) {
         // Optional: handle error
       }
@@ -751,7 +751,7 @@ export default function RetroPage() {
         throw new Error("No retro data in response")
       }
       setRetro(data.retro)
-      setParticipants(data.participants)
+      setParticipants(data.participants.filter((p: any) => p.isActive === true))
     } catch (error) {
       console.error("Error fetching retro data:", error)
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'

@@ -84,6 +84,7 @@ export interface UpdateItemData {
 export interface addParticipantData {
   role: boolean;
   userId: string;
+  isActive: boolean;
 }
 
 export interface GroupsData {

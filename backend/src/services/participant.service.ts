@@ -96,7 +96,7 @@ export class ParticipantService {
     throw new NotFoundException('Retro not found');
   }
 
-  // Find and remove participant
+
   const participant = await this.participantRepository.findOne({
     where: { 
       retroId: retroId, 
@@ -105,13 +105,19 @@ export class ParticipantService {
   });
 
   if (participant) {
-    await this.participantRepository.remove(participant);
-    
-    // Emit WebSocket event to notify others
-    console.log(`Participant ${userId} left retro ${retroId}`);
+    participant.isActive = false;
+    await this.participantRepository.save(participant);
     this.participantGateway.broadcastParticipantUpdate(retroId);
-
   }
+}
+async activated(retroId: string, userId: string): Promise<void> {
+  const participant = await this.participantRepository.findOne({ where: { retroId, userId } });
+  if (!participant) {
+    throw new NotFoundException('Participant not found');
+  }
+  participant.isActive = true;
+  await this.participantRepository.save(participant);
+  this.participantGateway.broadcastParticipantUpdate(retroId);
 }
 
   async countUniqueMembers(): Promise<number> {

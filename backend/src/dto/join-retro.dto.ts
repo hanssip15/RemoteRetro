@@ -8,4 +8,8 @@ export class JoinRetroDto {
   @IsBoolean()
   @IsNotEmpty()
   role: boolean;
+
+  @IsBoolean()
+  @IsNotEmpty()
+  isActive: boolean;
 } 

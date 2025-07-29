@@ -7,8 +7,10 @@ import {
   UpdateDateColumn,
   ManyToOne,
   JoinColumn,
+  OneToMany,
 } from 'typeorm';
 import { User } from './user.entity';
+import { Participant } from './participant.entity';
 
 @Entity('retros')
 export class Retro {
@@ -39,4 +41,7 @@ export class Retro {
   @ManyToOne(() => User, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
   @JoinColumn({ name: 'created_by' })
   creator: User;
+
+  @OneToMany(() => Participant, participant => participant.retro)
+  participants: Participant[];
 }

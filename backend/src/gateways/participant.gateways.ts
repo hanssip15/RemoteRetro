@@ -55,9 +55,9 @@ import {
       if (!participant) {
         console.log("participant not found, joining retro" + retroId + " for user " + userId);
         const isFacilitator = await this.participantService.isFacilitator(retroId, userId);
-        await this.participantService.join(retroId, { userId, role: isFacilitator });
+        await this.participantService.join(retroId, { userId, role: isFacilitator, isActive: true  });    
       } else {
-        console.log("participant already join")
+        await this.participantService.activated(retroId, userId);
       }
 
 
