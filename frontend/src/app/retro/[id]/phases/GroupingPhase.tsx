@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import RetroFooter from './RetroFooter';
 import { Button } from '@/components/ui/button';
 import RetroHeader from '../RetroHeader';
@@ -44,18 +44,22 @@ export default function GroupingPhase({
   setHighContrast: (val: boolean) => void;
   socket?: any;
 }) {
+  // 1. Semua useState hooks di awal
   const [showModal, setShowModal] = useState(true);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [forceRender, setForceRender] = useState(false);
 
+  // 2. Semua useCallback hooks
+  const handleModalClose = useCallback(() => setShowModal(false), []);
+
+  // 3. Semua useEffect hooks
   useEffect(() => {
     setShowModal(true);
   }, []);
 
-  useEnterToCloseModal(showModal, () => setShowModal(false));
+  useEnterToCloseModal(showModal, handleModalClose);
 
-  // 1. Render loading spinner jika posisi belum siap dari backend
-  const positionsReady = items.length > 0 && Object.keys(itemPositions || {}).length === items.length;
-  // 2. Sync otomatis posisi default ke backend jika backend belum punya data
+  // 4. Sync otomatis posisi default ke backend jika backend belum punya data
   useEffect(() => {
     if (
       items.length > 0 &&
@@ -79,19 +83,27 @@ export default function GroupingPhase({
     }
   }, [items, itemPositions, socket, user, retro]);
 
-  if (!positionsReady) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading grouping board...</p>
-        </div>
-      </div>
+  // 5. Fallback: jika stuck di loading, force render setelah 3 detik
+  useEffect(() => {
+    if (items.length > 0 && Object.keys(itemPositions || {}).length === 0) {
+      const timer = setTimeout(() => {
+        setForceRender(true);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [items.length, itemPositions]);
+
+  // 6. Semua useMemo hooks
+  const positionsReady = useMemo(() => {
+    return items.length > 0 && (
+      Object.keys(itemPositions || {}).length === items.length ||
+      // Fallback: jika ada items tapi tidak ada positions, gunakan default positions
+      (Object.keys(itemPositions || {}).length === 0 && items.length > 0)
     );
-  }
+  }, [items.length, itemPositions]);
 
   // Cek jika tidak ada grup yang terbentuk, assign setiap item ke grup sendiri
-  const processedItemGroups = React.useMemo(() => {
+  const processedItemGroups = useMemo(() => {
     // Jika itemGroups kosong atau semua item punya signature unik (tidak ada grouping)
     if (!itemGroups || Object.keys(itemGroups).length === 0) {
       // Setiap item jadi grup sendiri
@@ -116,6 +128,23 @@ export default function GroupingPhase({
     return itemGroups;
   }, [itemGroups, items]);
 
+  // 7. Early return untuk loading state
+  if (!positionsReady && !forceRender) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading grouping board...</p>
+          <p className="text-xs text-gray-400 mt-2">
+            Items: {items.length} | Positions: {Object.keys(itemPositions || {}).length}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Modal Stage Change Grouping */}
@@ -134,7 +163,7 @@ export default function GroupingPhase({
             <div className="flex justify-center">
               <button
                 className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
-                onClick={() => setShowModal(false)}
+                onClick={handleModalClose}
               >
                 Got it!
               </button>

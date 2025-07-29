@@ -546,21 +546,33 @@ export default function RetroPage() {
   const [draggingByOthers, setDraggingByOthers] = useState<{ [itemId: string]: string }>({});
 
   // Handler untuk menerima posisi item dari partisipan lain
-  const handleItemPositionUpdate = useCallback((data: { itemId: string; position: { x: number; y: number }; userId: string }) => {
+  const handleItemPositionUpdate = useCallback((data: { 
+    itemId?: string; 
+    position?: { x: number; y: number }; 
+    itemPositions?: { [itemId: string]: { x: number; y: number } };
+    userId: string 
+  }) => {
     // Hanya update jika bukan dari user saat ini
     if (data.userId !== user?.id) {
-      setItemPositions(pos => ({ ...pos, [data.itemId]: data.position }));
-      // Set item sebagai sedang di-drag oleh user lain
-      setDraggingByOthers(prev => ({ ...prev, [data.itemId]: data.userId }));
-      
-      // Clear dragging state setelah 2 detik
-      setTimeout(() => {
-        setDraggingByOthers(prev => {
-          const newState = { ...prev };
-          delete newState[data.itemId];
-          return newState;
-        });
-      }, 2000);
+      // Handle multiple item positions (for initialization)
+      if (data.itemPositions) {
+        setItemPositions(prev => ({ ...prev, ...data.itemPositions }));
+      }
+      // Handle single item position (for dragging)
+      else if (data.itemId && data.position) {
+        setItemPositions(pos => ({ ...pos, [data.itemId!]: data.position! }));
+        // Set item sebagai sedang di-drag oleh user lain
+        setDraggingByOthers(prev => ({ ...prev, [data.itemId!]: data.userId }));
+        
+        // Clear dragging state setelah 2 detik
+        setTimeout(() => {
+          setDraggingByOthers(prev => {
+            const newState = { ...prev };
+            delete newState[data.itemId!];
+            return newState;
+          });
+        }, 2000);
+      }
     }
   }, [user?.id]);
 
@@ -674,22 +686,35 @@ export default function RetroPage() {
     onRetroState: handleRetroState,
   });
 
-  useEffect(() => {
-    if (socket && retroId && user) {
-      socket.emit('request-item-positions', {
-        retroId,
-        userId: user.id
-      });
+  // useEffect(() => {
+  //   if (socket && retroId && user) {
+  //     socket.emit('request-item-positions', {
+  //       retroId,
+  //       userId: user.id
+  //     });
   
-      socket.on(`initial-item-positions:${retroId}`, (data: { positions: { [key: string]: { x: number, y: number } } }) => {
-        setItemPositions(data.positions); // update local state
-      });
+  //     socket.on(`initial-item-positions:${retroId}`, (data: { positions: { [key: string]: { x: number, y: number } } }) => {
+  //       // Only update if we have positions from backend and they're different from current
+  //       if (data.positions && Object.keys(data.positions).length > 0) {
+  //         setItemPositions(prev => {
+  //           // Merge with existing positions, backend takes precedence
+  //           return { ...prev, ...data.positions };
+  //         });
+  //       } else {
+  //         setItemPositions(defaultPositions);
+  //       socket.emit('item-position-update', {
+  //         retroId,
+  //         itemPositions: defaultPositions,
+  //         userId: user.id
+  //       });
+  //       }
+  //     });
   
-      return () => {
-        socket.off(`initial-item-positions:${retroId}`);
-      };
-    }
-  }, [socket, retroId, user, itemPositions]);
+  //     return () => {
+  //       socket.off(`initial-item-positions:${retroId}`);
+  //     };
+  //   }
+  // }, [socket, retroId, user]);
 
   useEffect(() => {
   if (socket && retroId && user) {
@@ -781,25 +806,54 @@ export default function RetroPage() {
   // }, [user, retroId, participants]);
   const fetchItems = useCallback(async () => {
     try {
-      const itemsData = await apiService.getItems(retroId)
-      
-      setItems(itemsData)
-      
-      // Initialize item positions with default layout (no database persistence)
-      const positions: { [key: string]: { x: number; y: number } } = {};
+      const itemsData = await apiService.getItems(retroId);
+      setItems(itemsData);
+  
+      const defaultPositions: { [key: string]: { x: number; y: number } } = {};
       itemsData.forEach((item, index) => {
-        // Default grid layout for items
-        positions[item.id] = { 
-          x: 200 + (index % 3) * 220, 
-          y: 100 + Math.floor(index / 3) * 70 
+        defaultPositions[item.id] = {
+          x: 200 + (index % 3) * 220,
+          y: 100 + Math.floor(index / 3) * 70
         };
       });
-      
-      setItemPositions(positions);
+  
+      if (socket && isConnected && user) {
+        socket.emit('request-item-positions', {
+          retroId,
+          userId: user.id
+        });
+
+        console.log("defaultPositions", defaultPositions)
+  
+        const listener = (data: { positions: { [key: string]: { x: number, y: number } } }) => {
+          const fromBackend = data.positions || {};
+          console.log("fromBackend", fromBackend)
+          const merged = { ...defaultPositions, ...fromBackend };
+          console.log("merged", merged)
+          setItemPositions(merged);
+  
+          if (Object.keys(fromBackend).length === 0) {
+            socket.emit('item-position-update', {
+              retroId,
+              itemPositions: defaultPositions,
+              userId: user.id
+            });
+          }
+        };
+  
+        socket.on(`initial-item-positions:${retroId}`, listener);
+  
+        return () => {
+          socket.off(`initial-item-positions:${retroId}`, listener);
+        };
+      } else {
+        // Jika offline, langsung gunakan posisi default
+        setItemPositions(defaultPositions);
+      }
     } catch (error) {
-      console.error("Error fetching items:", error)
+      console.error("Error fetching items:", error);
     }
-  }, [retroId])
+  }, [retroId, socket, isConnected, user]);
   
   const handleAdd = useCallback(async () => {
     if (!inputText.trim() || !user) return;
@@ -999,10 +1053,30 @@ export default function RetroPage() {
 
       // Handler untuk menerima state dari server
       const handleRetroState = (state: { itemPositions: any, itemGroups: any, signatureColors: any }) => {
-        setItemPositions(state.itemPositions || {});
-        setItemGroups(state.itemGroups || {});
-        setSignatureColors(state.signatureColors || {});
+        // Only update itemPositions if we don't have any or if backend has more data
+        if (state.itemPositions && Object.keys(state.itemPositions).length > 0) {
+          setItemPositions(prev => {
+            const currentKeys = Object.keys(prev);
+            const backendKeys = Object.keys(state.itemPositions);
+            
+            // If backend has more positions or different positions, use backend data
+            if (backendKeys.length > currentKeys.length || 
+                !backendKeys.every(key => prev[key] && 
+                  prev[key].x === state.itemPositions[key].x && 
+                  prev[key].y === state.itemPositions[key].y)) {
+              return { ...prev, ...state.itemPositions };
+            }
+            return prev;
+          });
+        }
         
+        // Update other states
+        if (state.itemGroups) {
+          setItemGroups(state.itemGroups);
+        }
+        if (state.signatureColors) {
+          setSignatureColors(state.signatureColors);
+        }
       };
       socket.on(`retro-state:${retroId}`, handleRetroState);
 
@@ -1142,23 +1216,23 @@ export default function RetroPage() {
     }
   };
 
-  useEffect(() => {
-    if (socket && retroId && user) {
-      socket.emit('req-all-votes', {
-        retroId,
-        userId: user.id
-      });
+  // useEffect(() => {
+  //   if (socket && retroId && user) {
+  //     socket.emit('req-all-votes', {
+  //       retroId,
+  //       userId: user.id
+  //     });
   
-      // 3. Listen for response
-      socket.on(`initial-item-positions:${retroId}`, (data: { positions: { [key: string]: { x: number, y: number } } }) => {
-        setItemPositions(data.positions); // update local state
-      });
+  //     // 3. Listen for response
+  //     socket.on(`initial-item-positions:${retroId}`, (data: { positions: { [key: string]: { x: number, y: number } } }) => {
+  //       setItemPositions(data.positions); // update local state
+  //     });
   
-      return () => {
-        socket.off(`initial-item-positions:${retroId}`);
-      };
-    }
-  }, [socket, retroId, user, itemPositions]);
+  //     return () => {
+  //       socket.off(`initial-item-positions:${retroId}`);
+  //     };
+  //   }
+  // }, [socket, retroId, user, itemPositions]);
   // Phase switching
   if (phase === 'lobby') return (
     <RetroLobbyPage

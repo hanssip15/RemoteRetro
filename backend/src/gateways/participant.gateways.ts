@@ -181,18 +181,50 @@ import {
 
     // Handle item position updates during dragging
     @SubscribeMessage('item-position-update')
-    handleItemPositionUpdate(client: Socket, data: { retroId: string; itemId: string; position: { x: number; y: number }; userId: string }) {
-      // Update in-memory state
-      if (!retroState[data.retroId]) retroState[data.retroId] = { itemPositions: {}, itemGroups: {}, signatureColors: {}, actionItems: [], allUserVotes: {} };
-      retroState[data.retroId].itemPositions[data.itemId] = data.position;
-      // Broadcast position update to all participants in the retro
-      
-      this.server.to(`retro:${data.retroId}`).emit(`item-position-update:${data.retroId}`, {
-        itemId: data.itemId,
-        position: data.position,
-        userId: data.userId,
-        timestamp: new Date().toISOString()
-      });
+    handleItemPositionUpdate(client: Socket, data: { 
+      retroId: string; 
+      itemId?: string; 
+      position?: { x: number; y: number }; 
+      itemPositions?: { [itemId: string]: { x: number; y: number } };
+      userId: string 
+    }) {
+      // Initialize retro state if it doesn't exist
+      if (!retroState[data.retroId]) {
+        retroState[data.retroId] = { 
+          itemPositions: {}, 
+          itemGroups: {}, 
+          signatureColors: {}, 
+          actionItems: [], 
+          allUserVotes: {} 
+        };
+      }
+
+      // Handle multiple item positions (for initialization)
+      if (data.itemPositions) {
+        retroState[data.retroId].itemPositions = { 
+          ...retroState[data.retroId].itemPositions, 
+          ...data.itemPositions 
+        };
+        
+        // Broadcast to all participants
+        this.server.to(`retro:${data.retroId}`).emit(`item-position-update:${data.retroId}`, {
+          itemPositions: data.itemPositions,
+          userId: data.userId,
+          timestamp: new Date().toISOString()
+        });
+      }
+      // Handle single item position (for dragging)
+      else if (data.itemId && data.position) {
+        retroState[data.retroId].itemPositions[data.itemId] = data.position;
+        
+        // Broadcast position update to all participants in the retro
+        this.server.to(`retro:${data.retroId}`).emit(`item-position-update:${data.retroId}`, {
+          itemId: data.itemId,
+          position: data.position,
+          userId: data.userId,
+          timestamp: new Date().toISOString()
+        });
+      }
     }
   
     // Handle grouping updates
