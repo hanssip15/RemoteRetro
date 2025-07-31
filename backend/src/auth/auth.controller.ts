@@ -56,7 +56,7 @@ export class AuthController {
     const frontendUrl = process.env.FRONTEND_URL; // Use environment variable or default to localhost
     res.cookie('token', token, {
       httpOnly: false,
-      secure: false,
+      secure: true,
       sameSite: 'none',
       maxAge: 60 * 60 * 1000
     });
