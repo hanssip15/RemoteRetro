@@ -51,6 +51,7 @@ export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
+  const [isLoading, setIsLoading] = useState(false); // tambahkan state loading jika belum ada
   const navigate = useNavigate();
   
 //   useEffect(() => {
@@ -119,29 +120,49 @@ export default function DashboardPage() {
   }
 
   useEffect(() => {
-  const fetchUserAndDashboard = async () => {
-    try {
-      const userData = await api.getCurrentUser()
-      if (!userData) {
-        api.removeAuthToken()
-        navigate('/login')
-        return
+    let isMounted = true;
+    setIsLoading(true);
+    setError(null);
+
+    const fetchUserAndDashboard = async () => {
+      let retries = 3;
+      let userData = null;
+
+      while (retries > 0 && isMounted) {
+        try {
+          userData = await api.getCurrentUser();
+          if (userData) break;
+        } catch (err) {
+          // Optional: log error
+        }
+        retries--;
+        await new Promise(res => setTimeout(res, 500));
       }
-      setUser(userData)
-      setIsAuthenticated(true)
+
+      if (!isMounted) return;
+
+      if (!userData) {
+        setError('Gagal mendapatkan data user. Silakan login ulang.');
+        setIsLoading(false);
+        await api.removeAuthToken();
+        navigate('/login');
+        return;
+      }
+
+      setUser(userData);
+      setIsAuthenticated(true);
+      setIsLoading(false);
 
       // Panggil fetchDashboard setelah user valid
-      await fetchDashboardData(false, userData.id)
-    } catch (err) {
-      console.error(err)
-      setError('Failed to fetch user. Please try again.')
-      await api.removeAuthToken()
-      navigate('/login')
-    }
-  }
+      await fetchDashboardData(false, userData.id);
+    };
 
-  fetchUserAndDashboard()
-}, [currentPage])
+    fetchUserAndDashboard();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [currentPage]);
   
 //   useEffect(() => {
 //   if (!isAuthenticated || !user?.id) return
@@ -204,6 +225,13 @@ export default function DashboardPage() {
         </div>
       </div>
     )
+  }
+
+  if (isLoading) {
+    return <div>Memuat dashboard...</div>;
+  }
+  if (error) {
+    return <div>{error}</div>;
   }
 
   if (loading) {
