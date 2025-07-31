@@ -28,12 +28,17 @@ export class RetroService {
   }
 
   async findWithPagination(userId: string, limit: number, offset: number): Promise<[Retro[], number]> {
-    return this.retroRepository.findAndCount({
-      order: { createdAt: 'DESC' },
-      where: { createdBy: userId },
-      skip: offset,
-      take: limit,
-    });
+    const qb = this.retroRepository
+    .createQueryBuilder('retro')
+    .innerJoin('retro.participants', 'participant')
+    .leftJoinAndSelect('retro.creator', 'creator') // misal mau ambil data pembuat retro juga
+    .where('participant.userId = :userId', { userId })
+    .orderBy('retro.createdAt', 'DESC')
+    .skip(offset)
+    .take(limit);
+
+  const [retros, count] = await qb.getManyAndCount();
+  return [retros, count];
   }
 
   async findOne(id: string): Promise<{ retro: Retro; participants: Participant[] }> {
@@ -72,7 +77,6 @@ export class RetroService {
     await this.participantRepository.remove(participant);
     
     // Emit WebSocket event to notify others
-    console.log(`Participant ${userId} left retro ${retroId}`);
     this.participantGateway.broadcastParticipantUpdate(retroId);
 
   }
@@ -135,15 +139,20 @@ export class RetroService {
   }
 
   async count(userId: string): Promise<number> {
-    return this.retroRepository.count({
-      where: { createdBy: userId },
-    });
+    return this.retroRepository
+    .createQueryBuilder('retro')
+    .innerJoin('retro.participants', 'participant')
+    .where('participant.userId = :userId', { userId })
+    .getCount();
   }
 
   async countByStatus(status: string, userId: string): Promise<number> {
-    return this.retroRepository.count({
-      where: { status, createdBy: userId },
-    });
+    return this.retroRepository
+    .createQueryBuilder('retro')
+    .innerJoin('retro.participants', 'participant')
+    .where('participant.userId = :userId', { userId })
+    .andWhere('retro.status = :status', { status })
+    .getCount();
   }
 
 } 

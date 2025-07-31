@@ -120,7 +120,10 @@ export function FeedbackCard({
                 <Button
                   size="sm"
                   variant="ghost"
-                  onClick={() => onDelete(item.id)}
+                  onClick={() =>{ 
+                    alert(`Yakin ingin menghapus ${item.content}`);
+                    onDelete(item.id);
+                  }}
                   className="p-1 text-red-500 hover:text-red-600"
                   title="Delete item"
                 >

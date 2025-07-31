@@ -49,7 +49,6 @@ export class EmailService {
           subject: `Action Items from Retrospective: ${retroTitle}`,
           html: htmlContent,
         });
-        console.log(`✅ Action items email sent to: ${email}`);
       } catch (error) {
         console.error(`❌ Failed to send email to ${email}:`, error);
         throw new Error(`Failed to send email to ${email}`);
@@ -122,7 +121,6 @@ export class EmailService {
   async testEmailConnection(): Promise<boolean> {
     try {
       await this.transporter.verify();
-      console.log('✅ Email service is properly configured');
       return true;
     } catch (error) {
       console.error('❌ Email service configuration error:', error);

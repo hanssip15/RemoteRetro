@@ -48,20 +48,21 @@ import {
        const { userId, retroId } = client.handshake.query;
 
     if (typeof userId === 'string' && typeof retroId === 'string') {
+      console.log(`🔗 User ${userId} connecting to retro ${retroId}`);
       client.join(`retro:${retroId}`);
       this.socketUserMap.set(client.id, { userId, retroId });
-      console.log(`User ${userId} connected to retro ${retroId} (socket: ${client.id})`);
       const participant = await this.participantService.findParticipantByUserIdAndRetroId(userId, retroId);
       if (!participant) {
-        console.log("participant not found, joining retro" + retroId + " for user " + userId);
         const isFacilitator = await this.participantService.isFacilitator(retroId, userId);
-        await this.participantService.join(retroId, { userId, role: isFacilitator });
+        console.log(`👤 User ${userId} joining retro ${retroId} as ${isFacilitator ? 'facilitator' : 'participant'}`);
+        await this.participantService.join(retroId, { userId, role: isFacilitator, isActive: true  });    
       } else {
-        console.log("participant already join")
+        console.log(`👤 User ${userId} activating in retro ${retroId}`);
+        await this.participantService.activated(retroId, userId);
       }
-
-
-      console.log("User :",this.socketUserMap)
+      
+      // Broadcast participant update setelah user berhasil join/activate
+      this.broadcastParticipantUpdate(retroId);
     }
   }
   
@@ -69,9 +70,12 @@ import {
     const info = this.socketUserMap.get(client.id);
     if (info) {
       const { userId, retroId } = info;
-      console.log(`User ${userId} disconnected from retro ${retroId} (socket: ${client.id})`);
+      console.log(`👋 User ${userId} disconnecting from retro ${retroId}`);
       await this.participantService.leave(retroId, userId);
       this.socketUserMap.delete(client.id);
+      
+      // Broadcast participant update setelah user leave
+      this.broadcastParticipantUpdate(retroId);
     }
   }
 
@@ -102,6 +106,17 @@ import {
 
     @SubscribeMessage('request-item-positions')
     handleRequestItemPositions(client: Socket, data: { retroId: string; userId: string }) {
+      // Initialize retro state if it doesn't exist
+      if (!retroState[data.retroId]) {
+        retroState[data.retroId] = {
+          itemPositions: {},
+          itemGroups: {},
+          signatureColors: {},
+          actionItems: [],
+          allUserVotes: {}
+        };
+      }
+      
       const itemPositions = retroState[data.retroId]?.itemPositions || {};
       client.emit(`initial-item-positions:${data.retroId}`, {
         positions: itemPositions
@@ -119,6 +134,7 @@ import {
 
   
     broadcastParticipantUpdate(retroId: string) {
+      console.log(`📢 Broadcasting participant update for retro: ${retroId}`);
       this.server.to(`retro:${retroId}`).emit(`participants-update:${retroId}`);
     }
 
@@ -181,18 +197,61 @@ import {
 
     // Handle item position updates during dragging
     @SubscribeMessage('item-position-update')
-    handleItemPositionUpdate(client: Socket, data: { retroId: string; itemId: string; position: { x: number; y: number }; userId: string }) {
-      // Update in-memory state
-      if (!retroState[data.retroId]) retroState[data.retroId] = { itemPositions: {}, itemGroups: {}, signatureColors: {}, actionItems: [], allUserVotes: {} };
-      retroState[data.retroId].itemPositions[data.itemId] = data.position;
-      // Broadcast position update to all participants in the retro
-      
-      this.server.to(`retro:${data.retroId}`).emit(`item-position-update:${data.retroId}`, {
-        itemId: data.itemId,
-        position: data.position,
-        userId: data.userId,
-        timestamp: new Date().toISOString()
-      });
+    handleItemPositionUpdate(client: Socket, data: { 
+      retroId: string; 
+      itemId?: string; 
+      position?: { x: number; y: number }; 
+      itemPositions?: { [itemId: string]: { x: number; y: number } };
+      userId: string,
+      source: string
+    }) {
+      // Initialize retro state if it doesn't exist
+      if (!retroState[data.retroId]) {
+        retroState[data.retroId] = { 
+          itemPositions: {}, 
+          itemGroups: {}, 
+          signatureColors: {}, 
+          actionItems: [], 
+          allUserVotes: {} 
+        };
+      }
+
+      // Handle multiple item positions (for initialization)
+      if (data.itemPositions) {
+        if (data.source === "initial") {
+        // Hanya update jika positions yang baru lebih lengkap atau berbeda
+        const currentPositions = retroState[data.retroId].itemPositions;
+        const newPositions = data.itemPositions;
+        
+        // Update jika positions baru lebih lengkap atau berbeda
+        if (Object.keys(newPositions).length > Object.keys(currentPositions).length ||
+            JSON.stringify(newPositions) !== JSON.stringify(currentPositions)) {
+          retroState[data.retroId].itemPositions = { 
+            ...currentPositions, 
+            ...newPositions 
+          };
+          
+          // Broadcast to all participants
+          this.server.to(`retro:${data.retroId}`).emit(`item-position-update:${data.retroId}`, {
+            itemPositions: newPositions,
+            userId: data.userId,
+            timestamp: new Date().toISOString()
+          });
+        }
+      }
+    }
+      // Handle single item position (for dragging)
+      else if (data.itemId && data.position) {
+        retroState[data.retroId].itemPositions[data.itemId] = data.position;
+        
+        // Broadcast position update to all participants in the retro
+        this.server.to(`retro:${data.retroId}`).emit(`item-position-update:${data.retroId}`, {
+          itemId: data.itemId,
+          position: data.position,
+          userId: data.userId,
+          timestamp: new Date().toISOString()
+        });
+      }
     }
   
     // Handle grouping updates
@@ -265,7 +324,6 @@ import {
           actionItems: [],
           allUserVotes: {}
         };
-        console.log(`🔧 Backend: Initialized new retro state for ${data.retroId}`);
       }
       const totalVotes = Object.values(data.userVotes).reduce((sum: number, votes: number) => sum + votes, 0);
       
@@ -385,21 +443,13 @@ async handleLeaveRoom(
   @MessageBody() data: { retroId: string; userId: string },
   @ConnectedSocket() client: Socket,
 ): Promise<void> {
-  console.log('Received leave-room event:', data); // Log data yang diterima
   const { retroId, userId } = data;
 
   try {
-    // Cek apakah user sudah terdaftar
-    // const participant = await this.participantService.findParticipant(retroId, userId);
-    // if (!participant) {
-    //   console.log(`Participant with userId ${userId} not found in retro ${retroId}`);
-    //   return;
-    // }
+
 
     // Hapus partisipan
-    console.log(`Removing participant ${userId} from retro ${retroId}`);
     await this.participantService.removeParticipant(retroId, userId);
-    console.log(`Participant ${userId} removed from retro ${retroId}`);
 
     // Emit event ke semua partisipan tentang keluar
     this.server.to(retroId).emit('participant-left', { userId });

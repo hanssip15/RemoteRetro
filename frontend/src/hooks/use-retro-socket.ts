@@ -60,11 +60,9 @@ export const useRetroSocket = ({
   }), [onItemAdded, onItemUpdated, onItemDeleted, onItemsUpdate, onParticipantUpdate, onRetroStarted, onPhaseChange, onItemPositionUpdate, onGroupingUpdate, onVoteUpdate, onVoteSubmission, onLabelUpdate, onActionItemsUpdate, onRetroState]);
     const connect = useCallback(() => {
       if (socketRef.current?.connected || isConnectingRef.current) {
-        console.log('Socket already connected or connecting, skipping...');
         return;
       }
   
-      console.log('🔌 Connecting to WebSocket server...');
       isConnectingRef.current = true;
   
       // Connect to WebSocket server
@@ -82,7 +80,6 @@ export const useRetroSocket = ({
   
       // Connection events
       socketRef.current.on('connect', () => {
-        console.log('✅ Connected to WebSocket server');
         isConnectingRef.current = false;
         // Join the retro room
         socketRef.current?.emit('join-retro-room', retroId);
@@ -93,31 +90,26 @@ export const useRetroSocket = ({
         isConnectingRef.current = false;
       });
   
-      socketRef.current.on('disconnect', (reason) => {
-        console.log('🔌 Disconnected from WebSocket server:', reason);
+      socketRef.current.on('disconnect', () => {
         isConnectingRef.current = false;
       });
   
-      socketRef.current.on('reconnect', (attemptNumber) => {
-        console.log('🔄 Reconnected to WebSocket server, attempt:', attemptNumber);
+      socketRef.current.on('reconnect', () => {
         // Re-join the retro room after reconnection
         socketRef.current?.emit('join-retro-room', retroId);
       });
   
       socketRef.current.on(`participants-update:${retroId}`, () => {
-        console.log('👥 Participants updated via WebSocket');
         callbacks.onParticipantUpdate?.();
       });
   
       socketRef.current.on(`retro-started:${retroId}`, () => {
-        console.log('🚀 Retro started via WebSocket');
         callbacks.onRetroStarted?.();
       });
     }, [retroId, callbacks]);
   
     const disconnect = useCallback(() => {
       if (socketRef.current) {
-        console.log('🔌 Disconnecting from WebSocket server...');
         socketRef.current.emit('leave-retro-room', retroId);
         socketRef.current.disconnect();
         socketRef.current = undefined;
@@ -139,19 +131,6 @@ export const useRetroSocket = ({
     };
   }, [retroId, userId]); // Remove callbacks from dependency array
 
-  // useEffect(() => {
-  //   if (retroId) {
-  //     joinRoom(retroId);
-  //   }
-
-  //   return () => {
-  //     if (retroId) {
-  //       leaveRoom(retroId);
-  //     }
-  //   };
-  // }, [retroId, joinRoom, leaveRoom]);
-
-  // Set up event listeners
   useEffect(() => {
     if (!socketRef || !retroId) {
       return;

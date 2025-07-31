@@ -57,7 +57,6 @@ export default function LabellingPhase(props: any) {
           label: labelToSave,
           userId: user.id
         });
-        console.log('📡 Label update broadcasted via WebSocket');
       }
     } catch (error) {
       console.error('❌ Failed to update label:', error);

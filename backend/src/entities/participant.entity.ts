@@ -20,7 +20,7 @@ export class Participant {
   @Column({ name: 'retro_id' })
   retroId: string;
 
-  @ManyToOne(() => Retro, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Retro,  { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'retro_id' })
   retro: Retro;
 
@@ -34,6 +34,8 @@ export class Participant {
   @Column({ type: 'boolean', default: false })
   role: boolean; // true = facilitator
 
+  @Column({ name: 'is_active', type: 'boolean', default: true })
+  isActive: boolean; // true = active
 
   @CreateDateColumn({ name: 'joined_at', type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   joinedAt: Date;

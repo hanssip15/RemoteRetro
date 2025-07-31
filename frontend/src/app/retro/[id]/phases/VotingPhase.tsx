@@ -86,7 +86,6 @@ export default function VotingPhase(props: any) {
           console.warn(`⚠️ Group with id ${groupId} not found in labellingItems`);
         } else {  
           await apiService.updateVotes(group.id, totalVotes);
-          console.log(`✅ Saved ${totalVotes} votes for group ${group.id}`);
         }      
       });
       

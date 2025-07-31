@@ -22,7 +22,6 @@ const AuthCallbackPage = () => {
       }
       
       api.setAuthToken(token, userInfo);
-      console.log('Token and user data saved, redirecting to dashboard...');
       navigate('/dashboard');
     } else {
       console.error('No token found in URL');
