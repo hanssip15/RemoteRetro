@@ -38,6 +38,5 @@ async function bootstrap() {
   const url = process.env.BASE_URL;
   await app.listen(port);
   console.log(`Application is running on: ${url}`);
-  // console.log(`CORS enabled for origins: ${corsOrigins.join(', ')}`);
 }
 bootstrap();

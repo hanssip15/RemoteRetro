@@ -82,7 +82,6 @@ export class ParticipantService {
 }
 
   async removeParticipant(retroId: string, userId: string): Promise<void> {
-    console.log(`Removing participant with userId: ${userId} from retroId: ${retroId}`);
     const result = await this.participantRepository.delete({ retroId: retroId, userId: userId });
     // if (result.affected === 0) {
     //   throw new NotFoundException('Participant not found');

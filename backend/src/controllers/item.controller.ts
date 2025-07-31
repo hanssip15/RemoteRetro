@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Param, Delete, Put, Req, ForbiddenException, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, Delete, Put, Req, ForbiddenException, HttpCode, HttpStatus, Query } from '@nestjs/common';
 import { RetroItemsService } from '../services/item.service';
 import { CreateRetroItemDto } from '../dto/create-item.dto';
 import { Request } from 'express';
@@ -46,10 +46,12 @@ export class RetroItemsController {
   async remove(
     @Param('retroId') retroId: string,
     @Param('itemId') itemId: string,
+    @Body() body: { userId?: string },
     @Req() req: Request
   ) {
-    // Extract user ID from request (assuming it's in headers or body)
-    const userId = this.extractUserId(req);
+    // Extract user ID from request body first, then try other sources
+    const userId = body.userId || this.extractUserId(req);
+    
     if (!userId) {
       throw new ForbiddenException('User ID is required');
     }
@@ -64,24 +66,79 @@ export class RetroItemsController {
     };
   }
 
+  // Alternative DELETE endpoint using query parameter
+  @Delete(':itemId/delete')
+  @HttpCode(HttpStatus.OK)
+  async removeWithQuery(
+    @Param('retroId') retroId: string,
+    @Param('itemId') itemId: string,
+    @Query('userId') userId: string,
+    @Req() req: Request
+  ) {
+    if (!userId) {
+      throw new ForbiddenException('User ID is required');
+    }
+
+    await this.retroItemsService.remove(itemId, userId, retroId);
+    
+    // Return a success response
+    return { 
+      success: true, 
+      message: 'Item deleted successfully',
+      itemId: itemId 
+    };
+  }
+
+  // Alternative PUT endpoint for delete (soft delete approach)
+  @Put(':itemId/delete')
+  @HttpCode(HttpStatus.OK)
+  async softDelete(
+    @Param('retroId') retroId: string,
+    @Param('itemId') itemId: string,
+    @Body() body: { userId: string }
+  ) {
+    if (!body.userId) {
+      throw new ForbiddenException('User ID is required');
+    }
+
+    await this.retroItemsService.remove(itemId, body.userId, retroId);
+    
+    // Return a success response
+    return { 
+      success: true, 
+      message: 'Item deleted successfully',
+      itemId: itemId 
+    };
+  }
 
 
   private extractUserId(req: Request): string | null {
-    // Try to get user ID from different sources
+    // Try to get user ID from request body first
+    if ((req.body as any)?.userId) {
+      return (req.body as any).userId;
+    }
+
+    // Try to get from query parameters
+    if ((req.query as any)?.userId) {
+      return (req.query as any).userId;
+    }
+
+    // Try to get from headers
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
       try {
-        // Decode JWT token to get user ID
-        const jwtService = new (require('@nestjs/jwt').JwtService)();
+        // Simple base64 decode for JWT payload (second part)
         const token = authHeader.substring(7);
-        const payload = jwtService.decode(token);
-        return payload?.sub || payload?.userId;
+        const parts = token.split('.');
+        if (parts.length === 3) {
+          const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
+          return payload?.sub || payload?.userId || payload?.id || payload?.user_id;
+        }
       } catch (error) {
         console.log('Error decoding JWT:', error.message);
       }
     }
 
-    // Fallback to body or query
-    return (req.body as any)?.userId || (req.query as any)?.userId || null;
+    return null;
   }
 }

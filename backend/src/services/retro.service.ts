@@ -77,7 +77,6 @@ export class RetroService {
     await this.participantRepository.remove(participant);
     
     // Emit WebSocket event to notify others
-    console.log(`Participant ${userId} left retro ${retroId}`);
     this.participantGateway.broadcastParticipantUpdate(retroId);
 
   }

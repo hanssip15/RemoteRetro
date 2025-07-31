@@ -131,16 +131,8 @@ class ApiService {
     };
 
     try {
-      // console.log('Making request with config:', config);
       const response = await fetch(url, config);
-      
-      // console.log('Response status:', response.status);
-      // console.log('Response ok:', response.ok);
-      
       if (!response.ok) {
-        const errorText = await response.text();
-        console.log('Error response:', errorText);
-        
         // Handle authentication errors
         if (response.status === 401 || response.status === 403) {
           // Clear invalid session data
@@ -297,10 +289,42 @@ class ApiService {
   }
 
 
-  async deleteItem(retroId: string, itemId: string): Promise<{ success: boolean; message: string; itemId: string }> {
-    return this.request<{ success: boolean; message: string; itemId: string }>(`/retros/${retroId}/items/${itemId}`, {
-      method: 'DELETE',
-    });
+  async deleteItem(retroId: string, itemId: string, userId?: string): Promise<{ success: boolean; message: string; itemId: string }> {
+    if (userId) {
+      try {
+        // Try with body first
+        const options: RequestInit = {
+          method: 'DELETE',
+          body: JSON.stringify({ userId }),
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        };
+        
+        return await this.request<{ success: boolean; message: string; itemId: string }>(`/retros/${retroId}/items/${itemId}`, options);
+      } catch (error) {
+        try {
+          // Fallback to query parameter if body fails
+          return await this.request<{ success: boolean; message: string; itemId: string }>(`/retros/${retroId}/items/${itemId}/delete?userId=${userId}`, {
+            method: 'DELETE',
+          });
+        } catch (secondError) {
+          // Final fallback to PUT endpoint
+          return this.request<{ success: boolean; message: string; itemId: string }>(`/retros/${retroId}/items/${itemId}/delete`, {
+            method: 'PUT',
+            body: JSON.stringify({ userId }),
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+        }
+      }
+    } else {
+      // Fallback without userId
+      return this.request<{ success: boolean; message: string; itemId: string }>(`/retros/${retroId}/items/${itemId}`, {
+        method: 'DELETE',
+      });
+    }
   }
   async voteItem(retroId: string, itemId: string): Promise<RetroItem> {
     return this.request<RetroItem>(`/retros/${retroId}/items/${itemId}/vote`, {
@@ -405,7 +429,6 @@ export const apiService = new ApiService();
 export const api = Object.assign(apiService, {
   getCurrentUser: async (): Promise<any> => {
     try {
-      console.log('Fetching current user...');
       const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/me`, {
         credentials: 'include', // penting agar cookie dikirim
       });
@@ -440,10 +463,9 @@ export const api = Object.assign(apiService, {
 
   // Cek apakah user sudah login dengan cara memanggil API
   isAuthenticated: async (): Promise<boolean> => {
-    console.log('Checking authentication status...');
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/me`, {
-        credentials: 'include', // penting agar cookie dikirim
-      });
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/me`, {
+      credentials: 'include', // penting agar cookie dikirim
+    });
 
     return !!res.ok;
   },

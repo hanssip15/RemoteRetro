@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import RetroFooter from './RetroFooter';
 import { Button } from '@/components/ui/button';
 import RetroHeader from '../RetroHeader';
@@ -33,8 +33,7 @@ export default function GroupingPhase({
   setSelectedParticipant,
   setPhase,
   getCategoryDisplayName,
-  setItemGroups,
-  socket
+  setItemGroups
 }: {
   items?: any[];
   itemGroups?: { [id: string]: string };
@@ -60,34 +59,47 @@ export default function GroupingPhase({
   useEnterToCloseModal(showModal, handleModalClose);
 
   // 4. Sync otomatis posisi default ke backend jika backend belum punya data
-  useEffect(() => {
-    if (
-      items.length > 0 &&
-      Object.keys(itemPositions || {}).length === 0 &&
-      socket && user && retro
-    ) {
-      // Generate posisi default grid
-      const defaultPositions: { [key: string]: { x: number; y: number } } = {};
-      items.forEach((item: any, index: number) => {
-        defaultPositions[item.id] = {
-          x: 200 + (index % 3) * 220,
-          y: 100 + Math.floor(index / 3) * 70
-        };
-      });
-      // Emit ke backend
-      socket.emit('item-position-update', {
-        retroId: retro.id,
-        itemPositions: defaultPositions,
-        userId: user.id
-      });
-    }
-  }, [items, itemPositions, socket, user, retro]);
+  // TEMP dikomentar
+  // useEffect(() => {
+  //   if (
+  //     items.length > 0 &&
+  //     Object.keys(itemPositions || {}).length === 0 &&
+  //     socket && user && retro
+  //   ) {
+  //     // Hanya generate default positions jika benar-benar kosong
+  //     // dan tidak ada positions yang sedang di-load
+  //     const timer = setTimeout(() => {
+  //       if (Object.keys(itemPositions || {}).length === 0) {
+  //         // Generate posisi default grid dengan urutan yang konsisten
+  //         const defaultPositions: { [key: string]: { x: number; y: number } } = {};
+  //         items.forEach((item: any, index: number) => {
+  //           defaultPositions[item.id] = {
+  //             x: 200 + (index % 3) * 220,
+  //             y: 100 + Math.floor(index / 3) * 70
+  //           };
+  //         });
+          
+  //         // Emit ke backend
+  //         socket.emit('item-position-update', {
+  //           retroId: retro.id,
+  //           itemPositions: defaultPositions,
+  //           userId: user.id
+  //         });
+  //       }
+  //     }, 1000); // Delay 1 detik untuk menunggu positions dari fetchItems
+
+  //     return () => clearTimeout(timer);
+  //   }
+  // }, [items, itemPositions, socket, user, retro]);
 
   // 5. Fallback: jika stuck di loading, force render setelah 3 detik
   useEffect(() => {
     if (items.length > 0 && Object.keys(itemPositions || {}).length === 0) {
       const timer = setTimeout(() => {
-        setForceRender(true);
+        // Hanya force render jika benar-benar tidak ada positions setelah 3 detik
+        if (Object.keys(itemPositions || {}).length === 0) {
+          setForceRender(true);
+        }
       }, 3000);
       return () => clearTimeout(timer);
     }
@@ -95,12 +107,15 @@ export default function GroupingPhase({
 
   // 6. Semua useMemo hooks
   const positionsReady = useMemo(() => {
-    return items.length > 0 && (
-      Object.keys(itemPositions || {}).length === items.length ||
-      // Fallback: jika ada items tapi tidak ada positions, gunakan default positions
-      (Object.keys(itemPositions || {}).length === 0 && items.length > 0)
-    );
-  }, [items.length, itemPositions]);
+    const itemsLength = items.length;
+    const positionsLength = Object.keys(itemPositions || {}).length;
+    
+    // Ready jika ada items dan positions untuk semua items
+    // atau jika forceRender aktif
+    const ready = (itemsLength > 0 && positionsLength === itemsLength) || forceRender;
+    
+    return ready;
+  }, [items.length, itemPositions, forceRender]);
 
   // Cek jika tidak ada grup yang terbentuk, assign setiap item ke grup sendiri
   const processedItemGroups = useMemo(() => {

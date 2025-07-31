@@ -25,11 +25,9 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const connect = useCallback(() => {
     if (socketRef.current?.connected || isConnectingRef.current) {
-      console.log('Socket already connected or connecting, skipping...');
       return;
     }
 
-    console.log('🔌 Connecting to WebSocket server...');
     isConnectingRef.current = true;
 
     socketRef.current = io(import.meta.env.VITE_API_URL, {
@@ -41,7 +39,6 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     });
 
     socketRef.current.on('connect', () => {
-      console.log('✅ Connected to WebSocket server');
       setIsConnected(true);
       isConnectingRef.current = false;
       // Join the retro room if we have a retroId
@@ -56,14 +53,12 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       isConnectingRef.current = false;
     });
 
-    socketRef.current.on('disconnect', (reason) => {
-      console.log('🔌 Disconnected from WebSocket server:', reason);
+    socketRef.current.on('disconnect', () => {
       setIsConnected(false);
       isConnectingRef.current = false;
     });
 
-    socketRef.current.on('reconnect', (attemptNumber) => {
-      console.log('🔄 Reconnected to WebSocket server, attempt:', attemptNumber);
+    socketRef.current.on('reconnect', () => {
       setIsConnected(true);
       // Re-join the retro room after reconnection
       if (currentRetroIdRef.current) {
@@ -74,7 +69,6 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
 
   const disconnect = useCallback(() => {
     if (socketRef.current) {
-      console.log('🔌 Disconnecting from WebSocket server...');
       if (currentRetroIdRef.current) {
         socketRef.current.emit('leave-retro-room', currentRetroIdRef.current);
       }
@@ -87,21 +81,17 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   }, []);
 
   const joinRoom = useCallback((retroId: string) => {
-    console.log(`🏠 Attempting to join retro room: ${retroId}`);
     currentRetroIdRef.current = retroId;
     if (socketRef.current?.connected) {
-      console.log(`🏠 Joining retro room: ${retroId}`);
       socketRef.current.emit('join-retro-room', retroId);
     } else {
       // Connect first, then join room
-      console.log(`🔌 Connecting first, then joining room: ${retroId}`);
       connect();
     }
   }, [connect]);
 
   const leaveRoom = useCallback((retroId: string) => {
     if (socketRef.current?.connected) {
-      console.log(`🚪 Leaving retro room: ${retroId}`);
       socketRef.current.emit('leave-retro-room', retroId);
     }
     currentRetroIdRef.current = null;

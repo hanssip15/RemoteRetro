@@ -13,7 +13,6 @@ export default function TestApiPage() {
     setResult(null)
 
     try {
-      console.log("Testing API...")
 
       const response = await fetch("/api/retros", {
         method: "POST",
@@ -28,11 +27,7 @@ export default function TestApiPage() {
         }),
       })
 
-      console.log("Response status:", response.status)
-      console.log("Response ok:", response.ok)
-
       const data = await response.json()
-      console.log("Response data:", data)
 
       setResult({
         status: response.status,

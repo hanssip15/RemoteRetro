@@ -148,8 +148,6 @@ export default function ActionItemsPhase({
             {/* List action items */}
             <div className="flex flex-col gap-2">
               {actionItems.length === 0 && <span className="text-gray-400 text-sm">No action items yet.</span>}
-              {console.log('🚀 actionItems:', actionItems)}
-              {console.log('🚀 current facilitator:', isCurrentFacilitator)}
               {actionItems.map((item: any, idx: number) => (
                 <div key={item.id || idx} className="bg-gray-50 border rounded px-3 py-2 text-sm flex items-center justify-between gap-2">
                   {editingActionIdx === idx ? (
@@ -299,7 +297,6 @@ export default function ActionItemsPhase({
                   title="Are you sure you want to distribute this retrospective's action items? This will close the retro."
                   onConfirm={async () => {
                     try {
-                      console.log("action : " , actionItems)
                       const bulkData = actionItems.map((item: any) => ({
                         retro_id: retro.id,
                         action_item: item.task,

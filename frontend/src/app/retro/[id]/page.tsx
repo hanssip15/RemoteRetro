@@ -60,6 +60,7 @@ export default function RetroPage() {
   const [groupLabels, setGroupLabels] = useState<string[]>(["", ""]); // contoh 2 group
   const [allUserVotes, setAllUserVotes] = useState<{ [userId: string]: { [groupIdx: number]: number } }>({});
   const [userId, setUserId] = useState<string>();
+  const [isUserJoined, setIsUserJoined] = useState(false);
   
   // Data structure untuk menyimpan grup yang bisa dimasukkan ke database
   // const [setGroupData] = useState<GroupData>({
@@ -129,6 +130,40 @@ export default function RetroPage() {
 
   fetchUser();
 }, []);
+
+// Cek join status setiap kali participants berubah
+useEffect(() => {
+  if (user && participants && participants.length > 0) {
+    const currentUserParticipant = participants.find((p) => p.user.id === user.id);
+    console.log('🔍 Checking join status in RetroPage:', {
+      userId: user.id,
+      userName: user.name,
+      participantsCount: participants.length,
+      participantIds: participants.map(p => ({ id: p.user.id, name: p.user.name })),
+      currentUserParticipant: currentUserParticipant ? { id: currentUserParticipant.user.id, name: currentUserParticipant.user.name } : null,
+      isUserJoined
+    });
+    
+    if (currentUserParticipant && !isUserJoined) {
+      console.log('✅ User successfully joined as participant in RetroPage');
+      setIsUserJoined(true);
+      setLoading(false);
+    }
+  }
+}, [user, participants, isUserJoined]);
+
+// Timeout fallback untuk mencegah loading yang terlalu lama
+useEffect(() => {
+  if (user && !isUserJoined) {
+    const timeout = setTimeout(() => {
+      console.log('⏰ Join timeout reached in RetroPage, forcing loading to finish');
+      window.location.reload();
+      setIsUserJoined(true);
+    }, 3000); // 3 detik timeout
+
+    return () => clearTimeout(timeout);
+  }
+}, [user, isUserJoined]);
   // Pewarnaan group: connected components + warna primary group stabil dengan signature
   function computeGroupsAndColors(
     items: RetroItem[],
@@ -545,6 +580,8 @@ export default function RetroPage() {
   // State untuk tracking item yang sedang di-drag oleh user lain
   const [draggingByOthers, setDraggingByOthers] = useState<{ [itemId: string]: string }>({});
 
+
+
   // Handler untuk menerima posisi item dari partisipan lain
   const handleItemPositionUpdate = useCallback((data: { 
     itemId?: string; 
@@ -671,9 +708,10 @@ export default function RetroPage() {
       // Fetch ulang data partisipan dari backend dan update state di RetroPage
       try {
         const data = await apiService.getRetro(retroId);
-        setParticipants(data.participants.filter((p: any) => p.isActive === true));
+        const activeParticipants = data.participants.filter((p: any) => p.isActive === true);
+        setParticipants(activeParticipants);
       } catch (e) {
-        // Optional: handle error
+        console.error('❌ Error updating participants:', e);
       }
     },
     onPhaseChange: handlePhaseChange,
@@ -686,35 +724,6 @@ export default function RetroPage() {
     onRetroState: handleRetroState,
   });
 
-  // useEffect(() => {
-  //   if (socket && retroId && user) {
-  //     socket.emit('request-item-positions', {
-  //       retroId,
-  //       userId: user.id
-  //     });
-  
-  //     socket.on(`initial-item-positions:${retroId}`, (data: { positions: { [key: string]: { x: number, y: number } } }) => {
-  //       // Only update if we have positions from backend and they're different from current
-  //       if (data.positions && Object.keys(data.positions).length > 0) {
-  //         setItemPositions(prev => {
-  //           // Merge with existing positions, backend takes precedence
-  //           return { ...prev, ...data.positions };
-  //         });
-  //       } else {
-  //         setItemPositions(defaultPositions);
-  //       socket.emit('item-position-update', {
-  //         retroId,
-  //         itemPositions: defaultPositions,
-  //         userId: user.id
-  //       });
-  //       }
-  //     });
-  
-  //     return () => {
-  //       socket.off(`initial-item-positions:${retroId}`);
-  //     };
-  //   }
-  // }, [socket, retroId, user]);
 
   useEffect(() => {
   if (socket && retroId && user) {
@@ -727,7 +736,6 @@ export default function RetroPage() {
     // Terima hasil userVotes
     socket.on(`user-votes:${retroId}:${user.id}`, (data: { userVotes: { [groupId: number]: number } }) => {
       if (data && data.userVotes) {
-        console.log('✅ Fetched userVotes after reconnect:', data.userVotes);
         setUserVotes(data.userVotes);
       }
     });
@@ -777,38 +785,35 @@ export default function RetroPage() {
       }
       setRetro(data.retro)
       setParticipants(data.participants.filter((p: any) => p.isActive === true))
+      
+      // Cek apakah current user sudah ada di dalam participants
+      if (user) {
+        const currentUserParticipant = data.participants.find((p: any) => p.user.id === user.id);
+        if (currentUserParticipant) {
+          console.log('✅ Current user found in participants, finishing loading');
+          setIsUserJoined(true);
+          setLoading(false);
+        } else {
+          console.log('⏳ Current user not found in participants, waiting for join...');
+          // Tetap loading sampai user berhasil join
+          setIsUserJoined(false);
+          setLoading(true);
+        }
+      }
     } catch (error) {
       console.error("Error fetching retro data:", error)
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
       setError(`Failed to fetch retro data: ${errorMessage}`)
-    } finally {
       setLoading(false)
     }
-  }, [retroId])
+  }, [retroId, user])
 
-  // const checkAndJoinParticipant = useCallback(async () => {
-  //   if (!user || !retroId) return;
-  //   const participant = participants.find((p) => p.user.id === user.id);
-  //   if (!participant) {
-  //     try {
-  //       await apiService.addParticipant(retroId, {
-  //         userId: user.id,
-  //         role: false,
-  //       });
-  //       // Refresh data setelah join
-  //       const data = await apiService.getRetro(retroId);
-  //       setRetro(data.retro);
-  //       setParticipants(data.participants || []);
-  //     } catch (error) {
-  //       console.error("Failed to join as participant:", error);
-  //     }
-  //   }
-  // }, [user, retroId, participants]);
   const fetchItems = useCallback(async () => {
     try {
       const itemsData = await apiService.getItems(retroId);
       setItems(itemsData);
   
+      // Generate default positions dengan urutan yang konsisten
       const defaultPositions: { [key: string]: { x: number; y: number } } = {};
       itemsData.forEach((item, index) => {
         defaultPositions[item.id] = {
@@ -816,39 +821,38 @@ export default function RetroPage() {
           y: 100 + Math.floor(index / 3) * 70
         };
       });
-  
+
+      // // Selalu set default positions terlebih dahulu untuk konsistensi
+      // setItemPositions(defaultPositions);
+
       if (socket && isConnected && user) {
         socket.emit('request-item-positions', {
           retroId,
           userId: user.id
         });
-
-        console.log("defaultPositions", defaultPositions)
-  
+        let realPositions: { [key: string]: { x: number, y: number } } = {};
         const listener = (data: { positions: { [key: string]: { x: number, y: number } } }) => {
           const fromBackend = data.positions || {};
-          console.log("fromBackend", fromBackend)
-          const merged = { ...defaultPositions, ...fromBackend };
-          console.log("merged", merged)
-          setItemPositions(merged);
-  
-          if (Object.keys(fromBackend).length === 0) {
-            socket.emit('item-position-update', {
-              retroId,
-              itemPositions: defaultPositions,
-              userId: user.id
-            });
+          
+          // Hanya update jika backend punya positions yang valid
+          if (Object.keys(fromBackend).length > 0) {
+            const merged = { ...defaultPositions, ...fromBackend };
+            realPositions = merged;
+          } else {
+            realPositions = defaultPositions;
           }
+          setItemPositions(realPositions);
+          socket.emit('item-position-update', {
+            retroId,
+            itemPositions: realPositions,
+            userId: user.id
+          });
         };
-  
         socket.on(`initial-item-positions:${retroId}`, listener);
   
         return () => {
           socket.off(`initial-item-positions:${retroId}`, listener);
         };
-      } else {
-        // Jika offline, langsung gunakan posisi default
-        setItemPositions(defaultPositions);
       }
     } catch (error) {
       console.error("Error fetching items:", error);
@@ -954,16 +958,19 @@ export default function RetroPage() {
     if (!user) return;
 
     setIsDeletingItem(true)
+    
     try {
-       await apiService.deleteItem(retroId, itemId)
-      // Note: Item will be deleted via WebSocket broadcast
+      await apiService.deleteItem(retroId, itemId, user.id)
+      
+      // Remove item from state
+      setItems(prev => prev.filter(item => item.id !== itemId))
     } catch (error) {
       console.error("Error deleting item:", error)
       setError("Failed to delete item. Please try again.")
     } finally {
       setIsDeletingItem(false)
     }
-  }, [retroId, user]);
+  }, [retroId, user])
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && !isAddingItem) {
@@ -1006,12 +1013,6 @@ export default function RetroPage() {
     fetchItems()
   }, [retroId, navigate, fetchRetroData, fetchItems])
 
-  // Separate useEffect untuk checkAndJoinParticipant
-  // useEffect(() => {
-  //   if (retro && participants.length > 0 && user) {
-  //     checkAndJoinParticipant()
-  //   }
-  // }, [retro, participants, user, checkAndJoinParticipant])
   const isCurrentFacilitator = participants.find(x => x.role)?.user.id === user?.id;
   const currentUserParticipant = participants.find(x => x.user.id === user?.id);
   
@@ -1216,23 +1217,6 @@ export default function RetroPage() {
     }
   };
 
-  // useEffect(() => {
-  //   if (socket && retroId && user) {
-  //     socket.emit('req-all-votes', {
-  //       retroId,
-  //       userId: user.id
-  //     });
-  
-  //     // 3. Listen for response
-  //     socket.on(`initial-item-positions:${retroId}`, (data: { positions: { [key: string]: { x: number, y: number } } }) => {
-  //       setItemPositions(data.positions); // update local state
-  //     });
-  
-  //     return () => {
-  //       socket.off(`initial-item-positions:${retroId}`);
-  //     };
-  //   }
-  // }, [socket, retroId, user, itemPositions]);
   // Phase switching
   if (phase === 'lobby') return (
     <RetroLobbyPage
@@ -1492,6 +1476,9 @@ export default function RetroPage() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading retrospective...</p>
+          {!isUserJoined && user && (
+            <p className="text-sm text-indigo-600 mt-2">Joining as participant...</p>
+          )}
         </div>
       </div>
     </>
