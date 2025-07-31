@@ -186,9 +186,13 @@ export default function DashboardPage() {
     }
   }
 
-  const handleLogout = () => {
-    api.removeAuthToken()
-    window.location.href = '/login'
+  const handleLogout = async () => {
+    try {
+      await api.removeAuthToken(); // Panggil backend untuk logout
+    } catch (error) {
+      console.error('Failed to logout:', error);
+    }
+    window.location.href = '/login';
   }
 
   // Show authentication error
