@@ -78,7 +78,12 @@ export class AuthController {
   }
   @Get('logout')
   logout(@Res() res: Response) {
-    res.clearCookie('token');
+    res.clearCookie('token', {
+      httpOnly: false,
+      secure: true,
+      sameSite: 'none',
+      path: '/',
+    });
     return res.json({ message: 'Logged out successfully' });
   }
 

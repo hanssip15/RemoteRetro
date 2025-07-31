@@ -996,9 +996,12 @@ useEffect(() => {
     }
   }, [retro?.format])
 
-  const handleLogout = useCallback(() => {
-    sessionStorage.removeItem('auth_token');
-    sessionStorage.removeItem('user_data');
+  const handleLogout = useCallback(async () => {
+    try {
+      await api.removeAuthToken(); // Panggil backend untuk logout
+    } catch (error) {
+      console.error('Failed to logout:', error);
+    }
     window.location.href = '/login';
   }, []);
 
