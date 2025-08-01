@@ -6,7 +6,7 @@ import { RetroItem } from '../entities/retro-item.entity';
 import { Participant } from '../entities/participant.entity';
 import { CreateRetroDto } from '../dto/create-retro.dto';
 import { UpdateRetroDto } from '../dto/update-retro.dto';
-import { ParticipantGateway } from 'src/gateways/participant.gateways';
+import { ParticipantGateway } from '../gateways/participant.gateways';
 
 @Injectable()
 export class RetroService {

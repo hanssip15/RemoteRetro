@@ -82,6 +82,29 @@ export default function RetroPage() {
   const [typingParticipants, setTypingParticipants] = useState<string[]>([]);
   const typingTimeouts = useRef<{ [userId: string]: NodeJS.Timeout }>({});
 
+  // State untuk tracking item yang sedang di-drag oleh user lain
+  const [draggingByOthers, setDraggingByOthers] = useState<{ [itemId: string]: string }>({});
+
+  // Debouncing mechanism untuk grouping updates
+  const groupingUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const pendingGroupingUpdateRef = useRef<{
+    itemToGroup: { [id: string]: string };
+    newSignatureColors: { [signature: string]: string };
+    newUsedColors: string[];
+  } | null>(null);
+
+  // State locking mechanism untuk mencegah race condition
+  const isUpdatingGroupsRef = useRef(false);
+  const pendingStateUpdatesRef = useRef<Array<{
+    itemToGroup: { [id: string]: string };
+    newSignatureColors: { [signature: string]: string };
+    newUsedColors: string[];
+  }>>([]);
+
+  // Timestamp-based conflict resolution
+  const lastGroupingUpdateRef = useRef<number>(0);
+  const groupingUpdateVersionRef = useRef<number>(0);
+
   // Helper warna random konsisten
   function getNextColor(used: string[]): string {
     const palette = [
@@ -107,6 +130,8 @@ export default function RetroPage() {
       a.top > b.bottom
     );
   }
+
+
 
   useEffect(() => {
   const fetchUser = async () => {
@@ -135,17 +160,8 @@ export default function RetroPage() {
 useEffect(() => {
   if (user && participants && participants.length > 0) {
     const currentUserParticipant = participants.find((p) => p.user.id === user.id);
-    console.log('🔍 Checking join status in RetroPage:', {
-      userId: user.id,
-      userName: user.name,
-      participantsCount: participants.length,
-      participantIds: participants.map(p => ({ id: p.user.id, name: p.user.name })),
-      currentUserParticipant: currentUserParticipant ? { id: currentUserParticipant.user.id, name: currentUserParticipant.user.name } : null,
-      isUserJoined
-    });
     
     if (currentUserParticipant && !isUserJoined) {
-      console.log('✅ User successfully joined as participant in RetroPage');
       setIsUserJoined(true);
       setLoading(false);
     }
@@ -156,7 +172,6 @@ useEffect(() => {
 useEffect(() => {
   if (user && !isUserJoined) {
     const timeout = setTimeout(() => {
-      console.log('⏰ Join timeout reached in RetroPage, forcing loading to finish');
       window.location.reload();
       setIsUserJoined(true);
     }, 3000); // 3 detik timeout
@@ -391,20 +406,8 @@ useEffect(() => {
           usedColors,
         );
         
-        // Update local state
-        setItemGroups(itemToGroup);
-        setSignatureColors(newSignatureColors);
-        setUsedColors(newUsedColors);
-        
-        // Broadcast grouping update to other users
-        // if (socket && isConnected && user) {
-        //   socket.emit('grouping-update', {
-        //     retroId: retroId,
-        //     itemGroups: itemToGroup,
-        //     signatureColors: newSignatureColors,
-        //     userId: user.id
-        //   });
-        // }
+        // Use debounced grouping update to prevent race conditions
+        debouncedGroupingUpdate(itemToGroup, newSignatureColors, newUsedColors);
       }, 50); // Slightly longer delay to ensure DOM is updated
       
       return newPos;
@@ -423,20 +426,8 @@ useEffect(() => {
         usedColors,
       );
       
-      // Update local state
-      setItemGroups(itemToGroup);
-      setSignatureColors(newSignatureColors);
-      setUsedColors(newUsedColors);
-      
-      // Broadcast final grouping update to other users
-      if (socket && isConnected && user) {
-        socket.emit('grouping-update', {
-          retroId: retroId,
-          itemGroups: itemToGroup,
-          signatureColors: newSignatureColors,
-          userId: user.id
-        });
-      }
+      // Use debounced grouping update to prevent race conditions
+      debouncedGroupingUpdate(itemToGroup, newSignatureColors, newUsedColors);
     }, 100);
   };
 
@@ -506,6 +497,9 @@ useEffect(() => {
         console.error('❌ Error fetching labelling items for ActionItems:', error);
         setLabellingItems([]);
       });
+      console.log('✅ Action items loaded for final phase');
+      console.log('actionItems:', actionItems);
+      console.log('actionItems length:', actionItems.length);
     }
   }, [phase, retroId]);
   
@@ -577,11 +571,6 @@ useEffect(() => {
     // Don't set isPhaseChanging to false here as it's handled by the button
   }, []);
 
-  // State untuk tracking item yang sedang di-drag oleh user lain
-  const [draggingByOthers, setDraggingByOthers] = useState<{ [itemId: string]: string }>({});
-
-
-
   // Handler untuk menerima posisi item dari partisipan lain
   const handleItemPositionUpdate = useCallback((data: { 
     itemId?: string; 
@@ -617,12 +606,25 @@ useEffect(() => {
   const handleGroupingUpdate = useCallback((data: { 
     itemGroups: { [itemId: string]: string }; 
     signatureColors: { [signature: string]: string };
-    userId: string 
+    userId: string;
+    timestamp?: string;
+    version?: number;
   }) => {
     // Hanya update jika bukan dari user saat ini
     if (data.userId !== user?.id) {
-      setItemGroups(data.itemGroups);
-      setSignatureColors(data.signatureColors);
+      const updateTime = data.timestamp ? new Date(data.timestamp).getTime() : Date.now();
+      const updateVersion = data.version || 0;
+      
+      // Timestamp-based conflict resolution
+      if (updateTime > lastGroupingUpdateRef.current || 
+          (updateTime === lastGroupingUpdateRef.current && updateVersion > groupingUpdateVersionRef.current)) {
+        
+        lastGroupingUpdateRef.current = updateTime;
+        groupingUpdateVersionRef.current = updateVersion;
+        
+        setItemGroups(data.itemGroups);
+        setSignatureColors(data.signatureColors);
+      }
     }
   }, [user?.id]);
 
@@ -724,6 +726,79 @@ useEffect(() => {
     onRetroState: handleRetroState,
   });
 
+  // Debounced grouping update function - now with access to socket and isConnected
+  const debouncedGroupingUpdate = useCallback((itemToGroup: { [id: string]: string }, newSignatureColors: { [signature: string]: string }, newUsedColors: string[]) => {
+    // Cancel previous timeout
+    if (groupingUpdateTimeoutRef.current) {
+      clearTimeout(groupingUpdateTimeoutRef.current);
+    }
+
+    // Store pending update
+    pendingGroupingUpdateRef.current = {
+      itemToGroup,
+      newSignatureColors,
+      newUsedColors
+    };
+
+    // Set new timeout
+    groupingUpdateTimeoutRef.current = setTimeout(() => {
+      if (pendingGroupingUpdateRef.current) {
+        const { itemToGroup, newSignatureColors, newUsedColors } = pendingGroupingUpdateRef.current;
+        
+        // State locking mechanism
+        if (isUpdatingGroupsRef.current) {
+          // If already updating, queue this update
+          pendingStateUpdatesRef.current.push({
+            itemToGroup,
+            newSignatureColors,
+            newUsedColors
+          });
+          return;
+        }
+
+        // Lock state updates
+        isUpdatingGroupsRef.current = true;
+        
+        // Update local state
+        setItemGroups(itemToGroup);
+        setSignatureColors(newSignatureColors);
+        setUsedColors(newUsedColors);
+        
+        // Broadcast grouping update to other users with timestamp and version
+        if (socket && isConnected && user) {
+          const currentTime = Date.now();
+          const currentVersion = groupingUpdateVersionRef.current + 1;
+          groupingUpdateVersionRef.current = currentVersion;
+          
+          socket.emit('grouping-update', {
+            retroId: retroId,
+            itemGroups: itemToGroup,
+            signatureColors: newSignatureColors,
+            userId: user.id,
+            timestamp: new Date(currentTime).toISOString(),
+            version: currentVersion
+          });
+        }
+        
+        // Clear pending update
+        pendingGroupingUpdateRef.current = null;
+        
+        // Unlock after a short delay to allow state to settle
+        setTimeout(() => {
+          isUpdatingGroupsRef.current = false;
+          
+          // Process any queued updates
+          if (pendingStateUpdatesRef.current.length > 0) {
+            const nextUpdate = pendingStateUpdatesRef.current.shift();
+            if (nextUpdate) {
+              debouncedGroupingUpdate(nextUpdate.itemToGroup, nextUpdate.newSignatureColors, nextUpdate.newUsedColors);
+            }
+          }
+        }, 50);
+      }
+    }, 150); // Increased delay for better stability
+  }, [socket, isConnected, user, retroId]);
+
 
   useEffect(() => {
   if (socket && retroId && user) {
@@ -790,11 +865,9 @@ useEffect(() => {
       if (user) {
         const currentUserParticipant = data.participants.find((p: any) => p.user.id === user.id);
         if (currentUserParticipant) {
-          console.log('✅ Current user found in participants, finishing loading');
           setIsUserJoined(true);
           setLoading(false);
         } else {
-          console.log('⏳ Current user not found in participants, waiting for join...');
           // Tetap loading sampai user berhasil join
           setIsUserJoined(false);
           setLoading(true);
@@ -808,56 +881,76 @@ useEffect(() => {
     }
   }, [retroId, user])
 
-  const fetchItems = useCallback(async () => {
+  
+  const fetchItemsAndState = useCallback(async () => {
     try {
       const itemsData = await apiService.getItems(retroId);
       setItems(itemsData);
   
-      // Generate default positions dengan urutan yang konsisten
-      const defaultPositions: { [key: string]: { x: number; y: number } } = {};
-      itemsData.forEach((item, index) => {
-        defaultPositions[item.id] = {
-          x: 200 + (index % 3) * 220,
-          y: 100 + Math.floor(index / 3) * 70
-        };
-      });
-
-      // // Selalu set default positions terlebih dahulu untuk konsistensi
-      // setItemPositions(defaultPositions);
-
       if (socket && isConnected && user) {
-        socket.emit('request-item-positions', {
-          retroId,
-          userId: user.id
-        });
-        let realPositions: { [key: string]: { x: number, y: number } } = {};
-        const listener = (data: { positions: { [key: string]: { x: number, y: number } } }) => {
-          const fromBackend = data.positions || {};
-          
-          // Hanya update jika backend punya positions yang valid
-          if (Object.keys(fromBackend).length > 0) {
-            const merged = { ...defaultPositions, ...fromBackend };
-            realPositions = merged;
-          } else {
-            realPositions = defaultPositions;
-          }
-          setItemPositions(realPositions);
-          socket.emit('item-position-update', {
-            retroId,
-            itemPositions: realPositions,
-            userId: user.id
+        // Emit request untuk semua data awal
+        socket.emit('request-retro-state', { retroId });
+  
+        const handleRetroState = (state: {
+          itemPositions?: { [key: string]: { x: number; y: number } },
+          itemGroups?: any,
+          signatureColors?: any
+        }) => {
+          const fromBackend = state.itemPositions || {};
+  
+          // Buat posisi berdasarkan urutan itemsData
+          const mergedPositions: { [key: string]: { x: number; y: number } } = {};
+          itemsData.forEach((item, index) => {
+            mergedPositions[item.id] = fromBackend[item.id] || {
+              x: 200 + (index % 3) * 220,
+              y: 100 + Math.floor(index / 3) * 70
+            };
           });
+  
+          // Set posisi yang sudah tersinkron dengan urutan itemsData
+          setItemPositions(mergedPositions);
+  
+          if (state.itemGroups) {
+            setItemGroups(state.itemGroups);
+          }
+  
+          if (state.signatureColors) {
+            setSignatureColors(state.signatureColors);
+          }
+  
+          // Broadcast posisi jika backend belum kirim
+          if (Object.keys(fromBackend).length === 0) {
+            socket.emit('item-position-update', {
+              retroId,
+              itemPositions: mergedPositions,
+              userId: user.id
+            });
+          }
         };
-        socket.on(`initial-item-positions:${retroId}`, listener);
+  
+        socket.on(`retro-state:${retroId}`, handleRetroState);
   
         return () => {
-          socket.off(`initial-item-positions:${retroId}`, listener);
+          socket.off(`retro-state:${retroId}`, handleRetroState);
         };
+      } else {
+        // Fallback: jika socket belum ready, set default posisi
+        const fallbackPositions: { [key: string]: { x: number; y: number } } = {};
+        itemsData.forEach((item, index) => {
+          fallbackPositions[item.id] = {
+            x: 200 + (index % 3) * 220,
+            y: 100 + Math.floor(index / 3) * 70
+          };
+        });
+        setItemPositions(fallbackPositions);
       }
     } catch (error) {
-      console.error("Error fetching items:", error);
+      console.error("Error fetching items and state:", error);
     }
   }, [retroId, socket, isConnected, user]);
+  
+
+
   
   const handleAdd = useCallback(async () => {
     if (!inputText.trim() || !user) return;
@@ -1010,8 +1103,8 @@ useEffect(() => {
     }
 
     fetchRetroData()
-    fetchItems()
-  }, [retroId, navigate, fetchRetroData, fetchItems])
+    fetchItemsAndState()
+  }, [retroId, navigate, fetchRetroData, fetchItemsAndState])
 
   const isCurrentFacilitator = participants.find(x => x.role)?.user.id === user?.id;
   const currentUserParticipant = participants.find(x => x.user.id === user?.id);
@@ -1038,54 +1131,55 @@ useEffect(() => {
       console.log('❌ Socket not available or not connected');
     }
 
-    // Kosongkan input
+    // Kosongkan input task saja, jangan kosongkan assignee
     setActionInput('');
-    setActionAssignee('');
+    // setActionAssignee(''); // Hapus baris ini agar assignee tidak berubah
   };
+  
   
 
   
 
   // Request state dari server saat socket connect
-  useEffect(() => {
-    if (socket && isConnected && retroId) {
-      // Request state terkini dari server
-      socket.emit('request-retro-state', { retroId });
+  // useEffect(() => {
+  //   if (socket && isConnected && retroId) {
+  //     // Request state terkini dari server
+  //     socket.emit('request-retro-state', { retroId });
 
-      // Handler untuk menerima state dari server
-      const handleRetroState = (state: { itemPositions: any, itemGroups: any, signatureColors: any }) => {
-        // Only update itemPositions if we don't have any or if backend has more data
-        if (state.itemPositions && Object.keys(state.itemPositions).length > 0) {
-          setItemPositions(prev => {
-            const currentKeys = Object.keys(prev);
-            const backendKeys = Object.keys(state.itemPositions);
+  //     // Handler untuk menerima state dari server
+  //     const handleRetroState = (state: { itemPositions: any, itemGroups: any, signatureColors: any }) => {
+  //       // Only update itemPositions if we don't have any or if backend has more data
+  //       if (state.itemPositions && Object.keys(state.itemPositions).length > 0) {
+  //         setItemPositions(prev => {
+  //           const currentKeys = Object.keys(prev);
+  //           const backendKeys = Object.keys(state.itemPositions);
             
-            // If backend has more positions or different positions, use backend data
-            if (backendKeys.length > currentKeys.length || 
-                !backendKeys.every(key => prev[key] && 
-                  prev[key].x === state.itemPositions[key].x && 
-                  prev[key].y === state.itemPositions[key].y)) {
-              return { ...prev, ...state.itemPositions };
-            }
-            return prev;
-          });
-        }
+  //           // If backend has more positions or different positions, use backend data
+  //           if (backendKeys.length > currentKeys.length || 
+  //               !backendKeys.every(key => prev[key] && 
+  //                 prev[key].x === state.itemPositions[key].x && 
+  //                 prev[key].y === state.itemPositions[key].y)) {
+  //             return { ...prev, ...state.itemPositions };
+  //           }
+  //           return prev;
+  //         });
+  //       }
         
-        // Update other states
-        if (state.itemGroups) {
-          setItemGroups(state.itemGroups);
-        }
-        if (state.signatureColors) {
-          setSignatureColors(state.signatureColors);
-        }
-      };
-      socket.on(`retro-state:${retroId}`, handleRetroState);
+  //       // Update other states
+  //       if (state.itemGroups) {
+  //         setItemGroups(state.itemGroups);
+  //       }
+  //       if (state.signatureColors) {
+  //         setSignatureColors(state.signatureColors);
+  //       }
+  //     };
+  //     socket.on(`retro-state:${retroId}`, handleRetroState);
 
-      return () => {
-        socket.off(`retro-state:${retroId}`, handleRetroState);
-      };
-    }
-  }, [socket, isConnected, retroId]);
+  //     return () => {
+  //       socket.off(`retro-state:${retroId}`, handleRetroState);
+  //     };
+  //   }
+  // }, [socket, isConnected, retroId]);
 
   // 2. Listen for typing events from socket
   useEffect(() => {
@@ -1163,10 +1257,11 @@ useEffect(() => {
   const [editActionInput, setEditActionInput] = useState('');
   const [editActionAssignee, setEditActionAssignee] = useState('');
   useEffect(() => {
+    // Hanya set actionAssignee jika belum ada nilai dan ada participants
     if (participants.length > 0 && !actionAssignee) {
       setActionAssignee(participants[0].user.id);
     }
-  }, [participants, actionAssignee, setActionAssignee]);
+  }, [participants, setActionAssignee]); // Hapus actionAssignee dari dependencies untuk mencegah infinite loop
 
   const handleEditActionItem = (idx: number) => {
     const item = actionItems[idx];

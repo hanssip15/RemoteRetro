@@ -91,7 +91,6 @@ export default function DashboardPage() {
     }
   
     try {
-      console.log('Starting dashboard data fetch...')
 
       
       const [retrosData, statsData] = await Promise.all([

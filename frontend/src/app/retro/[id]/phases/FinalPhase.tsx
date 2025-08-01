@@ -104,11 +104,11 @@ export default function FinalPhase({
             {/* List action items (read-only) */}
             <div className="flex flex-col gap-2">
               {actionItems.length === 0 && <span className="text-gray-400 text-sm">No action items yet.</span>}
-              {actionItems.filter((item: any) => item.retro_id === retro.id).map((item: any, idx: number) => (
+              {actionItems.map((item: any, idx: number) => (
                 <div key={idx} className="bg-gray-50 border rounded px-3 py-2 text-sm flex items-center justify-between gap-2">
                   <div className="flex-1 flex flex-col">
                     <span>
-                      {item.action_item} <span className="text-gray-700">({item.assign_to})</span>
+                      {item.task} <span className="text-gray-700">({item.assigneeName})</span>
                     </span>
                   </div>
                 </div>

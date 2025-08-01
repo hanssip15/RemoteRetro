@@ -47,11 +47,20 @@ export default function ActionItemsPhase({
 
   
   React.useEffect(() => {
+    // Hanya set actionAssignee jika belum ada nilai dan ada participants
     if (participants && participants.length > 0 && !actionAssignee) {
       setActionAssignee(participants[0].user.id);
     }
-  }, [participants, actionAssignee, setActionAssignee]);
+  }, [participants, setActionAssignee]); // Hapus actionAssignee dari dependencies untuk mencegah infinite loop
   
+  // Helper function untuk memastikan actionAssignee tetap konsisten
+  const handleActionAssigneeChange = (newAssignee: string) => {
+    // Hanya update jika nilai benar-benar berbeda
+    if (newAssignee !== actionAssignee) {
+      setActionAssignee(newAssignee);
+    }
+  };
+
   const [showModal, setShowModal] = useState(true);
   const [showConfirm, setShowConfirm] = useState(false);
 
@@ -246,7 +255,7 @@ export default function ActionItemsPhase({
               <select
                 className="w-64 px-3 pr-8 py-2 rounded-md border text-base"
                 value={actionAssignee}
-                onChange={e => setActionAssignee(e.target.value)}
+                onChange={e => handleActionAssigneeChange(e.target.value)}
               >
                 {participants.length > 0 ? (
                   participants.map((p: any) => (
@@ -266,14 +275,15 @@ export default function ActionItemsPhase({
               onChange={e => setActionInput(e.target.value)}
               onKeyDown={e => {
                 if (e.key === 'Enter' && actionInput.trim() && actionAssignee) {
-                  handleAddActionItemWebSocket(e);
+                  e.preventDefault(); // Prevent default form submission
+                  handleAddActionItemWebSocket();
                 }
               }}
             
             />
             <Button
               onClick={handleAddActionItemWebSocket}
-              disabled={!actionInput.trim() || !actionAssignee || !actionAssignee}
+              disabled={!actionInput.trim() || !actionAssignee}
               className="px-4 py-1"
               type="submit"
               variant="phaseSecondary"
