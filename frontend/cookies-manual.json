@@ -1,0 +1,25 @@
+{
+  "cookies": [
+    {
+      "name": "token",
+      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlYjRhMWFiMC0wZTg2LTRmNWEtOTEzOC0yYzBhNmI5OWZhYjUiLCJlbWFpbCI6ImFwcGxkdW1teTJAZ21haWwuY29tIiwibmFtZSI6ImFwcGwgZHVtbXkiLCJpbWFnZVVybCI6Imh0dHBzOi8vbGgzLmdvb2dsZXVzZXJjb250ZW50LmNvbS9hL0FDZzhvY0t1M1UxbGMtaFdQeS11MWM5dy1MSG16M3BMNjJOdkNOT1B5anM2ZDBKT3h4dExSQT1zOTYtYyIsImlhdCI6MTc1NDAxOTA5NiwiZXhwIjoxNzU0MTA1NDk2fQ.qIA5XFWlt_Iovsx7TF8zch0xVNi0bN1VMamnW4vlbDc",
+      "domain": "retrosprint-be.up.railway.app",
+      "path": "/",
+      "expires": 1754105496,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "None"
+    }
+  ],
+  "origins": [
+    {
+      "origin": "https://retro-sprint.vercel.app",
+      "localStorage": [
+        {
+          "name": "token",
+          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlYjRhMWFiMC0wZTg2LTRmNWEtOTEzOC0yYzBhNmI5OWZhYjUiLCJlbWFpbCI6ImFwcGxkdW1teTJAZ21haWwuY29tIiwibmFtZSI6ImFwcGwgZHVtbXkiLCJpbWFnZVVybCI6Imh0dHBzOi8vbGgzLmdvb2dsZXVzZXJjb250ZW50LmNvbS9hL0FDZzhvY0t1M1UxbGMtaFdQeS11MWM5dy1MSG16M3BMNjJOdkNOT1B5anM2ZDBKT3h4dExSQT1zOTYtYyIsImlhdCI6MTc1NDAxOTA5NiwiZXhwIjoxNzU0MTA1NDk2fQ.qIA5XFWlt_Iovsx7TF8zch0xVNi0bN1VMamnW4vlbDc"
+        }
+      ]
+    }
+  ]
+}

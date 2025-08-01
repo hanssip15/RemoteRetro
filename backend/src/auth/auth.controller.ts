@@ -56,8 +56,8 @@ export class AuthController {
     const frontendUrl = process.env.FRONTEND_URL; // Use environment variable or default to localhost
     res.cookie('token', token, {
       httpOnly: false,
-      secure: false,
-      sameSite: 'lax',
+      secure: true,
+      sameSite: 'none',
       maxAge: 60 * 60 * 1000
     });
     return res.redirect(`${frontendUrl}/auth/callback`);
@@ -78,7 +78,12 @@ export class AuthController {
   }
   @Get('logout')
   logout(@Res() res: Response) {
-    res.clearCookie('token');
+    res.clearCookie('token', {
+      httpOnly: false,
+      secure: true,
+      sameSite: 'none',
+      path: '/',
+    });
     return res.json({ message: 'Logged out successfully' });
   }
 

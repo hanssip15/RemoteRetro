@@ -255,9 +255,12 @@ export default function RetroLobbyPage({ socket, retroId, participants, setParti
         currentUserRole={isFacilitator}
         showShareModal={showShareModal}
         setShowShareModal={setShowShareModal}
-        handleLogout={() => {
-          sessionStorage.removeItem('auth_token');
-          sessionStorage.removeItem('user_data');
+        handleLogout={async () => {
+          try {
+            await api.removeAuthToken(); // Panggil backend untuk logout
+          } catch (error) {
+            console.error('Failed to logout:', error);
+          }
           window.location.href = '/login';
         }}
       />
