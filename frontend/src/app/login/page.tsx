@@ -28,9 +28,8 @@ useEffect(() => {
   checkAuth();
 }, []);
 
-  const BASE_URL = import.meta.env.VITE_API_URL || '';
-  const handleGoogleLogin = () => {
-    window.location.href = `${BASE_URL}/auth/google`;
+const handleGoogleLogin = () => {
+    window.location.href = `${import.meta.env.VITE_API_URL}/auth/google`;
   };
 
   return (

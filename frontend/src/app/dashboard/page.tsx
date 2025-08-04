@@ -53,35 +53,6 @@ export default function DashboardPage() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
   const navigate = useNavigate();
   
-//   useEffect(() => {
-//   const fetchUser = async () => {
-//     try {
-      
-//         const userData = await api.getCurrentUser();
-//         if (!userData) {
-//           api.removeAuthToken(); 
-//           navigate('/login');
-//         return;
-//         }
-//         setIsAuthenticated(true);
-//         setUser(userData);
-//     } catch (err) {
-//       console.error(err);
-//       setError('Failed to fetch user. Please try again.');
-//       await api.removeAuthToken();
-//       navigate('/login');
-//     }
-//   };
-
-//   fetchUser();
-// }, []);
-
-//   useEffect(() => {
-//   if (!user?.id) return
-//   fetchDashboardData(false,user.id)
-// }, [user?.id, currentPage])
-
-
 
   const fetchDashboardData = async (silent = false, userId: string) => {
     if (!silent) {
@@ -123,7 +94,7 @@ export default function DashboardPage() {
       const userData = await api.getCurrentUser()
       if (!userData) {
         api.removeAuthToken()
-        navigate('/login')
+    window.location.href = `${import.meta.env.VITE_API_URL}/auth/google`;
         return
       }
       setUser(userData)
@@ -135,7 +106,7 @@ export default function DashboardPage() {
       console.error(err)
       setError('Failed to fetch user. Please try again.')
       await api.removeAuthToken()
-      navigate('/login')
+    window.location.href = `${import.meta.env.VITE_API_URL}/auth/google`;
     }
   }
 
