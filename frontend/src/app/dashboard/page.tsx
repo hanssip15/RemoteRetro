@@ -8,7 +8,6 @@ import { Plus, Calendar, Users, TrendingUp, RefreshCw, ChevronLeft, ChevronRight
 import { Link } from "react-router-dom"
 import { apiService, Retro } from "@/services/api"
 import { api } from '../../services/api'
-import { useNavigate } from "react-router-dom"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -51,7 +50,6 @@ export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
-  const navigate = useNavigate();
   
 
   const fetchDashboardData = async (silent = false, userId: string) => {

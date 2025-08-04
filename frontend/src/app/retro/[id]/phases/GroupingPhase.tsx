@@ -109,18 +109,7 @@ export default function GroupingPhase({
     return itemGroups;
   }, [itemGroups, items]);
 
-  const sortedItems = useMemo(() => {
-  return [...items].sort((a, b) => {
-    const posA = itemPositions[a.id];
-    const posB = itemPositions[b.id];
 
-    if (!posA || !posB) return 0;
-
-    // Prioritaskan posisi vertikal (y), lalu horizontal (x)
-    if (posA.y !== posB.y) return posA.y - posB.y;
-    return posA.x - posB.x;
-  });
-}, [items, itemPositions]);
 
 
   // 7. Early return untuk loading state
