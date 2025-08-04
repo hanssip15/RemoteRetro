@@ -45,7 +45,6 @@ export default function RetroLobbyPage({ socket, retroId, participants, setParti
   useEffect(() => {
     if (user && !isUserJoined) {
       const timeout = setTimeout(() => {
-        console.log('⏰ Join timeout reached, forcing loading to finish');
         window.location.reload();
         setIsUserJoined(true);
         setLoading(false);
@@ -83,11 +82,9 @@ export default function RetroLobbyPage({ socket, retroId, participants, setParti
       // Cek apakah current user sudah ada di dalam participants
       const currentUserParticipant = participants.find((p) => p.user.id === user.id);
       if (currentUserParticipant) {
-        console.log('✅ Current user found in participants, finishing loading');
         setIsUserJoined(true);
         setLoading(false);
       } else {
-        console.log('⏳ Current user not found in participants, waiting for join...');
         // Tetap loading sampai user berhasil join
         setIsUserJoined(false);
         setLoading(true);
@@ -99,17 +96,9 @@ export default function RetroLobbyPage({ socket, retroId, participants, setParti
   useEffect(() => {
     if (user && participants && participants.length > 0) {
       const currentUserParticipant = participants.find((p) => p.user.id === user.id);
-      console.log('🔍 Checking join status:', {
-        userId: user.id,
-        userName: user.name,
-        participantsCount: participants.length,
-        participantIds: participants.map(p => ({ id: p.user.id, name: p.user.name })),
-        currentUserParticipant: currentUserParticipant ? { id: currentUserParticipant.user.id, name: currentUserParticipant.user.name } : null,
-        isUserJoined
-      });
+
       
       if (currentUserParticipant && !isUserJoined) {
-        console.log('✅ User successfully joined as participant');
         setIsUserJoined(true);
         setLoading(false);
       }

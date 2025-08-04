@@ -9,7 +9,7 @@ import {
     ConnectedSocket,
   } from '@nestjs/websockets';
   import { Server, Socket } from 'socket.io';
-  import { ParticipantService } from 'src/services/participant.service';
+  import { ParticipantService } from '../services/participant.service';
   // Tambahkan di luar class (atau static property jika ingin lebih rapi)
   const retroState: {
     [retroId: string]: {
@@ -25,8 +25,8 @@ import {
         createdAt: string;
         edited?: boolean;
       }>,
-      allUserVotes: { [userId: string]: { [groupIdx: number]: number } }
-
+      allUserVotes: { [userId: string]: { [groupIdx: number]: number } },
+      lastGroupingUpdate?: number
     }
   } = {};
   
@@ -48,16 +48,13 @@ import {
        const { userId, retroId } = client.handshake.query;
 
     if (typeof userId === 'string' && typeof retroId === 'string') {
-      console.log(`🔗 User ${userId} connecting to retro ${retroId}`);
       client.join(`retro:${retroId}`);
       this.socketUserMap.set(client.id, { userId, retroId });
       const participant = await this.participantService.findParticipantByUserIdAndRetroId(userId, retroId);
       if (!participant) {
         const isFacilitator = await this.participantService.isFacilitator(retroId, userId);
-        console.log(`👤 User ${userId} joining retro ${retroId} as ${isFacilitator ? 'facilitator' : 'participant'}`);
         await this.participantService.join(retroId, { userId, role: isFacilitator, isActive: true  });    
       } else {
-        console.log(`👤 User ${userId} activating in retro ${retroId}`);
         await this.participantService.activated(retroId, userId);
       }
       
@@ -70,7 +67,6 @@ import {
     const info = this.socketUserMap.get(client.id);
     if (info) {
       const { userId, retroId } = info;
-      console.log(`👋 User ${userId} disconnecting from retro ${retroId}`);
       await this.participantService.leave(retroId, userId);
       this.socketUserMap.delete(client.id);
       
@@ -90,7 +86,8 @@ import {
           itemGroups: {},
           signatureColors: {},
           actionItems: [],
-          allUserVotes: {}
+          allUserVotes: {},
+          lastGroupingUpdate: 0
         };
       }
       
@@ -134,7 +131,6 @@ import {
 
   
     broadcastParticipantUpdate(retroId: string) {
-      console.log(`📢 Broadcasting participant update for retro: ${retroId}`);
       this.server.to(`retro:${retroId}`).emit(`participants-update:${retroId}`);
     }
 
@@ -202,8 +198,8 @@ import {
       itemId?: string; 
       position?: { x: number; y: number }; 
       itemPositions?: { [itemId: string]: { x: number; y: number } };
-      userId: string,
-      source: string
+      userId: string;
+      source: string;
     }) {
       // Initialize retro state if it doesn't exist
       if (!retroState[data.retroId]) {
@@ -216,35 +212,40 @@ import {
         };
       }
 
-      // Handle multiple item positions (for initialization)
+      const currentPositions = retroState[data.retroId].itemPositions;
+
+      // === Handle multiple item positions (for initialization) ===
       if (data.itemPositions) {
-        if (data.source === "initial") {
-        // Hanya update jika positions yang baru lebih lengkap atau berbeda
-        const currentPositions = retroState[data.retroId].itemPositions;
-        const newPositions = data.itemPositions;
-        
-        // Update jika positions baru lebih lengkap atau berbeda
-        if (Object.keys(newPositions).length > Object.keys(currentPositions).length ||
-            JSON.stringify(newPositions) !== JSON.stringify(currentPositions)) {
-          retroState[data.retroId].itemPositions = { 
-            ...currentPositions, 
-            ...newPositions 
-          };
-          
-          // Broadcast to all participants
+        const updatedPositions: { [itemId: string]: { x: number; y: number } } = {};
+
+        for (const itemId in data.itemPositions) {
+          const newPos = data.itemPositions[itemId];
+          const existingPos = currentPositions[itemId];
+
+          if (
+            !existingPos || 
+            existingPos.x !== newPos.x || 
+            existingPos.y !== newPos.y
+          ) {
+            currentPositions[itemId] = newPos;
+            updatedPositions[itemId] = newPos;
+          }
+        }
+
+        // Hanya broadcast jika ada perubahan nyata
+        if (Object.keys(updatedPositions).length > 0) {
           this.server.to(`retro:${data.retroId}`).emit(`item-position-update:${data.retroId}`, {
-            itemPositions: newPositions,
+            itemPositions: updatedPositions,
             userId: data.userId,
             timestamp: new Date().toISOString()
           });
         }
       }
-    }
-      // Handle single item position (for dragging)
+
+      // === Handle single item position (dragging) ===
       else if (data.itemId && data.position) {
-        retroState[data.retroId].itemPositions[data.itemId] = data.position;
-        
-        // Broadcast position update to all participants in the retro
+        currentPositions[data.itemId] = data.position;
+
         this.server.to(`retro:${data.retroId}`).emit(`item-position-update:${data.retroId}`, {
           itemId: data.itemId,
           position: data.position,
@@ -253,6 +254,7 @@ import {
         });
       }
     }
+
   
     // Handle grouping updates
     @SubscribeMessage('grouping-update')
@@ -260,18 +262,31 @@ import {
       retroId: string; 
       itemGroups: { [itemId: string]: string }; 
       signatureColors: { [signature: string]: string };
-      userId: string 
+      userId: string;
+      timestamp?: string;
+      version?: number;
     }) {
-      if (!retroState[data.retroId]) retroState[data.retroId] = { itemPositions: {}, itemGroups: {}, signatureColors: {}, actionItems: [], allUserVotes: {} };
-      retroState[data.retroId].itemGroups = data.itemGroups;
-      retroState[data.retroId].signatureColors = data.signatureColors;
-      // Broadcast grouping update to all participants in the retro
-      this.server.to(`retro:${data.retroId}`).emit(`grouping-update:${data.retroId}`, {
-        itemGroups: data.itemGroups,
-        signatureColors: data.signatureColors,
-        userId: data.userId,
-        timestamp: new Date().toISOString()
-      });
+      if (!retroState[data.retroId]) retroState[data.retroId] = { itemPositions: {}, itemGroups: {}, signatureColors: {}, actionItems: [], allUserVotes: {}, lastGroupingUpdate: 0 };
+      
+      // Timestamp-based conflict resolution on server side
+      const updateTime = data.timestamp ? new Date(data.timestamp).getTime() : Date.now();
+      const currentStateTime = retroState[data.retroId].lastGroupingUpdate || 0;
+      
+      // Only update if this is a newer update
+      if (updateTime >= currentStateTime) {
+        retroState[data.retroId].itemGroups = data.itemGroups;
+        retroState[data.retroId].signatureColors = data.signatureColors;
+        retroState[data.retroId].lastGroupingUpdate = updateTime;
+        
+        // Broadcast grouping update to all participants in the retro
+        this.server.to(`retro:${data.retroId}`).emit(`grouping-update:${data.retroId}`, {
+          itemGroups: data.itemGroups,
+          signatureColors: data.signatureColors,
+          userId: data.userId,
+          timestamp: data.timestamp || new Date().toISOString(),
+          version: data.version || 0
+        });
+      }
     }
 
     // Handler baru: user minta state terkini
@@ -449,7 +464,7 @@ async handleLeaveRoom(
 
 
     // Hapus partisipan
-    await this.participantService.removeParticipant(retroId, userId);
+      await this.participantService.leave(retroId, userId);
 
     // Emit event ke semua partisipan tentang keluar
     this.server.to(retroId).emit('participant-left', { userId });

@@ -4,7 +4,7 @@ import { Repository } from 'typeorm';
 import { Participant } from '../entities/participant.entity';
 import { Retro } from '../entities/retro.entity';
 import { JoinRetroDto } from '../dto/join-retro.dto';
-import { ParticipantGateway } from 'src/gateways/participant.gateways';
+import { ParticipantGateway } from '../gateways/participant.gateways';
 
 
 @Injectable()
@@ -81,12 +81,6 @@ export class ParticipantService {
   }
 }
 
-  async removeParticipant(retroId: string, userId: string): Promise<void> {
-    const result = await this.participantRepository.delete({ retroId: retroId, userId: userId });
-    // if (result.affected === 0) {
-    //   throw new NotFoundException('Participant not found');
-    // }
-  }
 
     async leave(retroId: string, userId: string): Promise<void> {
   // Check if retro exists

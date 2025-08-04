@@ -58,40 +58,6 @@ export default function GroupingPhase({
 
   useEnterToCloseModal(showModal, handleModalClose);
 
-  // 4. Sync otomatis posisi default ke backend jika backend belum punya data
-  // TEMP dikomentar
-  // useEffect(() => {
-  //   if (
-  //     items.length > 0 &&
-  //     Object.keys(itemPositions || {}).length === 0 &&
-  //     socket && user && retro
-  //   ) {
-  //     // Hanya generate default positions jika benar-benar kosong
-  //     // dan tidak ada positions yang sedang di-load
-  //     const timer = setTimeout(() => {
-  //       if (Object.keys(itemPositions || {}).length === 0) {
-  //         // Generate posisi default grid dengan urutan yang konsisten
-  //         const defaultPositions: { [key: string]: { x: number; y: number } } = {};
-  //         items.forEach((item: any, index: number) => {
-  //           defaultPositions[item.id] = {
-  //             x: 200 + (index % 3) * 220,
-  //             y: 100 + Math.floor(index / 3) * 70
-  //           };
-  //         });
-          
-  //         // Emit ke backend
-  //         socket.emit('item-position-update', {
-  //           retroId: retro.id,
-  //           itemPositions: defaultPositions,
-  //           userId: user.id
-  //         });
-  //       }
-  //     }, 1000); // Delay 1 detik untuk menunggu positions dari fetchItems
-
-  //     return () => clearTimeout(timer);
-  //   }
-  // }, [items, itemPositions, socket, user, retro]);
-
   // 5. Fallback: jika stuck di loading, force render setelah 3 detik
   useEffect(() => {
     if (items.length > 0 && Object.keys(itemPositions || {}).length === 0) {
@@ -143,6 +109,9 @@ export default function GroupingPhase({
     return itemGroups;
   }, [itemGroups, items]);
 
+
+
+
   // 7. Early return untuk loading state
   if (!positionsReady && !forceRender) {
     return (
@@ -157,8 +126,6 @@ export default function GroupingPhase({
       </div>
     );
   }
-
-  
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
