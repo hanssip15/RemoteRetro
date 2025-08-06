@@ -48,7 +48,7 @@ export default function RetroLobbyPage({ socket, retroId, participants, setParti
         window.location.reload();
         setIsUserJoined(true);
         setLoading(false);
-      }, 3000); // 3 detik timeout
+      }, 500); // 3 detik timeout
 
       return () => clearTimeout(timeout);
     }

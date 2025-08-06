@@ -95,6 +95,23 @@ export interface GroupsData {
   group_items: GroupItemEntity[];
 }
 
+export interface ActionItemData {
+    id?: string;
+    assignee?: string;
+    assigneeId?: string;
+    assigneeName?: string;
+    task: string;
+    edited?: boolean;
+    createdBy?: string;
+    createdAt?: string;
+}
+
+export interface finalActionItemData {
+  retroId : string;
+  assigneeName : string;
+
+}
+
 export interface CreateGroupData {
   retro_id: string;
   groups: Array<{
@@ -177,7 +194,7 @@ class ApiService {
   }
 
   async getAction(retro_id:string ): Promise<any> {
-    return this.request<GroupsData[]>(`/action/${retro_id}`);
+    return this.request<ActionItemData[]>(`/action/${retro_id}`);
   }
 
 

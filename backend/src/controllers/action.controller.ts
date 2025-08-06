@@ -21,7 +21,7 @@ export class ActionController {
     return this.actionService.findAll();
   }
   @Get(':retro_id')
-  async getActionsByRetro(@Param('retroId') retroId: string) {
+  async getActionsByRetro(@Param('retro_id') retroId: string) {
     return this.actionService.findByRetroId(retroId);
   }
 }

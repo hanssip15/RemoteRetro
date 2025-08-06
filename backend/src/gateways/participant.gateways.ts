@@ -426,7 +426,7 @@ handleRequestUserVotes(
       const recentDuplicate = retroState[data.retroId].actionItems.find(item => 
         item.task === data.task && 
         item.assigneeId === data.assigneeId &&
-        (now - new Date(item.createdAt).getTime()) < 5000
+        (now - new Date(item.createdAt).getTime()) < 500
       );
       
       if (recentDuplicate) {
