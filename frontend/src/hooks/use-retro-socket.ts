@@ -144,8 +144,8 @@ export const useRetroSocket = ({
       callbacks.onItemUpdated?.(item);
     };
 
-    const handleItemDeleted = (data: { itemId: string }) => { 
-      callbacks.onItemDeleted?.(data.itemId);
+    const handleItemDeleted = (itemId: string) => {
+      callbacks.onItemDeleted?.(itemId);
     };
 
     const handleItemsUpdate = (items: any[]) => {

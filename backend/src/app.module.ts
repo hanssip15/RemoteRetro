@@ -10,7 +10,7 @@ import { RetroItem } from './entities/retro-item.entity';
 import { Participant } from './entities/participant.entity';
 import { User } from './entities/user.entity';
 import { GroupItemEntity } from './entities/group-item.entity';
-import { AuthModule } from './auth/auth.module';
+import { AuthModule } from './modules/auth.module';
 import { UsersModule } from './modules/user.module';
 import { RetroItemsModule } from './modules/item.module';
 import { RetroItemsService } from './services/item.service';

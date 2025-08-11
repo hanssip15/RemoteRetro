@@ -25,7 +25,7 @@ const AuthCallbackPage = () => {
       navigate('/dashboard');
     } else {
       console.error('No token found in URL');
-      navigate('/login');
+      navigate('/');
     }
   }, [location, navigate]);
 

@@ -134,6 +134,17 @@ export default function RetroPage() {
   }
 
 
+    // useEffect(() => {
+    //   if (user && !isUserJoined) {
+    //     const timeout = setTimeout(() => {
+    //       window.location.reload();
+    //       setIsUserJoined(true);
+    //       setLoading(false);
+    //     }, 1000); // 3 detik timeout
+  
+    //     return () => clearTimeout(timeout);
+    //   }
+    // }, [user, isUserJoined]);
 
   useEffect(() => {
   const fetchUser = async () => {
@@ -142,16 +153,17 @@ export default function RetroPage() {
         const userData = await api.getCurrentUser();
         if (!userData) {
           api.removeAuthToken(); 
-          navigate('/login');
+          navigate('/');
         return;
         }
         setUser(userData);
         setUserId(userData.id);
+        setIsUserJoined(true)
     } catch (err) {
       console.error(err);
       setError('Failed to fetch user. Please try again.');
       await api.removeAuthToken();
-      navigate('/login');
+      navigate('/');
     }
   };
 
@@ -452,7 +464,7 @@ useEffect(() => {
 
   useEffect(() => {
     if (phase === 'labelling') {
-      apiService.getLabelsByRetro(retroId).then((groups) => {
+      apiService.getGroup(retroId).then((groups) => {
         setLabellingItems(groups);
       }).catch((error) => {
         console.error('❌ Error fetching labelling items:', error);
@@ -463,7 +475,7 @@ useEffect(() => {
 
   useEffect(() => {
     if (phase === 'voting') {
-      apiService.getLabelsByRetro(retroId).then((groups) => {
+      apiService.getGroup(retroId).then((groups) => {
         setLabellingItems(groups);
       }).catch((error) => {
         console.error('❌ Error fetching labelling items:', error);
@@ -475,7 +487,7 @@ useEffect(() => {
   // Add useEffect for ActionItems phase to ensure labellingItems are loaded
   useEffect(() => {
     if (phase === 'ActionItems') {
-      apiService.getLabelsByRetro(retroId).then((groups) => {
+      apiService.getGroup(retroId).then((groups) => {
         setLabellingItems(groups);
       }).catch((error) => {
         console.error('❌ Error fetching labelling items for ActionItems:', error);
@@ -492,7 +504,7 @@ useEffect(() => {
           setIsLoadingFromDatabase(true);
           
           // Load labelling items
-          const groups = await apiService.getLabelsByRetro(retroId);
+          const groups = await apiService.getGroup(retroId);
           setLabellingItems(groups);
           
           // Load action items
@@ -863,7 +875,7 @@ useEffect(() => {
       if (newPhase === 'labelling') {
         await saveGroupData(); 
       }      
-      await apiService.updatePhase(retroId, newPhase);
+      await apiService.updateRetroPhase(retroId, newPhase);
       
       // Phase change will be broadcasted via WebSocket from the server
       
@@ -1046,7 +1058,6 @@ useEffect(() => {
         category,
         userId: user.id 
       })
-      // Note: Item will be updated via WebSocket broadcast with server data
     } catch (error) {
       console.error("Error updating item:", error)
       setError("Failed to update item. Please try again.")
@@ -1067,7 +1078,7 @@ useEffect(() => {
           delete newUpdates[itemId];
           return newUpdates;
         });
-      }, 1000);
+      }, 250);
     }
   }, [retroId, user, items]);
 
@@ -1075,7 +1086,6 @@ useEffect(() => {
     if (!user) return;
 
     setIsDeletingItem(true)
-    
     try {
       await apiService.deleteItem(retroId, itemId, user.id)
       
@@ -1119,7 +1129,7 @@ useEffect(() => {
     } catch (error) {
       console.error('Failed to logout:', error);
     }
-    window.location.href = '/login';
+    window.location.href = '/';
   }, []);
 
   useEffect(() => {

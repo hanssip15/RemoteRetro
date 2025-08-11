@@ -46,7 +46,7 @@ export default function NewRetroPage() {
         const userData = await api.getCurrentUser();
         if (!userData) {
           api.removeAuthToken(); // optional logout
-          navigate('/login');
+          navigate('/');
         return;
         }
 
@@ -56,7 +56,7 @@ export default function NewRetroPage() {
       console.error(err);
       // setError('Failed to fetch user. Please try again.');
       await api.removeAuthToken();
-      navigate('/login');
+      navigate('/');
     }
   };
 
@@ -67,7 +67,7 @@ export default function NewRetroPage() {
     const authStatus = api.isAuthenticated()
 
     if (!authStatus) {
-      navigate('/login')
+      navigate('/')
     }
   }, []) // Remove navigate dependency to prevent re-runs
 

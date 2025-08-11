@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, ConflictException, BadRequestException, Inject, forwardRef } from '@nestjs/common';
+
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Participant } from '../entities/participant.entity';
@@ -17,7 +18,6 @@ export class ParticipantService {
     private retroRepository: Repository<Retro>,
     @Inject(forwardRef(() => ParticipantGateway))
     private readonly participantGateway: ParticipantGateway,
-
   ) {}
 
   async findByRetroId(retroId: string): Promise<Participant[]> {
@@ -40,46 +40,35 @@ export class ParticipantService {
   }
 
   async join(retroId: string, joinRetroDto: JoinRetroDto): Promise<Participant> {
-  const { userId, role } = joinRetroDto;
-  // Check if retro exists
-  const retro = await this.retroRepository.findOne({ where: { id: retroId } });
-  if (!retro) {
-    throw new NotFoundException('Retro not found');
-  }
+    const { userId, role } = joinRetroDto;
 
-  // Check if retro is still available for joining
-  if (retro.status === 'completed') {
-    throw new BadRequestException('Retro is completed');
-  }
-  
-  // Cek dulu
-  const existingParticipant = await this.participantRepository.findOne({
-    where: { retroId, userId },
-  });
+    try {
+      const retro = await this.retroRepository.findOne({ where: { id: retroId } });
+      if (!retro) throw new NotFoundException('Retro not found');
+      if (retro.status === 'completed') throw new BadRequestException('Retro is completed');
 
-  if (existingParticipant) {
-    return existingParticipant;
-  }
+      const existingParticipant = await this.participantRepository.findOne({
+        where: { retroId, userId },
+      });
 
-  const participant = this.participantRepository.create({
-    retroId,
-    userId,
-    role,
-  });
+      if (existingParticipant) return existingParticipant;
 
-  try {
-    const savedParticipant = await this.participantRepository.save(participant);
-    this.participantGateway.broadcastParticipantUpdate(retroId);
-    return savedParticipant;
-  } catch (error: any) {
-    // Tangani error duplicate (unique constraint violation)
-    if (error.code === '23505') { // Postgres duplicate key
-      const again = await this.participantRepository.findOne({ where: { retroId, userId } });
-      if (again) return again;
-    }
-    throw error;
+      const participant = this.participantRepository.create({ retroId, userId, role });
+      const savedParticipant = await this.participantRepository.save(participant);
+
+      this.participantGateway.broadcastParticipantUpdate(retroId);
+      
+      return savedParticipant;
+
+    } catch (error: any) {
+      if (error.code === '23505') {
+        const again = await this.participantRepository.findOne({ where: { retroId, userId } });
+        if (again) return again;
+      }
+      throw error;
+
+    } 
   }
-}
 
 
     async leave(retroId: string, userId: string): Promise<void> {
@@ -123,7 +112,7 @@ async activated(retroId: string, userId: string): Promise<void> {
     return parseInt(result.count) || 0;
   }
 
-  async updateRole(retroId: string, participantId: string): Promise<Participant> {
+  async updateRoleFacilitator(retroId: string, participantId: string): Promise<Participant> {
     const retro = await this.retroRepository.findOne({ where: { id: retroId } });
     if (!retro) {
       throw new NotFoundException('Retro not found');

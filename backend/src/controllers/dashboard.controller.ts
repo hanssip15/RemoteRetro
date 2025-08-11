@@ -11,7 +11,7 @@ export class DashboardController {
     private readonly itemService: RetroItemsService,
   ) {}
 
-  @Get('retros')
+  @Get('v1/retros')
     async getRetros(
       @Query('userId') userId: string,
       @Query('page', new ParseIntPipe({ optional: true })) page = 1,
@@ -35,7 +35,7 @@ export class DashboardController {
     };
   }
 
-  @Get('stats/:userId')
+  @Get('v1/stats/:userId')
   async getStats(@Param('userId') userId: string) {
     const totalRetros = await this.retroService.count(userId);
     

@@ -39,7 +39,6 @@ export default function ActionItemsPhase({
   handleDeleteActionItem,
   broadcastPhaseChange,
   labellingItems,
-  setActionItems
 }: any) {
   // Debug logging
 
@@ -328,8 +327,8 @@ export default function ActionItemsPhase({
                       // Kirim email action items ke semua participant
                       const participantEmails = participants.map((p: any) => p.user.email).filter(Boolean);
                       
-                      await apiService.updateRetro(retro.id, { status: "completed" })
-                      await apiService.updatePhase(retro.id, 'final'); 
+                      await apiService.updateRetroStatus(retro.id, { status: "completed" })
+                      await apiService.updateRetroPhase(retro.id, 'final'); 
                       await api.sendActionItemsEmail({
                         retroId: retro.id,
                         retroTitle: retro.title,

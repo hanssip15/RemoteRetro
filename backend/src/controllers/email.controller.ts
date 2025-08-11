@@ -15,7 +15,7 @@ export interface SendActionItemsEmailDto {
 export class EmailController {
   constructor(private readonly emailService: EmailService) {}
 
-  @Post('send-action-items')
+  @Post('/v1/items/send-action-items')
   @HttpCode(HttpStatus.OK)
   async sendActionItemsEmail(@Body() emailData: SendActionItemsEmailDto) {
     try {
