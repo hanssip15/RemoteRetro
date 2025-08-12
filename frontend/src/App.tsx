@@ -1,6 +1,8 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Suspense, lazy } from 'react';
 import { SocketProvider } from './contexts/SocketContext';
+import ErrorBoundary from './components/ErrorBoundary';
+import ProtectedRoute from './components/ProtectedRoute';
 
 import './index.css';
 
@@ -14,6 +16,10 @@ const TestApiPage = lazy(() => import('./app/test-api/page'));
 const LoginPage = lazy(() => import('./app/login/page'));
 const AuthCallbackPage = lazy(() => import('./app/auth/callback/page'));
 
+// Error pages
+const NotFoundPage = lazy(() => import('./app/404/page'));
+const ServerErrorPage = lazy(() => import('./app/500/page'));
+
 // Loading component
 const LoadingSpinner = () => (
   <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -26,22 +32,53 @@ const LoadingSpinner = () => (
 
 function App() {
   return (
-    <SocketProvider>
-      <Router>
-        <Suspense fallback={<LoadingSpinner />}>
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/auth/callback" element={<AuthCallbackPage />} />
-            <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/retro/new" element={<NewRetroPage />} />
-            <Route path="/retro/:id" element={<RetroPage />} />
-            <Route path="/debug-db" element={<DebugPage />} />
-            <Route path="/test-api" element={<TestApiPage />} />
-          </Routes>
-        </Suspense>
-      </Router>
-    </SocketProvider>
+    <ErrorBoundary>
+      <SocketProvider>
+        <Router>
+          <Suspense fallback={<LoadingSpinner />}>
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/auth/callback" element={<AuthCallbackPage />} />
+              
+              {/* Protected routes */}
+              <Route path="/dashboard" element={
+                <ProtectedRoute>
+                  <DashboardPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/retro/new" element={
+                <ProtectedRoute>
+                  <NewRetroPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/retro/:id" element={
+                <ProtectedRoute>
+                  <RetroPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/debug-db" element={
+                <ProtectedRoute>
+                  <DebugPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/test-api" element={
+                <ProtectedRoute>
+                  <TestApiPage />
+                </ProtectedRoute>
+              } />
+              
+              {/* Error pages */}
+              <Route path="/404" element={<NotFoundPage />} />
+              <Route path="/500" element={<ServerErrorPage />} />
+              
+              {/* Catch all route - 404 */}
+              <Route path="*" element={<NotFoundPage />} />
+            </Routes>
+          </Suspense>
+        </Router>
+      </SocketProvider>
+    </ErrorBoundary>
   );
 }
 
