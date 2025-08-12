@@ -1,0 +1,25 @@
+{
+  "cookies": [
+    {
+      "name": "token",
+      "value": "TOKEN_FASILITATOR_YANG_VALID",
+      "domain": "retrosprint-be.up.railway.app",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "None"
+    }
+  ],
+  "origins": [
+    {
+      "origin": "https://retro-sprint.vercel.app",
+      "localStorage": [
+        {
+          "name": "token",
+          "value": "TOKEN_FASILITATOR_YANG_VALID"
+        }
+      ]
+    }
+  ]
+}
