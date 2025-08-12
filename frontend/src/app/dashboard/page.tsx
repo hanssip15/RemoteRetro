@@ -110,11 +110,6 @@ export default function DashboardPage() {
 
   fetchUserAndDashboard()
 }, [currentPage])
-  
-//   useEffect(() => {
-//   if (!isAuthenticated || !user?.id) return
-//   fetchDashboardData(false, user.id)
-// }, [isAuthenticated, user?.id, currentPage])
 
   const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage)
@@ -160,7 +155,7 @@ export default function DashboardPage() {
     } catch (error) {
       console.error('Failed to logout:', error);
     }
-    window.location.href = '/login';
+    window.location.href = '/';
   }
 
   // Show authentication error
@@ -170,7 +165,7 @@ export default function DashboardPage() {
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Authentication Required</h2>
           <p className="text-gray-600 mb-6">Please login to access the dashboard</p>
-          <Link to="/login">
+          <Link to="/">
             <Button>Go to Login</Button>
           </Link>
         </div>

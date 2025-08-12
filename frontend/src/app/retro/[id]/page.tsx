@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from "react"
 import { useParams, useNavigate } from "react-router-dom"
-import { apiService, Retro, RetroItem, Participant, GroupsData, api , User} from "@/services/api"
+import { apiService, Retro, RetroItem, Participant, GroupsData, ActionItemData , api , User} from "@/services/api"
 
 // Interface untuk data grup
 
@@ -79,8 +79,10 @@ export default function RetroPage() {
   const [setSelectedParticipant] = useState<Participant | null>(null);
 
   const [labellingItems, setLabellingItems] = useState<GroupsData[]>([]);
+  const [actionItems, setActionItems] = useState<ActionItemData[]>([])
   const [typingParticipants, setTypingParticipants] = useState<string[]>([]);
   const typingTimeouts = useRef<{ [userId: string]: NodeJS.Timeout }>({});
+  const [isLoadingFromDatabase, setIsLoadingFromDatabase] = useState(false);
 
   // State untuk tracking item yang sedang di-drag oleh user lain
   const [draggingByOthers, setDraggingByOthers] = useState<{ [itemId: string]: string }>({});
@@ -132,6 +134,17 @@ export default function RetroPage() {
   }
 
 
+    // useEffect(() => {
+    //   if (user && !isUserJoined) {
+    //     const timeout = setTimeout(() => {
+    //       window.location.reload();
+    //       setIsUserJoined(true);
+    //       setLoading(false);
+    //     }, 1000); // 3 detik timeout
+  
+    //     return () => clearTimeout(timeout);
+    //   }
+    // }, [user, isUserJoined]);
 
   useEffect(() => {
   const fetchUser = async () => {
@@ -140,16 +153,17 @@ export default function RetroPage() {
         const userData = await api.getCurrentUser();
         if (!userData) {
           api.removeAuthToken(); 
-          navigate('/login');
+          navigate('/');
         return;
         }
         setUser(userData);
         setUserId(userData.id);
+        setIsUserJoined(true)
     } catch (err) {
       console.error(err);
       setError('Failed to fetch user. Please try again.');
       await api.removeAuthToken();
-      navigate('/login');
+      navigate('/');
     }
   };
 
@@ -450,7 +464,7 @@ useEffect(() => {
 
   useEffect(() => {
     if (phase === 'labelling') {
-      apiService.getLabelsByRetro(retroId).then((groups) => {
+      apiService.getGroup(retroId).then((groups) => {
         setLabellingItems(groups);
       }).catch((error) => {
         console.error('❌ Error fetching labelling items:', error);
@@ -461,7 +475,7 @@ useEffect(() => {
 
   useEffect(() => {
     if (phase === 'voting') {
-      apiService.getLabelsByRetro(retroId).then((groups) => {
+      apiService.getGroup(retroId).then((groups) => {
         setLabellingItems(groups);
       }).catch((error) => {
         console.error('❌ Error fetching labelling items:', error);
@@ -473,7 +487,7 @@ useEffect(() => {
   // Add useEffect for ActionItems phase to ensure labellingItems are loaded
   useEffect(() => {
     if (phase === 'ActionItems') {
-      apiService.getLabelsByRetro(retroId).then((groups) => {
+      apiService.getGroup(retroId).then((groups) => {
         setLabellingItems(groups);
       }).catch((error) => {
         console.error('❌ Error fetching labelling items for ActionItems:', error);
@@ -484,22 +498,45 @@ useEffect(() => {
 
   useEffect(() => {
     if (phase === 'final') {
+      // Add a small delay to ensure phase change is complete
+      const loadFinalPhaseData = async () => {
+        try {
+          setIsLoadingFromDatabase(true);
+          
+          // Load labelling items
+          const groups = await apiService.getGroup(retroId);
+          setLabellingItems(groups);
+          
+          // Load action items
+          const final = await apiService.getAction(retroId);
+          console.log('🔍 Raw action items from API:', final);
+          
+          // Transform database format to frontend format
+          const transformedActionItems = final.map((item: any) => ({
+            id: item.id,
+            task: item.action_item,
+            assigneeName: item.assign_to,
+            assigneeId: item.assign_to, // Using assign_to as assigneeId for consistency
+            createdBy: item.createdBy,
+            createdAt: item.createdAt,
+            edited: item.edited || false
+          }));
+          console.log('🔍 Transformed action items:', transformedActionItems);
+          setActionItems(transformedActionItems);
+          
+          console.log('✅ Action items loaded for final phase');
+          console.log('actionItems length:', transformedActionItems.length);
+        } catch (error) {
+          console.error('❌ Error loading final phase data:', error);
+          setLabellingItems([]);
+          setActionItems([]);
+        } finally {
+          setIsLoadingFromDatabase(false);
+        }
+      };
       
-      apiService.getLabelsByRetro(retroId).then((groups) => {
-        setLabellingItems(groups);
-      }).catch((error) => {
-        console.error('❌ Error fetching labelling items for ActionItems:', error);
-        setLabellingItems([]);
-      });
-      apiService.getAction(retroId).then((item) => {
-        setActionItems(item);
-      }).catch((error) => {
-        console.error('❌ Error fetching labelling items for ActionItems:', error);
-        setLabellingItems([]);
-      });
-      console.log('✅ Action items loaded for final phase');
-      console.log('actionItems:', actionItems);
-      console.log('actionItems length:', actionItems.length);
+      // Add a small delay to ensure phase change is complete
+      setTimeout(loadFinalPhaseData, 100);
     }
   }, [phase, retroId]);
   
@@ -683,20 +720,21 @@ useEffect(() => {
 
   // Handler untuk menerima action items update dari WebSocket
   const handleActionItemsUpdate = useCallback((actionItems: any[]) => {
-    
-    
-    // Pastikan hanya update dari WebSocket, bukan dari local state
-    setActionItems(actionItems);
-    
-  }, []);
+    // Don't update action items from WebSocket during final phase
+    // or when loading from database
+    if (phase !== 'final' && !isLoadingFromDatabase) {
+      setActionItems(actionItems);
+    }
+  }, [phase, isLoadingFromDatabase]);
 
   // Handler untuk menerima retro state yang berisi action items
   const handleRetroState = useCallback((state: any) => {
-    
-    if (state.actionItems) {
+    // Don't update action items from WebSocket during final phase
+    // or when loading from database
+    if (state.actionItems && phase !== 'final' && !isLoadingFromDatabase) {
       setActionItems(state.actionItems);
     }
-  }, []);
+  }, [phase, isLoadingFromDatabase]);
 
   // Initialize WebSocket connection using the stable hook
   const { isConnected, socket } = useRetroSocket({
@@ -837,7 +875,7 @@ useEffect(() => {
       if (newPhase === 'labelling') {
         await saveGroupData(); 
       }      
-      await apiService.updatePhase(retroId, newPhase);
+      await apiService.updateRetroPhase(retroId, newPhase);
       
       // Phase change will be broadcasted via WebSocket from the server
       
@@ -860,8 +898,6 @@ useEffect(() => {
       }
       setRetro(data.retro)
       setParticipants(data.participants.filter((p: any) => p.isActive === true))
-      
-      // Cek apakah current user sudah ada di dalam participants
       if (user) {
         const currentUserParticipant = data.participants.find((p: any) => p.user.id === user.id);
         if (currentUserParticipant) {
@@ -1022,7 +1058,6 @@ useEffect(() => {
         category,
         userId: user.id 
       })
-      // Note: Item will be updated via WebSocket broadcast with server data
     } catch (error) {
       console.error("Error updating item:", error)
       setError("Failed to update item. Please try again.")
@@ -1043,7 +1078,7 @@ useEffect(() => {
           delete newUpdates[itemId];
           return newUpdates;
         });
-      }, 1000);
+      }, 250);
     }
   }, [retroId, user, items]);
 
@@ -1051,7 +1086,6 @@ useEffect(() => {
     if (!user) return;
 
     setIsDeletingItem(true)
-    
     try {
       await apiService.deleteItem(retroId, itemId, user.id)
       
@@ -1095,7 +1129,7 @@ useEffect(() => {
     } catch (error) {
       console.error('Failed to logout:', error);
     }
-    window.location.href = '/login';
+    window.location.href = '/';
   }, []);
 
   useEffect(() => {
@@ -1121,6 +1155,7 @@ useEffect(() => {
     // Cari nama assignee
     const assignee = participants.find((p: any) => p.user.id === actionAssignee);
     const assigneeName = assignee?.user.name || 'Unknown';
+    console.log ('ass : ',assignee, 'assname',assigneeName)
     // Kirim ke WebSocket
     if (socket && isConnected) {
       socket.emit('action-item-added', {
@@ -1244,16 +1279,9 @@ useEffect(() => {
       };
     }
   }, [socket, retroId, user, userVotes]);
-  const [actionItems, setActionItems] = useState<Array<{
-    id?: string;
-    assignee?: string;
-    assigneeId?: string;
-    assigneeName: string;
-    task: string;
-    edited?: boolean;
-    createdBy?: string;
-    createdAt?: string;
-  }>>([]);
+
+  
+
   const [actionInput, setActionInput] = useState('');
   const [actionAssignee, setActionAssignee] = useState(participants[0]?.user.id || '');
   const [editingActionIdx, setEditingActionIdx] = useState<number | null>(null);
@@ -1516,6 +1544,7 @@ useEffect(() => {
         setActionInput={setActionInput}
         setActionAssignee={setActionAssignee}
         handleAddActionItemWebSocket={handleAddActionItemWebSocket}
+        setActionItems={setActionItems}
         isCurrentFacilitator={isCurrentFacilitator}
         setPhase={setPhase}
         broadcastPhaseChange={broadcastPhaseChange}

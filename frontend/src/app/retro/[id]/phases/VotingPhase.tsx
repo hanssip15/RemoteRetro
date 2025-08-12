@@ -135,7 +135,7 @@ export default function VotingPhase(props: any) {
     async function fetchLabellingItems() {
       try {
         // Ambil data group beserta votes dari backend
-        const groups = await apiService.getLabelsByRetro(retro.id);
+        const groups = await apiService.getGroup(retro.id);
         setLabellingItems(groups); // Pastikan groups sudah mengandung field votes
       } catch (err) {
         console.error('Failed to fetch voting data:', err);

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Retro } from '../entities/retro.entity';
@@ -43,45 +43,33 @@ export class RetroService {
 
   async findOne(id: string): Promise<{ retro: Retro; participants: Participant[] }> {
     const retro = await this.retroRepository.findOne({ where: { id } });
-
     if (!retro) {
       throw new NotFoundException(`Retro with ID ${id} not found`);
     }
-
     const participants = await this.participantRepository.find({
       where: { retroId: id },
       relations: ['user'],
       order: { joinedAt: 'ASC' },
     });
-
-
     return { retro, participants };
   }
 
   async leave(retroId: string, userId: string): Promise<void> {
-  // Check if retro exists
   const retro = await this.retroRepository.findOne({ where: { id: retroId } });
   if (!retro) {
     throw new NotFoundException('Retro not found');
   }
-
-  // Find and remove participant
   const participant = await this.participantRepository.findOne({
     where: { 
       retroId: retroId, 
       userId: userId
      },
   });
-
   if (participant) {
-    await this.participantRepository.remove(participant);
-    
-    // Emit WebSocket event to notify others
+    await this.participantRepository.remove(participant);    
     this.participantGateway.broadcastParticipantUpdate(retroId);
-
   }
 }
-
   async create(createRetroDto: CreateRetroDto): Promise<Retro> {
     
     const retroData = {
@@ -90,22 +78,20 @@ export class RetroService {
       status: 'draft',
       format: createRetroDto.format || 'happy_sad_confused' // Default format
     };
-    
-    
     const retro = this.retroRepository.create(retroData);
     const savedRetro = await this.retroRepository.save(retro);
-    
     return savedRetro;
   }
 
-  async updateStatus(id: string, updateRetroDto: UpdateRetroDto): Promise<Retro> {
+  async updateRetroStatus(id: string, updateRetroDto: UpdateRetroDto): Promise<Retro> {
     const retro = await this.retroRepository.findOne({ where: { id } });
     if (!retro) {
       throw new NotFoundException(`Retro with ID ${id} not found`);
     }
+    if (updateRetroDto.status == '' || updateRetroDto.status == null){
+      throw new NotFoundException(`Status not found`);
+    }
     Object.assign(retro, updateRetroDto);
-
-    // Broadcast based on status change
     if (updateRetroDto.status === 'completed') {
       this.participantGateway.broadcastRetroCompleted(id);
     } else if (updateRetroDto.status === 'ongoing') {
@@ -115,27 +101,20 @@ export class RetroService {
     return this.retroRepository.save(retro);
   }
 
-  async updatePhase(id: string, phase: string): Promise<Retro> {
+  async updateRetroPhase(id: string, phase: string): Promise<Retro> {
     const retro = await this.retroRepository.findOne({ where: { id } });
     if (!retro) {
       throw new NotFoundException(`Retro with ID ${id} not found`);
     }
-
-    // Verify that the user is a facilitator
-
+    if (phase == '' || phase == null) {
+      throw new BadRequestException(`Phase is empty`);
+    }else if (!['prime-directive', 'ideation', 'grouping', 'labelling', 'voting', 'final', 'ActionItems'].includes(phase)){
+      throw new BadRequestException(`'${phase}' is not correct value`);
+    } 
     retro.currentPhase = phase;
-
-    // Broadcast phase change to all participants
     this.participantGateway.broadcastPhaseChange(id, phase);
     
     return this.retroRepository.save(retro);
-  }
-
-  async remove(id: string): Promise<void> {
-    const result = await this.retroRepository.delete(id);
-    if (result.affected === 0) {
-      throw new NotFoundException(`Retro with ID ${id} not found`);
-    }
   }
 
   async count(userId: string): Promise<number> {
@@ -145,7 +124,6 @@ export class RetroService {
     .where('participant.userId = :userId', { userId })
     .getCount();
   }
-
   async countByStatus(status: string, userId: string): Promise<number> {
     return this.retroRepository
     .createQueryBuilder('retro')

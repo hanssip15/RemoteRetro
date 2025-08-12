@@ -58,7 +58,6 @@ import {
         await this.participantService.activated(retroId, userId);
       }
       
-      // Broadcast participant update setelah user berhasil join/activate
       this.broadcastParticipantUpdate(retroId);
     }
   }
@@ -165,7 +164,7 @@ import {
     }
 
     broadcastItemDeleted(retroId: string, itemId: string) {
-      this.server.to(`retro:${retroId}`).emit(`item-deleted:${retroId}`, { itemId });
+      this.server.to(`retro:${retroId}`).emit(`item-deleted:${retroId}`,itemId);
     }
 
     // Broadcast all items for a retro
@@ -426,7 +425,7 @@ handleRequestUserVotes(
       const recentDuplicate = retroState[data.retroId].actionItems.find(item => 
         item.task === data.task && 
         item.assigneeId === data.assigneeId &&
-        (now - new Date(item.createdAt).getTime()) < 5000
+        (now - new Date(item.createdAt).getTime()) < 500
       );
       
       if (recentDuplicate) {

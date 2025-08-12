@@ -1,30 +1,29 @@
-import { Controller, Get, Post, Delete, Body, Param, ParseIntPipe, HttpStatus, HttpCode, Put } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, HttpStatus, HttpCode, Patch } from '@nestjs/common';
 import { ParticipantService } from '../services/participant.service';
 import { JoinRetroDto } from '../dto/join-retro.dto';
 
-@Controller('participant/:retroId/')
+@Controller('participant')
 export class ParticipantController {
   constructor(private readonly participantService: ParticipantService) {}
 
-  @Get()
-  async findByRetroId(@Param('retroId') retroId: string) {
-    return this.participantService.findByRetroId(retroId);
+  // Mengambil partisipan dari suatu retro
+  @Get('v1/retros/:retro_id')
+  async findByRetroId(@Param('retro_id') retro_id: string) {
+    return this.participantService.findByRetroId(retro_id);
   }
 
-  @Put('update-role/:participantId')
-  async updateRole(@Param('retroId') retroId: string, @Param('participantId') participantId: string) {
-    return this.participantService.updateRole(retroId, participantId);
+  // Menambahkan partisipan pada suatu retro
+  @Post('v1/retros/:retro_id/join')
+  @HttpCode(HttpStatus.CREATED)
+  async joinRetro(@Param('retro_id') retro_id: string, @Body() joinRetroDto: JoinRetroDto) {
+    return this.participantService.join(retro_id, joinRetroDto);
+  }
+
+  // Mengubah peran partisipan menjadi fasilitator pada suatu retro
+  @Patch('v1/retros/:retro_id/participant/:participant_id/update-role')
+  async updateFacilitator(@Param('retro_id') retro_id: string, @Param('participant_id') participant_id: string) {
+    return this.participantService.updateRoleFacilitator(retro_id, participant_id);
   }
   
-  @Post('join')
-  @HttpCode(HttpStatus.CREATED)
-  async join(@Param('retroId') retroId: string, @Body() joinRetroDto: JoinRetroDto) {
-    return this.participantService.join(retroId, joinRetroDto);
-  }
 
-  // @Delete(':id')
-  // @HttpCode(HttpStatus.NO_CONTENT)
-  // async remove(@Param('id') id: string) {
-  //   await this.participantService.remove(id);
-  // }
 } 

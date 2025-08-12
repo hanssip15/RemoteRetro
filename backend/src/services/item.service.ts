@@ -138,15 +138,11 @@ export class RetroItemsService {
     if (!participant) {
       throw new ForbiddenException('You are not a participant in this retro');
     }
-
     // Check permissions: facilitator can delete any item, regular user can only delete their own
     if (!participant.role && item.created_by !== userId) {
       throw new ForbiddenException('You can only delete your own items');
     }
-
     await this.retroItemRepository.remove(item);
-    
-    // Broadcast item deletion
     this.participantGateway.broadcastItemDeleted(retroId, id);
   }
 

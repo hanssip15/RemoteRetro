@@ -177,6 +177,10 @@ export default function ActionItemsPhase({
                             className="border rounded px-2 py-1 flex-1 text-sm"
                             value={editActionInput}
                             onChange={e => setEditActionInput(e.target.value)}
+                            onKeyDown={(e) => {
+                            if (e.key === "Enter") handleSaveEditActionItem(idx)
+                            if (e.key === "Escape") setEditingActionIdx(null)
+                          }}
                           />
                         </div>
                         <div className="flex gap-2 mt-1">
@@ -220,7 +224,11 @@ export default function ActionItemsPhase({
                         <button
                           className="p-1 hover:bg-red-100 rounded"
                           title="Delete"
-                          onClick={() => handleDeleteActionItem(idx)}
+                          onClick={() => {
+                            if (window.confirm(`Yakin ingin menghapus action item: \"${item.task}\"?`)) {
+                              handleDeleteActionItem(idx);
+                            }
+                          }}
                           type="button"
                         >
                           <Trash2 className="h-4 w-4 text-red-500" />
@@ -318,8 +326,9 @@ export default function ActionItemsPhase({
 
                       // Kirim email action items ke semua participant
                       const participantEmails = participants.map((p: any) => p.user.email).filter(Boolean);
-                      await apiService.updateRetro(retro.id, { status: "completed" })
-                      await apiService.updatePhase(retro.id, 'final'); 
+                      
+                      await apiService.updateRetroStatus(retro.id, { status: "completed" })
+                      await apiService.updateRetroPhase(retro.id, 'final'); 
                       await api.sendActionItemsEmail({
                         retroId: retro.id,
                         retroTitle: retro.title,
