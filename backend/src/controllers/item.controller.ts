@@ -1,64 +1,53 @@
-import { Controller, Post, Body, Get, Param, Delete, Put, Req, ForbiddenException, HttpCode, HttpStatus, Query } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, Delete, Patch, Req, ForbiddenException, HttpCode, HttpStatus, Query, Put } from '@nestjs/common';
 import { RetroItemsService } from '../services/item.service';
 import { CreateRetroItemDto } from '../dto/create-item.dto';
 import { Request } from 'express';
 
-@Controller('retros/:retroId/items')
+@Controller('group-item')
 export class RetroItemsController {
   constructor(private readonly retroItemsService: RetroItemsService) {}
-
-  @Post()
-  create(@Param('retroId') retroId: string, @Body() body: any) {
+  // Membuat item baru untuk suatu retro
+  @Post('v1/retros/:retro_id/create')
+  create(@Param('retro_id') retro_id: string, @Body() body: any) {
     // Map frontend data to backend DTO
     const dto: CreateRetroItemDto = {
       content: body.content,
-      retro_id: retroId,
+      retro_id: retro_id,
       created_by: body.created_by || body.author, // Handle both field names
       format_type: body.category as any, // Map category to format_type
     };
     
     return this.retroItemsService.create(dto);
   }
-
-  @Get()
-  findAll(@Param('retroId') retroId: string) {
-    return this.retroItemsService.findByRetroId(retroId);
+  // Mendapatkan items dari suatu retro
+  @Get('v1/retros/:retro_id')
+  findAll(@Param('retro_id') retro_id: string) {
+    return this.retroItemsService.findByRetroId(retro_id);
   }
-
-  @Put(':itemId')
-  async update(
-    @Param('retroId') retroId: string,
-    @Param('itemId') itemId: string,
-    @Body() body: { content: string; category: string; userId?: string },
-    @Req() req: Request
+  // Mengupdate item pada suatu retro
+  @Patch('v1/retros/:retro_id/item/:item_id/update-item')
+  async update(@Param('retro_id') retro_id: string,@Param('item_id') itemId: string,@Body() body: { content: string; category: string; userId?: string },@Req() req: Request
   ) {
-    // Extract user ID from request body or headers
     const userId = body.userId || this.extractUserId(req);
     if (!userId) {
       throw new ForbiddenException('User ID is required');
     }
-
-    return this.retroItemsService.update(itemId, body.content, body.category, userId, retroId);
+    return this.retroItemsService.update(itemId, body.content, body.category, userId, retro_id);
   }
 
-  @Delete(':itemId')
+  @Delete('v1/retros/:retro_id/item/:item_id/delete-item')
   @HttpCode(HttpStatus.OK)
   async remove(
-    @Param('retroId') retroId: string,
-    @Param('itemId') itemId: string,
+    @Param('retro_id') retroId: string,
+    @Param('item_id') itemId: string,
     @Body() body: { userId?: string },
     @Req() req: Request
   ) {
-    // Extract user ID from request body first, then try other sources
     const userId = body.userId || this.extractUserId(req);
-    
     if (!userId) {
       throw new ForbiddenException('User ID is required');
     }
-
-    await this.retroItemsService.remove(itemId, userId, retroId);
-    
-    // Return a success response
+    await this.retroItemsService.remove(itemId, userId, retroId);    
     return { 
       success: true, 
       message: 'Item deleted successfully',
@@ -66,50 +55,7 @@ export class RetroItemsController {
     };
   }
 
-  // Alternative DELETE endpoint using query parameter
-  @Delete(':itemId/delete')
-  @HttpCode(HttpStatus.OK)
-  async removeWithQuery(
-    @Param('retroId') retroId: string,
-    @Param('itemId') itemId: string,
-    @Query('userId') userId: string,
-    @Req() req: Request
-  ) {
-    if (!userId) {
-      throw new ForbiddenException('User ID is required');
-    }
 
-    await this.retroItemsService.remove(itemId, userId, retroId);
-    
-    // Return a success response
-    return { 
-      success: true, 
-      message: 'Item deleted successfully',
-      itemId: itemId 
-    };
-  }
-
-  // Alternative PUT endpoint for delete (soft delete approach)
-  @Put(':itemId/delete')
-  @HttpCode(HttpStatus.OK)
-  async softDelete(
-    @Param('retroId') retroId: string,
-    @Param('itemId') itemId: string,
-    @Body() body: { userId: string }
-  ) {
-    if (!body.userId) {
-      throw new ForbiddenException('User ID is required');
-    }
-
-    await this.retroItemsService.remove(itemId, body.userId, retroId);
-    
-    // Return a success response
-    return { 
-      success: true, 
-      message: 'Item deleted successfully',
-      itemId: itemId 
-    };
-  }
 
 
   private extractUserId(req: Request): string | null {

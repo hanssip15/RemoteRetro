@@ -2,7 +2,6 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Suspense, lazy } from 'react';
 import { SocketProvider } from './contexts/SocketContext';
 import ErrorBoundary from './components/ErrorBoundary';
-import ProtectedRoute from './components/ProtectedRoute';
 
 import './index.css';
 
@@ -13,12 +12,16 @@ const RetroPage = lazy(() => import('./app/retro/[id]/page'));
 const NewRetroPage = lazy(() => import('./app/retro/new/page'));
 const DebugPage = lazy(() => import('./app/debug-db/page'));
 const TestApiPage = lazy(() => import('./app/test-api/page'));
-const LoginPage = lazy(() => import('./app/login/page'));
 const AuthCallbackPage = lazy(() => import('./app/auth/callback/page'));
 
 // Error pages
-const NotFoundPage = lazy(() => import('./app/404/page'));
-const ServerErrorPage = lazy(() => import('./app/500/page'));
+const NotFoundPage = lazy(() => import('./app/error/404/page'));
+const GeneralErrorPage = lazy(() => import('./app/error/general/page'));
+const NetworkErrorPage = lazy(() => import('./app/error/network/page'));
+
+// Test components
+const TestErrorComponent = lazy(() => import('./components/TestErrorComponent'));
+const TestNetworkError = lazy(() => import('./components/TestNetworkError'));
 
 // Loading component
 const LoadingSpinner = () => (
@@ -32,53 +35,34 @@ const LoadingSpinner = () => (
 
 function App() {
   return (
-    <ErrorBoundary>
-      <SocketProvider>
-        <Router>
+    <SocketProvider>
+      <Router>
+        <ErrorBoundary>
           <Suspense fallback={<LoadingSpinner />}>
             <Routes>
               <Route path="/" element={<HomePage />} />
-              <Route path="/login" element={<LoginPage />} />
               <Route path="/auth/callback" element={<AuthCallbackPage />} />
+              <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/retro/new" element={<NewRetroPage />} />
+              <Route path="/retro/:id" element={<RetroPage />} />
+              <Route path="/debug-db" element={<DebugPage />} />
+              <Route path="/test-api" element={<TestApiPage />} />
+              <Route path="/test-error" element={<TestErrorComponent />} />
+              <Route path="/test-network-error" element={<TestNetworkError />} />
               
-              {/* Protected routes */}
-              <Route path="/dashboard" element={
-                <ProtectedRoute>
-                  <DashboardPage />
-                </ProtectedRoute>
-              } />
-              <Route path="/retro/new" element={
-                <ProtectedRoute>
-                  <NewRetroPage />
-                </ProtectedRoute>
-              } />
-              <Route path="/retro/:id" element={
-                <ProtectedRoute>
-                  <RetroPage />
-                </ProtectedRoute>
-              } />
-              <Route path="/debug-db" element={
-                <ProtectedRoute>
-                  <DebugPage />
-                </ProtectedRoute>
-              } />
-              <Route path="/test-api" element={
-                <ProtectedRoute>
-                  <TestApiPage />
-                </ProtectedRoute>
-              } />
-              
-              {/* Error pages */}
+              {/* Error Routes */}
+              <Route path="/error/network" element={<NetworkErrorPage />} />
+              <Route path="/error/general" element={<GeneralErrorPage />} />
               <Route path="/404" element={<NotFoundPage />} />
-              <Route path="/500" element={<ServerErrorPage />} />
               
               {/* Catch all route - 404 */}
+              <Route path="/error/404" element={<NotFoundPage />} />
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </Suspense>
-        </Router>
-      </SocketProvider>
-    </ErrorBoundary>
+        </ErrorBoundary>
+      </Router>
+    </SocketProvider>
   );
 }
 

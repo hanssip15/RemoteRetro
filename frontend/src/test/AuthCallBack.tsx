@@ -13,7 +13,7 @@ const AuthCallback = () => {
       sessionStorage.setItem('auth_token', token); // 👈 store the JWT
       navigate('/dashboard'); // or home page
     } else {
-      navigate('/login'); // fallback
+      navigate('/'); // fallback
     }
   }, [navigate]);
 

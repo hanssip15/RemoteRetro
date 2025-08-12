@@ -43,16 +43,12 @@ export class AuthController {
       imageUrl: user!.imageUrl || null 
     };
     const token = this.jwtService.sign(payload);
-
-    // Prepare user data for frontend
     const userData = {
       id: user!.id,
       email: user!.email,
       name: user!.name,
       imageUrl: user!.imageUrl || null
     };
-
-    // Send token and user data to frontend
     const frontendUrl = process.env.FRONTEND_URL; // Use environment variable or default to localhost
     res.cookie('token', token, {
       httpOnly: false,
@@ -60,8 +56,9 @@ export class AuthController {
       sameSite: 'none',
       maxAge: 60 * 60 * 1000
     });
-    return res.redirect(`${frontendUrl}/auth/callback`);
+    return res.redirect(`${frontendUrl}/auth/callback?token=${token}`);
   }
+  
 
   @Get('me')
   @UseGuards(AuthGuard('jwt'))

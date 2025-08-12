@@ -21,23 +21,30 @@ export default function HomePage() {
             <Zap className="h-8 w-8 text-indigo-600" />
             <h1 className="text-2xl font-bold text-gray-900">RetroSprint</h1>
           </div>
-          <nav className="flex items-center space-x-4">
-            <Link to="/dashboard">
-              <Button variant="ghost">Dashboard</Button>
-            </Link>
+        <nav className="flex items-center space-x-4">
+          {authStatus && (
+            <>
+              <Link to="/dashboard">
+                <Button variant="ghost">Dashboard</Button>
+              </Link>
 
-            {authStatus && (
               <Link to="/retro/new">
                 <Button>Start Retro</Button>
               </Link>
-            )}
-            {!authStatus && (
-              <Link to="/login">
-                <Button>Login</Button>
-              </Link>
-            )
-            }
-          </nav>
+            </>
+          )}
+
+          {!authStatus && (
+            <Button
+              onClick={() => {
+                window.location.href = `${import.meta.env.VITE_API_URL}/auth/google`;
+              }}
+            >
+              Login
+            </Button>
+          )}
+        </nav>
+
         </div>
       </header>
 

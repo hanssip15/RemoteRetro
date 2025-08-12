@@ -8,7 +8,6 @@ import { Plus, Calendar, Users, TrendingUp, RefreshCw, ChevronLeft, ChevronRight
 import { Link } from "react-router-dom"
 import { apiService, Retro } from "@/services/api"
 import { api } from '../../services/api'
-import { useNavigate } from "react-router-dom"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -51,37 +50,7 @@ export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
-  const navigate = useNavigate();
   
-//   useEffect(() => {
-//   const fetchUser = async () => {
-//     try {
-      
-//         const userData = await api.getCurrentUser();
-//         if (!userData) {
-//           api.removeAuthToken(); 
-//           navigate('/login');
-//         return;
-//         }
-//         setIsAuthenticated(true);
-//         setUser(userData);
-//     } catch (err) {
-//       console.error(err);
-//       setError('Failed to fetch user. Please try again.');
-//       await api.removeAuthToken();
-//       navigate('/login');
-//     }
-//   };
-
-//   fetchUser();
-// }, []);
-
-//   useEffect(() => {
-//   if (!user?.id) return
-//   fetchDashboardData(false,user.id)
-// }, [user?.id, currentPage])
-
-
 
   const fetchDashboardData = async (silent = false, userId: string) => {
     if (!silent) {
@@ -91,7 +60,6 @@ export default function DashboardPage() {
     }
   
     try {
-      console.log('Starting dashboard data fetch...')
 
       
       const [retrosData, statsData] = await Promise.all([
@@ -124,7 +92,7 @@ export default function DashboardPage() {
       const userData = await api.getCurrentUser()
       if (!userData) {
         api.removeAuthToken()
-        navigate('/login')
+    window.location.href = `${import.meta.env.VITE_API_URL}/auth/google`;
         return
       }
       setUser(userData)
@@ -136,17 +104,12 @@ export default function DashboardPage() {
       console.error(err)
       setError('Failed to fetch user. Please try again.')
       await api.removeAuthToken()
-      navigate('/login')
+    window.location.href = `${import.meta.env.VITE_API_URL}/auth/google`;
     }
   }
 
   fetchUserAndDashboard()
 }, [currentPage])
-  
-//   useEffect(() => {
-//   if (!isAuthenticated || !user?.id) return
-//   fetchDashboardData(false, user.id)
-// }, [isAuthenticated, user?.id, currentPage])
 
   const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage)
@@ -192,7 +155,7 @@ export default function DashboardPage() {
     } catch (error) {
       console.error('Failed to logout:', error);
     }
-    window.location.href = '/login';
+    window.location.href = '/';
   }
 
   // Show authentication error
@@ -202,7 +165,7 @@ export default function DashboardPage() {
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Authentication Required</h2>
           <p className="text-gray-600 mb-6">Please login to access the dashboard</p>
-          <Link to="/login">
+          <Link to="/">
             <Button>Go to Login</Button>
           </Link>
         </div>

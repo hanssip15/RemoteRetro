@@ -45,11 +45,10 @@ export default function RetroLobbyPage({ socket, retroId, participants, setParti
   useEffect(() => {
     if (user && !isUserJoined) {
       const timeout = setTimeout(() => {
-        console.log('⏰ Join timeout reached, forcing loading to finish');
         window.location.reload();
         setIsUserJoined(true);
         setLoading(false);
-      }, 3000); // 3 detik timeout
+      }, 500); // 3 detik timeout
 
       return () => clearTimeout(timeout);
     }
@@ -61,7 +60,7 @@ export default function RetroLobbyPage({ socket, retroId, participants, setParti
           const userData = await api.getCurrentUser();
           if (!userData) {
             api.removeAuthToken(); // optional logout
-            navigate('/login');
+            navigate('/');
           return;
           }
   
@@ -70,7 +69,7 @@ export default function RetroLobbyPage({ socket, retroId, participants, setParti
         console.error(err);
         // setError('Failed to fetch user. Please try again.');
         await api.removeAuthToken();
-        navigate('/login');
+        navigate('/');
       }
     };
   
@@ -83,11 +82,9 @@ export default function RetroLobbyPage({ socket, retroId, participants, setParti
       // Cek apakah current user sudah ada di dalam participants
       const currentUserParticipant = participants.find((p) => p.user.id === user.id);
       if (currentUserParticipant) {
-        console.log('✅ Current user found in participants, finishing loading');
         setIsUserJoined(true);
         setLoading(false);
       } else {
-        console.log('⏳ Current user not found in participants, waiting for join...');
         // Tetap loading sampai user berhasil join
         setIsUserJoined(false);
         setLoading(true);
@@ -99,17 +96,9 @@ export default function RetroLobbyPage({ socket, retroId, participants, setParti
   useEffect(() => {
     if (user && participants && participants.length > 0) {
       const currentUserParticipant = participants.find((p) => p.user.id === user.id);
-      console.log('🔍 Checking join status:', {
-        userId: user.id,
-        userName: user.name,
-        participantsCount: participants.length,
-        participantIds: participants.map(p => ({ id: p.user.id, name: p.user.name })),
-        currentUserParticipant: currentUserParticipant ? { id: currentUserParticipant.user.id, name: currentUserParticipant.user.name } : null,
-        isUserJoined
-      });
+
       
       if (currentUserParticipant && !isUserJoined) {
-        console.log('✅ User successfully joined as participant');
         setIsUserJoined(true);
         setLoading(false);
       }
@@ -120,39 +109,12 @@ export default function RetroLobbyPage({ socket, retroId, participants, setParti
     // Step 1: Check if user is authenticated
     const authStatus = api.isAuthenticated()
     if (!authStatus) {
-      navigate('/login')
+      navigate('/')
       return
     }
 
     if (!retroId) return;    
   }, [retroId]);
-
-  // Auto-join participant function
-  // const checkAndJoinParticipant = useCallback(async () => {
-  //   if (!user || !retroId) return;
-  //   const participant = participants.find((p) => p.user.id === user.id);
-  //   if (!participant) {
-  //     try {
-  //       setIsJoining(true);
-  //       await apiService.addParticipant(retroId, {
-  //         userId: user.id,
-  //         role: false,
-  //       });
-  //       await fetchLobbyData();
-  //     } catch (error) {
-  //       console.error("Failed to join as participant:", error);
-  //     } finally {
-  //       setIsJoining(false);
-  //     }
-  //   }
-  // }, [user, retroId, participants, fetchLobbyData]);
-
-  
-  // useEffect(() => {
-  //   if (!loading && retro && participants.length > 0) {
-  //     checkAndJoinParticipant();
-  //   }
-  // }, [loading, retro, participants, checkAndJoinParticipant]);
 
   const handleChangeView = async () => {
     navigate(`/retro/${retroId}`)
@@ -164,8 +126,8 @@ export default function RetroLobbyPage({ socket, retroId, participants, setParti
         socket.emit('retro-started', { retroId });
       }
       setIsOngoing(true)
-      await apiService.updateRetro(retroId, { status: "ongoing" })
-      await apiService.updatePhase(retroId, 'prime-directive')
+      await apiService.updateRetroStatus(retroId, { status: "ongoing" })
+      await apiService.updateRetroPhase(retroId, 'prime-directive')
       handleChangeView()
     } catch (error) {
       console.error("Error starting retro:", error)
@@ -173,21 +135,6 @@ export default function RetroLobbyPage({ socket, retroId, participants, setParti
       alert(`Failed to start retro: ${errorMessage}`)
     }
   }, [retroId, navigate, socket, isOngoing, user?.id])
-  // Ensure user is never null after authentication
-  // if (!user) {
-  //   // This should never happen after authentication check
-  //   throw new Error("User not found. This should not happen after authentication.");
-  // }
-
-
-  // useSocket({
-  //   retroId,
-  //   userId,
-  //   onParticipantUpdate: fetchLobbyData,
-  //   onRetroStarted: handleChangeView,
-  // });
-
-  
 
   const handlePromoteToFacilitator = useCallback(async () => {
     if (!selectedParticipant) return;
@@ -272,7 +219,7 @@ export default function RetroLobbyPage({ socket, retroId, participants, setParti
           } catch (error) {
             console.error('Failed to logout:', error);
           }
-          window.location.href = '/login';
+          window.location.href = '/';
         }}
       />
 

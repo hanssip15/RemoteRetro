@@ -11,13 +11,13 @@ export class UsersService {
     private usersRepository: Repository<User>,
   ) {}
 
-  async findByEmail(email: string): Promise<User | null> {
+    async findByEmail(email: string): Promise<User | null> {
     return await this.usersRepository.findOne({ where: { email } });
   }
 
-  async findById(id: string): Promise<User | null> {
-    return await this.usersRepository.findOne({ where: { id } });
-  }
+  // async findById(id: string): Promise<User | null> {
+  //   return await this.usersRepository.findOne({ where: { id } });
+  // }
 
   async create(user: Partial<User>): Promise<User> {
     const newUser = this.usersRepository.create(user);

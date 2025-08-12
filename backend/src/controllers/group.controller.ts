@@ -1,21 +1,11 @@
-// src/group/group.controller.ts
-
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Param,
-  Delete,
-  Put,
-} from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Patch,} from '@nestjs/common';
 import { GroupService } from '../services/group.service';
 import { GroupItemService } from '../services/group-item.service';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { GroupEntity } from 'src/entities/group.entity';
 
-@Controller()
+@Controller('group')
 export class GroupController {
   constructor(
     @InjectRepository(GroupEntity)
@@ -24,35 +14,29 @@ export class GroupController {
     private readonly groupItemService: GroupItemService,
   ) {}
 
-
-
-  // Endpoint untuk group
-  @Post('group/:retro_id')
-  async createLabelGroup(@Param('retro_id') retro_id: string, @Body() data: { label: string; item_id: string }) {
-
+  // Membuat grup baru pada suatu retro
+  @Post('v1/retros/:retro_id/create')
+  async createGroup(@Param('retro_id') retro_id: string, @Body() data: { label: string; item_id: string }) {
     const group = await this.groupService.create({
       label: data.label,
       votes: 0,
-      retro_id: retro_id,
-    });
-
+      retro_id: retro_id,});
     return group;
 
   }
-
-  @Get('group/:retroId')
-  async getLabelsByRetro(@Param('retroId') retroId: string) {
-    return this.groupService.findByRetroId(retroId);
+  // Mendapatkan group dari suatu retro
+  @Get('v1/retros/:retro_id')
+  async getGroup(@Param('retro_id') retro_id: string) {
+    return this.groupService.findByRetroId(retro_id);
   }
-
-  @Put('group/:id')
-  async updateLabel(@Param('id') id: string, @Body() data: { label: string }) {
-
-    return this.groupService.updateLabel(+id, data.label);
+  // Mengubah label pada grup
+  @Patch('v1/groups/:group_id/update-label')
+  async updateLabel(@Param('group_id') group_id: string, @Body() data: { label: string }) {
+    return this.groupService.updateLabel(+group_id, data.label);
   }
-
-  @Put('group/:id/votes')
-  async updateVotes(@Param('id') id: string, @Body() data: { votes: number }) {
-    return this.groupService.updateVotes(+id, data.votes);
+  // Mengubah vote 
+  @Patch('v1/groups/:group_id/update-votes')
+  async updateVotes(@Param('group_id') group_id: string, @Body() data: { votes: number }) {
+    return this.groupService.updateVotes(+group_id, data.votes);
   }
 }

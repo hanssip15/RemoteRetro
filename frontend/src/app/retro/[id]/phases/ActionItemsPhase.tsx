@@ -47,11 +47,20 @@ export default function ActionItemsPhase({
 
   
   React.useEffect(() => {
+    // Hanya set actionAssignee jika belum ada nilai dan ada participants
     if (participants && participants.length > 0 && !actionAssignee) {
       setActionAssignee(participants[0].user.id);
     }
-  }, [participants, actionAssignee, setActionAssignee]);
+  }, [participants, setActionAssignee]); // Hapus actionAssignee dari dependencies untuk mencegah infinite loop
   
+  // Helper function untuk memastikan actionAssignee tetap konsisten
+  const handleActionAssigneeChange = (newAssignee: string) => {
+    // Hanya update jika nilai benar-benar berbeda
+    if (newAssignee !== actionAssignee) {
+      setActionAssignee(newAssignee);
+    }
+  };
+
   const [showModal, setShowModal] = useState(true);
   const [showConfirm, setShowConfirm] = useState(false);
 
@@ -168,6 +177,10 @@ export default function ActionItemsPhase({
                             className="border rounded px-2 py-1 flex-1 text-sm"
                             value={editActionInput}
                             onChange={e => setEditActionInput(e.target.value)}
+                            onKeyDown={(e) => {
+                            if (e.key === "Enter") handleSaveEditActionItem(idx)
+                            if (e.key === "Escape") setEditingActionIdx(null)
+                          }}
                           />
                         </div>
                         <div className="flex gap-2 mt-1">
@@ -211,7 +224,11 @@ export default function ActionItemsPhase({
                         <button
                           className="p-1 hover:bg-red-100 rounded"
                           title="Delete"
-                          onClick={() => handleDeleteActionItem(idx)}
+                          onClick={() => {
+                            if (window.confirm(`Yakin ingin menghapus action item: \"${item.task}\"?`)) {
+                              handleDeleteActionItem(idx);
+                            }
+                          }}
                           type="button"
                         >
                           <Trash2 className="h-4 w-4 text-red-500" />
@@ -246,7 +263,7 @@ export default function ActionItemsPhase({
               <select
                 className="w-64 px-3 pr-8 py-2 rounded-md border text-base"
                 value={actionAssignee}
-                onChange={e => setActionAssignee(e.target.value)}
+                onChange={e => handleActionAssigneeChange(e.target.value)}
               >
                 {participants.length > 0 ? (
                   participants.map((p: any) => (
@@ -266,14 +283,15 @@ export default function ActionItemsPhase({
               onChange={e => setActionInput(e.target.value)}
               onKeyDown={e => {
                 if (e.key === 'Enter' && actionInput.trim() && actionAssignee) {
-                  handleAddActionItemWebSocket(e);
+                  e.preventDefault(); // Prevent default form submission
+                  handleAddActionItemWebSocket();
                 }
               }}
             
             />
             <Button
               onClick={handleAddActionItemWebSocket}
-              disabled={!actionInput.trim() || !actionAssignee || !actionAssignee}
+              disabled={!actionInput.trim() || !actionAssignee}
               className="px-4 py-1"
               type="submit"
               variant="phaseSecondary"
@@ -308,8 +326,9 @@ export default function ActionItemsPhase({
 
                       // Kirim email action items ke semua participant
                       const participantEmails = participants.map((p: any) => p.user.email).filter(Boolean);
-                      await apiService.updateRetro(retro.id, { status: "completed" })
-                      await apiService.updatePhase(retro.id, 'final'); 
+                      
+                      await apiService.updateRetroStatus(retro.id, { status: "completed" })
+                      await apiService.updateRetroPhase(retro.id, 'final'); 
                       await api.sendActionItemsEmail({
                         retroId: retro.id,
                         retroTitle: retro.title,
