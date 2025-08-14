@@ -7,6 +7,7 @@ export interface ActionItem {
 }
 
 export interface EmailData {
+  
   retroTitle: string;
   actionItems: ActionItem[];
   participantEmails: string[];

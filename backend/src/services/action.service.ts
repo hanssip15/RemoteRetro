@@ -15,13 +15,8 @@ export class ActionService {
   ) {}
 
   async create(dto: CreateActionDto) {
-    const retro = await this.retroRepository.findOne({ where: { id: dto.retro_id } });
-    if (!retro) {
-      throw new NotFoundException(`Retro with ID ${dto.retro_id} not found`);
-    }
 
     const newAction = this.actionRepository.create({
-      retro_id: dto.retro_id,
       action_item: dto.action_item,
       assign_to: dto.assign_to,
     });
@@ -33,14 +28,8 @@ export class ActionService {
   async bulkCreate(dtos: CreateActionDto[]) {
     // Validasi retro_id sama untuk semua
     if (dtos.length === 0) return [];
-    const retroId = dtos[0].retro_id;
-    const retro = await this.retroRepository.findOne({ where: { id: retroId } });
-    if (!retro) {
-      throw new NotFoundException(`Retro with ID ${retroId} not found`);
-    }
     // Buat array entity
     const actions = dtos.map(dto => this.actionRepository.create({
-      retro_id: dto.retro_id,
       action_item: dto.action_item,
       assign_to: dto.assign_to,
     }));

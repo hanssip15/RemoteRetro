@@ -9,13 +9,12 @@ import { Retro } from './entities/retro.entity';
 import { RetroItem } from './entities/retro-item.entity';
 import { Participant } from './entities/participant.entity';
 import { User } from './entities/user.entity';
-import { GroupItemEntity } from './entities/group-item.entity';
+import { GroupItem } from './entities/group-item.entity';
 import { AuthModule } from './modules/auth.module';
 import { UsersModule } from './modules/user.module';
 import { RetroItemsModule } from './modules/item.module';
 import { RetroItemsService } from './services/item.service';
 import { ParticipantGateway } from './gateways/participant.gateways';
-import { GroupItemModule } from './modules/group-item.module';
 import { GroupModule } from './modules/group.module';
 import { ActionModule } from './modules/action.module';
 import { EmailService } from './services/email.service';
@@ -42,12 +41,11 @@ import { EmailController } from './controllers/email.controller';
       } : false,
       logging: false,
     }),
-    TypeOrmModule.forFeature([RetroItem, Retro, Participant, GroupItemEntity]),
+    TypeOrmModule.forFeature([RetroItem, Retro, Participant, GroupItem]),
     RetroModule, // ← TAMBAHKAN INI!
     AuthModule,
     UsersModule,
     RetroItemsModule,
-    GroupItemModule,
     GroupModule,  
     ActionModule
   ],

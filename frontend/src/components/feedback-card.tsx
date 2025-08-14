@@ -121,7 +121,7 @@ export function FeedbackCard({
                   size="sm"
                   variant="ghost"
                   onClick={() =>{ 
-                    alert(`Yakin ingin menghapus ${item.content}`);
+                    confirm(`Yakin ingin menghapus ${item.content}`);
                     onDelete(item.id);
                   }}
                   className="p-1 text-red-500 hover:text-red-600"

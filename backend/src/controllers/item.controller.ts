@@ -1,90 +1,59 @@
 import { Controller, Post, Body, Get, Param, Delete, Patch, Req, ForbiddenException, HttpCode, HttpStatus, Query, Put } from '@nestjs/common';
 import { RetroItemsService } from '../services/item.service';
-import { CreateRetroItemDto } from '../dto/create-item.dto';
+import { CreateRetroItemDto, UpdateItemDto } from '../dto/create-item.dto';
 import { Request } from 'express';
+import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Table } from 'typeorm';
 
-@Controller('group-item')
+@ApiTags('Item')
+@Controller('item')
 export class RetroItemsController {
   constructor(private readonly retroItemsService: RetroItemsService) {}
   // Membuat item baru untuk suatu retro
   @Post('v1/retros/:retro_id/create')
+  @ApiOperation({ summary: 'Create a new retro item' })
+  @ApiBody({ type: CreateRetroItemDto })
   create(@Param('retro_id') retro_id: string, @Body() body: any) {
-    // Map frontend data to backend DTO
     const dto: CreateRetroItemDto = {
       content: body.content,
-      retro_id: retro_id,
       created_by: body.created_by || body.author, // Handle both field names
       format_type: body.category as any, // Map category to format_type
     };
     
-    return this.retroItemsService.create(dto);
+    return this.retroItemsService.create(retro_id,dto);
+  }
+  // Memasukkan item ke dalam group
+  @Post('v1/groups/:group_id/items/:item_id/insert')
+  @ApiOperation({ summary: 'Insert an item into a group' })
+  @HttpCode(HttpStatus.CREATED)
+  async insert(@Param('group_id') group_id: number, @Param('item_id') item_id: string) {
+    return this.retroItemsService.insert(item_id, group_id);
   }
   // Mendapatkan items dari suatu retro
   @Get('v1/retros/:retro_id')
+  @ApiOperation({ summary: 'Get all items from a retro' })
   findAll(@Param('retro_id') retro_id: string) {
     return this.retroItemsService.findByRetroId(retro_id);
   }
+
   // Mengupdate item pada suatu retro
-  @Patch('v1/retros/:retro_id/item/:item_id/update-item')
-  async update(@Param('retro_id') retro_id: string,@Param('item_id') itemId: string,@Body() body: { content: string; category: string; userId?: string },@Req() req: Request
+  @Patch('v1/items/:item_id/update-item')
+  @ApiOperation({ summary: 'Update an item in a retro' })
+  async update(@Param('item_id') itemId: string,@Body() dto: UpdateItemDto,@Req() req: Request
   ) {
-    const userId = body.userId || this.extractUserId(req);
-    if (!userId) {
-      throw new ForbiddenException('User ID is required');
-    }
-    return this.retroItemsService.update(itemId, body.content, body.category, userId, retro_id);
+    return this.retroItemsService.update(itemId, dto);
   }
 
-  @Delete('v1/retros/:retro_id/item/:item_id/delete-item')
+  @Delete('v1/items/:item_id/delete-item')
   @HttpCode(HttpStatus.OK)
-  async remove(
-    @Param('retro_id') retroId: string,
+async remove(
     @Param('item_id') itemId: string,
-    @Body() body: { userId?: string },
-    @Req() req: Request
   ) {
-    const userId = body.userId || this.extractUserId(req);
-    if (!userId) {
-      throw new ForbiddenException('User ID is required');
-    }
-    await this.retroItemsService.remove(itemId, userId, retroId);    
+    await this.retroItemsService.remove(itemId);    
     return { 
       success: true, 
       message: 'Item deleted successfully',
       itemId: itemId 
     };
-  }
-
-
-
-
-  private extractUserId(req: Request): string | null {
-    // Try to get user ID from request body first
-    if ((req.body as any)?.userId) {
-      return (req.body as any).userId;
-    }
-
-    // Try to get from query parameters
-    if ((req.query as any)?.userId) {
-      return (req.query as any).userId;
-    }
-
-    // Try to get from headers
-    const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      try {
-        // Simple base64 decode for JWT payload (second part)
-        const token = authHeader.substring(7);
-        const parts = token.split('.');
-        if (parts.length === 3) {
-          const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
-          return payload?.sub || payload?.userId || payload?.id || payload?.user_id;
-        }
-      } catch (error) {
-        console.log('Error decoding JWT:', error.message);
-      }
-    }
-
-    return null;
   }
 }

@@ -313,13 +313,10 @@ useEffect(() => {
     // const createdGroups = [];
     for (const group of dataToSave.groups) {
       try {
-        const createdGroup = await apiService.createGroup(retroId, {
-          label: 'unlabeled',
-          votes: 0,
-        }) as any;
+        const createdGroup = await apiService.createGroup(retroId) as any;
         for (const itemId of group.itemIds) {
         // @ts-ignore
-          const createdGroupItem = await apiService.createGroupItem(createdGroup.id, itemId) as any;
+          const createdGroupItem = await apiService.insertItem(createdGroup.id, itemId) as any;
         }
         // createdGroups.push({ ...createdGroup, items: group.itemIds });
       } catch (error) {
@@ -1013,7 +1010,6 @@ useEffect(() => {
         category: inputCategory,
         content: inputText.trim(),
         created_by: user.id,
-        author: user.name || user.email,
       })
 
       // Replace optimistic item with real item from server
@@ -1053,10 +1049,9 @@ useEffect(() => {
     ));
 
     try {
-      await apiService.updateItem(retroId, itemId, { 
+      await apiService.updateItem(itemId, { 
         content,
-        category,
-        userId: user.id 
+        format_type:category,
       })
     } catch (error) {
       console.error("Error updating item:", error)
@@ -1087,8 +1082,7 @@ useEffect(() => {
 
     setIsDeletingItem(true)
     try {
-      await apiService.deleteItem(retroId, itemId, user.id)
-      
+      await apiService.deleteItem(itemId)
       // Remove item from state
       setItems(prev => prev.filter(item => item.id !== itemId))
     } catch (error) {

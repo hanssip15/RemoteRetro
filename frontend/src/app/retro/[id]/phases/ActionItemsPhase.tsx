@@ -316,7 +316,6 @@ export default function ActionItemsPhase({
                   onConfirm={async () => {
                     try {
                       const bulkData = actionItems.map((item: any) => ({
-                        retro_id: retro.id,
                         action_item: item.task,
                         assign_to: item.assigneeName,
                       }));

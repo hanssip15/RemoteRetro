@@ -13,9 +13,9 @@ export class GroupService {
     private groupRepository: Repository<GroupEntity>,
   ) 
   {}
-
-  async create(createGroupDto: CreateGroupDto ) {
-    const group = this.groupRepository.create(createGroupDto);
+  
+  async create(retro_id:string ) {
+    const group = this.groupRepository.create({label: 'unlabeled',votes: 0,retro_id,});
     return this.groupRepository.save(group);
   }
 
