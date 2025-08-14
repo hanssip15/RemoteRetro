@@ -126,7 +126,7 @@ export default function RetroLobbyPage({ socket, retroId, participants, setParti
         socket.emit('retro-started', { retroId });
       }
       setIsOngoing(true)
-      await apiService.updateRetroStatus(retroId, { status: "ongoing" })
+      await apiService.updateRetroStatus(retroId, "ongoing" )
       await apiService.updateRetroPhase(retroId, 'prime-directive')
       handleChangeView()
     } catch (error) {

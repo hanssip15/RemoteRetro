@@ -83,7 +83,6 @@ export interface UpdateItemData {
 
 export interface addParticipantData {
   role: boolean;
-  userId: string;
   isActive: boolean;
 }
 
@@ -199,10 +198,10 @@ class ApiService {
   }
 
   // Mengubah status retro
-  async updateRetroStatus(retro_id: string, data: UpdateRetroData): Promise<Retro> {
+  async updateRetroStatus(retro_id: string, status: string): Promise<Retro> {
     return this.request<Retro>(`/retro/v1/retros/${retro_id}/update-status`, {
       method: 'PATCH',
-      body: JSON.stringify(data),
+      body: JSON.stringify({ status }),
     });
   }
 
@@ -210,7 +209,7 @@ class ApiService {
   async updateRetroPhase(retro_id: string, phase: string): Promise<Retro> {
     return this.request<Retro>(`/retro/v1/retros/${retro_id}/update-phase`, {
       method: 'PATCH',
-      body: JSON.stringify({ phase}),
+      body: JSON.stringify({ phase }),
     });
   }
 
@@ -221,8 +220,8 @@ class ApiService {
   }
 
   // Menambahkan participant pada suatu retro
-  async addParticipant(retro_id: string, data: addParticipantData): Promise<Participant> {
-    return this.request<Participant>(`/participant/v1/retros/${retro_id}/join`, {
+  async addParticipant(retro_id: string, user_id:string, data: addParticipantData): Promise<Participant> {
+    return this.request<Participant>(`/participant/v1/retros/${retro_id}/users/${user_id}/join`, {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -347,7 +346,7 @@ class ApiService {
   }
   
   // ================== DASHBOARD ================== //
-  async getDashboardRetros(userId: string, page = 1, limit = 3): Promise<{
+  async getDashboardRetros(userId: string, page = 1): Promise<{
     retros: Retro[];
     pagination: {
       page: number;
@@ -358,7 +357,7 @@ class ApiService {
       hasPrev: boolean;
     };
   }> {
-    return this.request(`/dashboard/v1/retros?page=${page}&limit=${limit}&userId=${userId}`);
+    return this.request(`/dashboard/v1/users/${userId}/retros?page=${page}`);
   }
 
   async getDashboardStats(userId: string): Promise<{
@@ -370,7 +369,7 @@ class ApiService {
       completed: number;
     };
   }> {
-    return this.request(`/dashboard/v1/stats/${userId}`);
+    return this.request(`/dashboard/v1/users/${userId}/stats`);
   }
 
   // ================== EMAIL ================== //
