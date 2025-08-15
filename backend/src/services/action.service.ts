@@ -25,13 +25,14 @@ export class ActionService {
     return savedAction;
   }
 
-  async bulkCreate(dtos: CreateActionDto[]) {
+  async bulkCreate(retro_id: string, dtos: CreateActionDto[]) {
     // Validasi retro_id sama untuk semua
     if (dtos.length === 0) return [];
     // Buat array entity
     const actions = dtos.map(dto => this.actionRepository.create({
       action_item: dto.action_item,
       assign_to: dto.assign_to,
+      retro_id
     }));
     // Simpan sekaligus
     const savedActions = await this.actionRepository.save(actions);

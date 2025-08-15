@@ -288,8 +288,8 @@ class ApiService {
 
   // ================== ACTION-ITEM ================== // 
   // Membuat action item lebih dari 1
-  async createBulkActions(data: CreateActionData[]): Promise<any> {
-    return this.request<any>('/action-item/v1/action-items/create-bulk', {
+  async createBulkActions(retro_id: string, data: CreateActionData[]): Promise<any> {
+    return this.request<any>(`/action-item/v1/retros/${retro_id}/create-bulk`, {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -329,7 +329,6 @@ class ApiService {
   // ================== EMAIL ================== //
   // Mengirim email kepada setiap partsipant
   async sendActionItemsEmail(data: {
-    retroId: string;
     retroTitle: string;
     actionItems: Array<{ task: string; assigneeName: string }>;
     participantEmails: string[];

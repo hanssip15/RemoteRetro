@@ -320,7 +320,7 @@ export default function ActionItemsPhase({
                         assign_to: item.assigneeName,
                       }));
                       if (bulkData.length > 0) {
-                        await api.createBulkActions(bulkData);
+                        await api.createBulkActions(retro.id, bulkData);
                       }
 
                       // Kirim email action items ke semua participant
@@ -329,7 +329,6 @@ export default function ActionItemsPhase({
                       await apiService.updateRetroStatus(retro.id, "completed")
                       await apiService.updateRetroPhase(retro.id, 'final'); 
                       await api.sendActionItemsEmail({
-                        retroId: retro.id,  
                         retroTitle: retro.title,
                         actionItems: actionItems.map((item: any) => ({
                           task: item.task,

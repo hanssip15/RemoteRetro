@@ -6,6 +6,7 @@ import { AppModule } from './app.module';
 import { IoAdapter } from '@nestjs/platform-socket.io';
 import * as dotenv from 'dotenv';
 import * as cookieParser from 'cookie-parser';
+import { RedirectNotFoundFilter } from './common/filters/redirect-not-found-exception.filter';
 
 // Load environment variables
 dotenv.config();
@@ -18,6 +19,8 @@ async function bootstrap() {
 
   // Cookie parser
   app.use(cookieParser());
+
+  app.useGlobalFilters(new RedirectNotFoundFilter());
 
   // Enable CORS
   const corsOrigins = process.env.CORS_ORIGIN?.split(',') || [];

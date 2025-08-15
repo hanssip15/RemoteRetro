@@ -63,7 +63,6 @@ export class ParticipantService {
         if (again) return again;
       }
       throw error;
-
     } 
   }
 

@@ -6,11 +6,11 @@ import { ApiBody, ApiOperation } from '@nestjs/swagger';
 @Controller('action-item')
 export class ActionController {
   constructor(private readonly actionService: ActionService) {}
-  @Post('v1/action-items/create-bulk')
+  @Post('v1/retros/:retro_id/create-bulk')
   @ApiOperation({ summary: 'Create multiple action items' })
   @ApiBody({ type: [CreateActionDto] })
-  async bulkCreate(@Body() dtos: CreateActionDto[]) {
-    return this.actionService.bulkCreate(dtos);
+  async bulkCreate(@Param('retro_id') retro_id: string, @Body() dtos: CreateActionDto[]) {
+    return this.actionService.bulkCreate(retro_id, dtos);
   }
   @Get('v1/retros/:retro_id')
   @ApiOperation({ summary: 'Get all action items by retro ID' })
