@@ -134,18 +134,7 @@ export default function RetroPage() {
   }
 
 
-    // useEffect(() => {
-    //   if (user && !isUserJoined) {
-    //     const timeout = setTimeout(() => {
-    //       window.location.reload();
-    //       setIsUserJoined(true);
-    //       setLoading(false);
-    //     }, 1000); // 3 detik timeout
-  
-    //     return () => clearTimeout(timeout);
-    //   }
-    // }, [user, isUserJoined]);
-
+// ------------------------ Authentication ------------------------ // 
   useEffect(() => {
   const fetchUser = async () => {
     try {
@@ -170,7 +159,9 @@ export default function RetroPage() {
   fetchUser();
 }, []);
 
-// Cek join status setiap kali participants berubah
+
+// !------------------------ Participant ------------------------ //
+
 useEffect(() => {
   if (user && participants && participants.length > 0) {
     const currentUserParticipant = participants.find((p) => p.user.id === user.id);
@@ -182,7 +173,6 @@ useEffect(() => {
   }
 }, [user, participants, isUserJoined]);
 
-// Timeout fallback untuk mencegah loading yang terlalu lama
 useEffect(() => {
   if (user && !isUserJoined) {
     const timeout = setTimeout(() => {
@@ -193,8 +183,13 @@ useEffect(() => {
     return () => clearTimeout(timeout);
   }
 }, [user, isUserJoined]);
-  // Pewarnaan group: connected components + warna primary group stabil dengan signature
-  function computeGroupsAndColors(
+  
+// Mendapatkan peran user 
+const currentUserRole = participants.find(p => p.user.id === user?.id)?.role || false;
+
+
+// !------------------------ Grouping ------------------------ //
+function computeGroupsAndColors(
     items: RetroItem[],
     // @ts-ignore
     positions: { [id: string]: { x: number; y: number } },
@@ -444,7 +439,9 @@ useEffect(() => {
 
   
 
-  // Load phase from retro data when component mounts or retro changes
+
+  
+// ! ------------------------ Change Phase ------------------------ //
   useEffect(() => {
     if (retro?.currentPhase) {
       let mappedPhase = retro.currentPhase;
@@ -537,10 +534,8 @@ useEffect(() => {
     }
   }, [phase, retroId]);
   
+// ! ------------------------ Idea Generation ------------------------ //
 
-  const currentUserRole = participants.find(p => p.user.id === user?.id)?.role || false;
-  
- 
 
   // Memoize WebSocket handlers to prevent unnecessary re-renders
   const handleItemAdded = useCallback((newItem: RetroItem) => {
@@ -1169,49 +1164,6 @@ useEffect(() => {
   };
   
   
-
-  
-
-  // Request state dari server saat socket connect
-  // useEffect(() => {
-  //   if (socket && isConnected && retroId) {
-  //     // Request state terkini dari server
-  //     socket.emit('request-retro-state', { retroId });
-
-  //     // Handler untuk menerima state dari server
-  //     const handleRetroState = (state: { itemPositions: any, itemGroups: any, signatureColors: any }) => {
-  //       // Only update itemPositions if we don't have any or if backend has more data
-  //       if (state.itemPositions && Object.keys(state.itemPositions).length > 0) {
-  //         setItemPositions(prev => {
-  //           const currentKeys = Object.keys(prev);
-  //           const backendKeys = Object.keys(state.itemPositions);
-            
-  //           // If backend has more positions or different positions, use backend data
-  //           if (backendKeys.length > currentKeys.length || 
-  //               !backendKeys.every(key => prev[key] && 
-  //                 prev[key].x === state.itemPositions[key].x && 
-  //                 prev[key].y === state.itemPositions[key].y)) {
-  //             return { ...prev, ...state.itemPositions };
-  //           }
-  //           return prev;
-  //         });
-  //       }
-        
-  //       // Update other states
-  //       if (state.itemGroups) {
-  //         setItemGroups(state.itemGroups);
-  //       }
-  //       if (state.signatureColors) {
-  //         setSignatureColors(state.signatureColors);
-  //       }
-  //     };
-  //     socket.on(`retro-state:${retroId}`, handleRetroState);
-
-  //     return () => {
-  //       socket.off(`retro-state:${retroId}`, handleRetroState);
-  //     };
-  //   }
-  // }, [socket, isConnected, retroId]);
 
   // 2. Listen for typing events from socket
   useEffect(() => {

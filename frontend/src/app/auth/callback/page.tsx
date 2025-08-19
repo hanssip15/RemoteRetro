@@ -1,33 +1,32 @@
 import { useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../../../services/api'; // pastikan path ini benar
 
 const AuthCallbackPage = () => {
   const navigate = useNavigate();
-  const location = useLocation();
 
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const token = params.get('token');
-    const userData = params.get('userData');
+    const fetchUser = async () => {
+      try {
+        // Ambil user dari backend (cookie httpOnly otomatis ikut)
+        const user = await api.getCurrentUser();
 
-    if (token) {
-      let userInfo = null;
-      if (userData) {
-        try {
-          userInfo = JSON.parse(decodeURIComponent(userData));
-        } catch (error) {
-          console.error('Error parsing user data:', error);
+        if (user) {
+          // simpan user ke cache (api.ts) / context
+          api.setUser(user);
+
+          navigate("/dashboard");
+        } else {
+          navigate("/");
         }
+      } catch (err) {
+        console.error("Failed to fetch user:", err);
+        navigate("/");
       }
-      
-      api.setAuthToken(token, userInfo);
-      navigate('/dashboard');
-    } else {
-      console.error('No token found in URL');
-      navigate('/');
-    }
-  }, [location, navigate]);
+    };
+
+    fetchUser();
+  }, [navigate]);
 
   return (
     <div style={{ 
