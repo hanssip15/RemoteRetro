@@ -39,8 +39,8 @@ export class ParticipantService {
     
   }
 
-  async join(retroId: string, joinRetroDto: JoinRetroDto): Promise<Participant> {
-    const { userId, role } = joinRetroDto;
+  async join(retroId: string, userId:string, joinRetroDto: JoinRetroDto): Promise<Participant> {
+    const { role } = joinRetroDto;
 
     try {
       const retro = await this.retroRepository.findOne({ where: { id: retroId } });
@@ -50,14 +50,11 @@ export class ParticipantService {
       const existingParticipant = await this.participantRepository.findOne({
         where: { retroId, userId },
       });
-
       if (existingParticipant) return existingParticipant;
-
       const participant = this.participantRepository.create({ retroId, userId, role });
       const savedParticipant = await this.participantRepository.save(participant);
-
       this.participantGateway.broadcastParticipantUpdate(retroId);
-      
+
       return savedParticipant;
 
     } catch (error: any) {
@@ -66,7 +63,6 @@ export class ParticipantService {
         if (again) return again;
       }
       throw error;
-
     } 
   }
 

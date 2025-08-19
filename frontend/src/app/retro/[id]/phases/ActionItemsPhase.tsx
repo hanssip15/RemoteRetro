@@ -316,21 +316,19 @@ export default function ActionItemsPhase({
                   onConfirm={async () => {
                     try {
                       const bulkData = actionItems.map((item: any) => ({
-                        retro_id: retro.id,
                         action_item: item.task,
                         assign_to: item.assigneeName,
                       }));
                       if (bulkData.length > 0) {
-                        await api.createBulkActions(bulkData);
+                        await api.createBulkActions(retro.id, bulkData);
                       }
 
                       // Kirim email action items ke semua participant
                       const participantEmails = participants.map((p: any) => p.user.email).filter(Boolean);
                       
-                      await apiService.updateRetroStatus(retro.id, { status: "completed" })
+                      await apiService.updateRetroStatus(retro.id, "completed")
                       await apiService.updateRetroPhase(retro.id, 'final'); 
                       await api.sendActionItemsEmail({
-                        retroId: retro.id,
                         retroTitle: retro.title,
                         actionItems: actionItems.map((item: any) => ({
                           task: item.task,

@@ -53,7 +53,7 @@ import {
       const participant = await this.participantService.findParticipantByUserIdAndRetroId(userId, retroId);
       if (!participant) {
         const isFacilitator = await this.participantService.isFacilitator(retroId, userId);
-        await this.participantService.join(retroId, { userId, role: isFacilitator, isActive: true  });    
+        await this.participantService.join(retroId,userId,{ role: isFacilitator, isActive: true  });    
       } else {
         await this.participantService.activated(retroId, userId);
       }

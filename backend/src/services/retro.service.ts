@@ -4,8 +4,7 @@ import { Repository } from 'typeorm';
 import { Retro } from '../entities/retro.entity';
 import { RetroItem } from '../entities/retro-item.entity';
 import { Participant } from '../entities/participant.entity';
-import { CreateRetroDto } from '../dto/create-retro.dto';
-import { UpdateRetroDto } from '../dto/update-retro.dto';
+import { CreateRetroDto} from '../dto/retro.dto';
 import { ParticipantGateway } from '../gateways/participant.gateways';
 
 @Injectable()
@@ -83,18 +82,18 @@ export class RetroService {
     return savedRetro;
   }
 
-  async updateRetroStatus(id: string, updateRetroDto: UpdateRetroDto): Promise<Retro> {
+  async updateRetroStatus(id: string, status: string): Promise<Retro> {
     const retro = await this.retroRepository.findOne({ where: { id } });
     if (!retro) {
       throw new NotFoundException(`Retro with ID ${id} not found`);
     }
-    if (updateRetroDto.status == '' || updateRetroDto.status == null){
+    if (status == '' || status == null){
       throw new NotFoundException(`Status not found`);
     }
-    Object.assign(retro, updateRetroDto);
-    if (updateRetroDto.status === 'completed') {
+    retro.status = status;
+    if (status === 'completed') {
       this.participantGateway.broadcastRetroCompleted(id);
-    } else if (updateRetroDto.status === 'ongoing') {
+    } else if (status === 'ongoing') {
       this.participantGateway.broadcastRetroStarted(id);
     }
     
@@ -106,11 +105,6 @@ export class RetroService {
     if (!retro) {
       throw new NotFoundException(`Retro with ID ${id} not found`);
     }
-    if (phase == '' || phase == null) {
-      throw new BadRequestException(`Phase is empty`);
-    }else if (!['prime-directive', 'ideation', 'grouping', 'labelling', 'voting', 'final', 'ActionItems'].includes(phase)){
-      throw new BadRequestException(`'${phase}' is not correct value`);
-    } 
     retro.currentPhase = phase;
     this.participantGateway.broadcastPhaseChange(id, phase);
     

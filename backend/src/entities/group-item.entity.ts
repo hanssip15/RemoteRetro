@@ -4,7 +4,7 @@ import { RetroItem } from './retro-item.entity';
 import { GroupEntity } from './group.entity';
 
 @Entity('group_item')
-export class GroupItemEntity {
+export class GroupItem {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -30,7 +30,7 @@ export class GroupItemEntity {
   // item: RetroItem;
   
 
-  constructor(partial: Partial<GroupItemEntity>) {
+  constructor(partial: Partial<GroupItem>) {
     Object.assign(this, partial);
   }
 }

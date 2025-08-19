@@ -70,20 +70,16 @@ export interface CreateRetroData {
 export interface CreateItemData {
   category: string;
   content: string;
-  author?: string;
-  created_by?: string;
+  created_by: string;
 }
 
 export interface UpdateItemData {
   content: string;
-  category?: string;
-  author?: string;
-  userId?: string;
+  format_type: string;
 }
 
 export interface addParticipantData {
   role: boolean;
-  userId: string;
   isActive: boolean;
 }
 
@@ -125,7 +121,6 @@ export interface CreateGroup {
   votes: number;
 }
 export interface CreateActionData {
-  retro_id: string;
   action_item: string;
   assign_to: string;
 }
@@ -136,8 +131,6 @@ class ApiService {
   async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`;
     const token = sessionStorage.getItem('auth_token');
-    
-    
     const config: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
@@ -146,7 +139,6 @@ class ApiService {
       },
       ...options,
     };
-
     try {
       const response = await fetch(url, config);
       if (!response.ok) {
@@ -199,10 +191,10 @@ class ApiService {
   }
 
   // Mengubah status retro
-  async updateRetroStatus(retro_id: string, data: UpdateRetroData): Promise<Retro> {
+  async updateRetroStatus(retro_id: string, status: string): Promise<Retro> {
     return this.request<Retro>(`/retro/v1/retros/${retro_id}/update-status`, {
       method: 'PATCH',
-      body: JSON.stringify(data),
+      body: JSON.stringify({ status }),
     });
   }
 
@@ -210,7 +202,7 @@ class ApiService {
   async updateRetroPhase(retro_id: string, phase: string): Promise<Retro> {
     return this.request<Retro>(`/retro/v1/retros/${retro_id}/update-phase`, {
       method: 'PATCH',
-      body: JSON.stringify({ phase}),
+      body: JSON.stringify({ phase }),
     });
   }
 
@@ -221,8 +213,8 @@ class ApiService {
   }
 
   // Menambahkan participant pada suatu retro
-  async addParticipant(retro_id: string, data: addParticipantData): Promise<Participant> {
-    return this.request<Participant>(`/participant/v1/retros/${retro_id}/join`, {
+  async addParticipant(retro_id: string, user_id:string, data: addParticipantData): Promise<Participant> {
+    return this.request<Participant>(`/participant/v1/retros/${retro_id}/users/${user_id}/join`, {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -236,20 +228,13 @@ class ApiService {
   }
 
   // ================== GROUP ================== //
-  
   // Membuat group baru pada suatu retro
-  async createGroup(retro_id: string, data: CreateGroup): Promise<GroupsData> {
+  async createGroup(retro_id: string): Promise<GroupsData> {
     return this.request<GroupsData>(`/group/v1/retros/${retro_id}/create`, {
       method: 'POST',
-      body: JSON.stringify(data),
     });
   }
 
-  async createGroupItem(groupId: string, itemId: string): Promise<GroupsData> {
-    return this.request<GroupsData>(`/group-item/${groupId}/${itemId}`, {
-      method: 'POST',
-    });
-  }
   // Mendapatkan group dari suatu retro
   async getGroup(retro_id: string): Promise<GroupsData[]> {
     return this.request<GroupsData[]>(`/group/v1/retros/${retro_id}`);
@@ -269,74 +254,42 @@ class ApiService {
     });
   }
 
-  // ================== GROUP-ITEM ================== //
+  // ================== ITEM ================== //
   // Membuat item baru 
   async createItem(retro_id: string, data: CreateItemData): Promise<RetroItem> {
-    return this.request<RetroItem>(`/group-item/v1/retros/${retro_id}/create`, {
+    return this.request<RetroItem>(`/item/v1/retros/${retro_id}/create`, {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
+    // Memasukkan item kedalam grup
+  async insertItem(group_id: string, item_id: string): Promise<GroupsData> {
+    return this.request<GroupsData>(`/item/v1/groups/${group_id}/items/${item_id}/insert`, {
+      method: 'POST',
+    });
+  }
   // Mendapatkan items dari suatu retro
   async getItems(retro_id: string): Promise<RetroItem[]> {
-    return this.request<RetroItem[]>(`/group-item/v1/retros/${retro_id}`);
+    return this.request<RetroItem[]>(`/item/v1/retros/${retro_id}`);
   }
+
   // Mengubah item pada suatu retro
-  async updateItem(retro_id: string, itemId: string, data: UpdateItemData): Promise<RetroItem> {
-    return this.request<RetroItem>(`/group-item/v1/retros/${retro_id}/item/${itemId}/update-item`, {
+  async updateItem( itemId: string, data: UpdateItemData): Promise<RetroItem> {
+    return this.request<RetroItem>(`/item/v1/items/${itemId}/update-item`, {
       method: 'PATCH',
       body: JSON.stringify(data),
     });
   }
-
-  async deleteItem(retro_id: string, itemId: string, userId?: string): Promise<RetroItem> {
-    return this.request<RetroItem>(`/group-item/v1/retros/${retro_id}/item/${itemId}/delete-item`, {
+  async deleteItem(itemId: string): Promise<RetroItem> {
+    return this.request<RetroItem>(`/item/v1/items/${itemId}/delete-item`, {
       method: 'DELETE',
-      body: JSON.stringify({ userId }),
     });
   }
-  // async deleteItem(retroId: string, itemId: string, userId?: string): Promise<{ success: boolean; message: string; itemId: string }> {
-  //   if (userId) {
-  //     try {
-  //       // Try with body first
-  //       const options: RequestInit = {
-  //         method: 'DELETE',
-  //         body: JSON.stringify({ userId }),
-  //         headers: {
-  //           'Content-Type': 'application/json',
-  //         },
-  //       };
-        
-  //       return await this.request<{ success: boolean; message: string; itemId: string }>(`/retro/${retroId}/items/${itemId}`, options);
-  //     } catch (error) {
-  //       try {
-  //         // Fallback to query parameter if body fails
-  //         return await this.request<{ success: boolean; message: string; itemId: string }>(`/retro/${retroId}/items/${itemId}/delete?userId=${userId}`, {
-  //           method: 'DELETE',
-  //         });
-  //       } catch (secondError) {
-  //         // Final fallback to PUT endpoint
-  //         return this.request<{ success: boolean; message: string; itemId: string }>(`/retro/${retroId}/items/${itemId}/delete`, {
-  //           method: 'PUT',
-  //           body: JSON.stringify({ userId }),
-  //           headers: {
-  //             'Content-Type': 'application/json',
-  //           },
-  //         });
-  //       }
-  //     }
-  //   } else {
-  //     // Fallback without userId
-  //     return this.request<{ success: boolean; message: string; itemId: string }>(`/retro/${retroId}/items/${itemId}`, {
-  //       method: 'DELETE',
-  //     });
-  //   }
-  // }
 
   // ================== ACTION-ITEM ================== // 
   // Membuat action item lebih dari 1
-  async createBulkActions(data: CreateActionData[]): Promise<any> {
-    return this.request<any>('/action-item/v1/action-items/create-bulk', {
+  async createBulkActions(retro_id: string, data: CreateActionData[]): Promise<any> {
+    return this.request<any>(`/action-item/v1/retros/${retro_id}/create-bulk`, {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -347,7 +300,7 @@ class ApiService {
   }
   
   // ================== DASHBOARD ================== //
-  async getDashboardRetros(userId: string, page = 1, limit = 3): Promise<{
+  async getDashboardRetros(userId: string, page = 1): Promise<{
     retros: Retro[];
     pagination: {
       page: number;
@@ -358,7 +311,7 @@ class ApiService {
       hasPrev: boolean;
     };
   }> {
-    return this.request(`/dashboard/v1/retros?page=${page}&limit=${limit}&userId=${userId}`);
+    return this.request(`/dashboard/v1/users/${userId}/retros?page=${page}`);
   }
 
   async getDashboardStats(userId: string): Promise<{
@@ -370,13 +323,12 @@ class ApiService {
       completed: number;
     };
   }> {
-    return this.request(`/dashboard/v1/stats/${userId}`);
+    return this.request(`/dashboard/v1/users/${userId}/stats`);
   }
 
   // ================== EMAIL ================== //
   // Mengirim email kepada setiap partsipant
   async sendActionItemsEmail(data: {
-    retroId: string;
     retroTitle: string;
     actionItems: Array<{ task: string; assigneeName: string }>;
     participantEmails: string[];

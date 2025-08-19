@@ -128,8 +128,7 @@ export default function NewRetroPage() {
       }
       
 
-      await apiService.addParticipant(retro.id, { 
-        userId: user.id,
+      await apiService.addParticipant(retro.id,user.id, { 
         role: true,
         isActive: true
       });

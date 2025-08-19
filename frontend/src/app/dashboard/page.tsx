@@ -63,7 +63,7 @@ export default function DashboardPage() {
 
       
       const [retrosData, statsData] = await Promise.all([
-        await apiService.getDashboardRetros(userId,currentPage, 3),
+        await apiService.getDashboardRetros(userId,currentPage),
         await apiService.getDashboardStats(userId)  
       ])
   

@@ -261,9 +261,9 @@ export default function GroupingPhase({
                       // 1. Buat grup di backend untuk setiap item
                       for (const item of items) {
                         // Buat grup baru (label = 'unlabeled')
-                        const group = await apiService.createGroup(retro.id, { label: 'unlabeled', votes: 0 });
+                        const group = await apiService.createGroup(retro.id);
                         // Assign item ke grup
-                        await apiService.createGroupItem(group.id.toString(), item.id);
+                        await apiService.insertItem(group.id.toString(), item.id);
                         newGroups[item.id] = group.id.toString();
                       }
                       setItemGroups(newGroups); // update state global

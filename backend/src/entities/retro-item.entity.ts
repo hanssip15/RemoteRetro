@@ -1,7 +1,7 @@
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn, CreateDateColumn, OneToMany } from 'typeorm';
 import { User } from './user.entity';
 import { Retro } from './retro.entity';
-import { GroupItemEntity } from './group-item.entity';
+import { GroupItem } from './group-item.entity';
 
 export enum RetroFormatTypes {
   format_1 = 'format_1',
@@ -37,7 +37,7 @@ export class RetroItem {
   @Column({ default: false })
   is_edited: boolean;
 
-  @OneToMany(() => GroupItemEntity, (groupItem) => groupItem.item)
-  group_items: GroupItemEntity[];
+  @OneToMany(() => GroupItem, (groupItem) => groupItem.item)
+  group_items: GroupItem[];
 }
 

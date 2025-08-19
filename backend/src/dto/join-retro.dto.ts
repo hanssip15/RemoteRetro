@@ -1,14 +1,14 @@
+import { ApiProperty } from '@nestjs/swagger';
 import { IsString, IsNotEmpty, IsBoolean } from 'class-validator';
 
 export class JoinRetroDto {
-  @IsString()
-  @IsNotEmpty()
-  userId: string;
 
+  @ApiProperty({example:"false", description: "User role"})
   @IsBoolean()
   @IsNotEmpty()
   role: boolean;
-  
+
+  @ApiProperty({example:"true", description: "Is active ?"})
   @IsBoolean()
   @IsNotEmpty()
   isActive: boolean;
