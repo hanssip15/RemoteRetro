@@ -3,7 +3,7 @@ import { GroupService } from '../services/group.service';
 // import { Repository } from 'typeorm';
 // import { InjectRepository } from '@nestjs/typeorm';
 // import { GroupEntity } from 'src/entities/group.entity';
-import { ApiBody, ApiOperation, ApiProperty } from '@nestjs/swagger';
+import { ApiBody, ApiOperation, ApiProperty, ApiTags } from '@nestjs/swagger';
 import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
 
 class UpdateLabel {
@@ -21,6 +21,7 @@ class UpdateVotes {
   votes: number;
 }
 
+@ApiTags("Group")
 @Controller('group')
 export class GroupController {
   constructor(

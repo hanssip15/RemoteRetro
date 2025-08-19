@@ -2,8 +2,9 @@ import { Controller, Get, Query, ParseIntPipe, Param } from '@nestjs/common';
 import { RetroService } from '../services/retro.service';
 import { ParticipantService } from '../services/participant.service';
 import { RetroItemsService } from '../services/item.service';
-import { ApiOperation } from '@nestjs/swagger';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
 
+@ApiTags("Dashboard")
 @Controller('dashboard')
 export class DashboardController {
   constructor(

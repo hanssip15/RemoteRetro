@@ -5,7 +5,7 @@ import { Request } from 'express';
 import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Table } from 'typeorm';
 
-@ApiTags('Item')
+@ApiTags("Item")
 @Controller('item')
 export class RetroItemsController {
   constructor(private readonly retroItemsService: RetroItemsService) {}

@@ -1,10 +1,10 @@
 import { Controller, Get, Post, Patch, Delete, Body, Param, ParseIntPipe, HttpStatus, HttpCode, Req, UseGuards, UnauthorizedException } from '@nestjs/common';
 import { RetroService } from '../services/retro.service';
 import { CreateRetroDto, UpdatePhaseDto, UpdateStatusDto } from '../dto/retro.dto';
-import { ApiBody, ApiOperation } from '@nestjs/swagger';
+import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 
-
+@ApiTags("Retros")
 @Controller('retro')  
 export class RetroController {
   constructor(private readonly retroService: RetroService) {}
