@@ -1,7 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { apiReference } from '@scalar/nestjs-api-reference';
 import { AppModule } from './app.module';
 import { IoAdapter } from '@nestjs/platform-socket.io';
 import * as dotenv from 'dotenv';
@@ -49,24 +48,32 @@ async function bootstrap() {
 
   const document = SwaggerModule.createDocument(app, config);
 
-  // Optional Swagger UI setup (akses di /swagger)
-  SwaggerModule.setup('swagger', app, document);
+ if (document.tags) {
+    document.tags = document.tags
+      .map(tag => ({
+        ...tag,
+        // simpan urutan dengan parsing angka di depan
+        order: parseInt(tag.name.split('_')[0]) || 999,
+      }))
+      .sort((a, b) => a.order - b.order)
+      .map(({ order, ...tag }) => tag); // hapus property order sebelum return
+  }
 
-  // Scalar documentation (akses di /reference)
-  app.use(
-    '/reference',
-    apiReference({
-      spec: {
-        content: document,
-      },
-    }),
-  );
+  SwaggerModule.setup('api-docs', app, document, {
+    swaggerOptions: {
+         tagsSorter: (a: string, b: string) => {
+      const order = ['Auth','Dashboard','Retros','Participant','Item','Group','Action','Email',
+      ];
+      return order.indexOf(a) - order.indexOf(b);
+    },
+    },
+  });
 
   // Start server
   const port = process.env.PORT || 3001;
   const url = process.env.BASE_URL || `http://localhost:${port}`;
   await app.listen(port);
   console.log(`Application is running on: ${url}`);
-  console.log(`Scalar API Reference available at: ${url}/reference`);
+  console.log(`Swagger API Reference available at: ${url}/api-docs`);
 }
 bootstrap();

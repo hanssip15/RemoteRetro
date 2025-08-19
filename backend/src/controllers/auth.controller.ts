@@ -3,30 +3,24 @@ import { AuthGuard } from '@nestjs/passport';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../services/user.service';
 import { Request, Response } from 'express';
+import { ApiTags } from '@nestjs/swagger';
 
-
+@ApiTags("Auth")
 @Controller('auth')
 export class AuthController {
   constructor(private jwtService: JwtService, private usersService: UsersService) {}
-
   @Get('google')
   @UseGuards(AuthGuard('google'))
   async googleAuth() {
-    // redirects to Google
   }
-
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
   async googleCallback(@Req() req: Request, @Res() res: Response) {
     const { name, email, imageUrl } = req.user as { id: string; name: string; email: string; imageUrl: string };
-    
     let user = await this.usersService.findByEmail(email);
-
     if (!user) {
-      // Create new user if not found (id will be auto-generated)
-      // Use fallback values if Google doesn't provide them
       const userData = { 
-        name: name || 'Unknown User', 
+        name: name , 
         email, 
         imageUrl: imageUrl || null 
       };
@@ -43,12 +37,6 @@ export class AuthController {
       imageUrl: user!.imageUrl || null 
     };
     const token = this.jwtService.sign(payload);
-    const userData = {
-      id: user!.id,
-      email: user!.email,
-      name: user!.name,
-      imageUrl: user!.imageUrl || null
-    };
     const frontendUrl = process.env.FRONTEND_URL; // Use environment variable or default to localhost
     res.cookie('token', token, {
       httpOnly: false,
@@ -58,8 +46,6 @@ export class AuthController {
     });
     return res.redirect(`${frontendUrl}/auth/callback?token=${token}`);
   }
-  
-
   @Get('me')
   @UseGuards(AuthGuard('jwt'))
   async getCurrentUser(@Req() req: Request) {
@@ -73,6 +59,7 @@ export class AuthController {
       imageUrl: user?.imageUrl
     };
   }
+
   @Get('logout')
   logout(@Res() res: Response) {
     res.clearCookie('token', {

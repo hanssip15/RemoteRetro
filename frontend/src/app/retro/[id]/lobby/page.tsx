@@ -48,12 +48,12 @@ export default function RetroLobbyPage({ socket, retroId, participants, setParti
         window.location.reload();
         setIsUserJoined(true);
         setLoading(false);
-      }, 500); // 3 detik timeout
-
+      }, 500); 
       return () => clearTimeout(timeout);
     }
   }, [user, isUserJoined]);
 
+  // Fetch user data
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -63,7 +63,6 @@ export default function RetroLobbyPage({ socket, retroId, participants, setParti
             navigate('/');
           return;
           }
-  
           setUser(userData);
       } catch (err) {
         console.error(err);
@@ -96,8 +95,6 @@ export default function RetroLobbyPage({ socket, retroId, participants, setParti
   useEffect(() => {
     if (user && participants && participants.length > 0) {
       const currentUserParticipant = participants.find((p) => p.user.id === user.id);
-
-      
       if (currentUserParticipant && !isUserJoined) {
         setIsUserJoined(true);
         setLoading(false);
@@ -112,7 +109,6 @@ export default function RetroLobbyPage({ socket, retroId, participants, setParti
       navigate('/')
       return
     }
-
     if (!retroId) return;    
   }, [retroId]);
 
@@ -141,7 +137,6 @@ export default function RetroLobbyPage({ socket, retroId, participants, setParti
     try {
       setIsPromoting(true);
       await apiService.updateParticipantRole(retroId, selectedParticipant.id);
-      await apiService.getRetro(retroId); // Refresh participants after role change
       setParticipants(prev => prev.map(p => p.id === selectedParticipant.id ? { ...p, role: true } : p));
       setShowRoleModal(false);
       setSelectedParticipant(null);

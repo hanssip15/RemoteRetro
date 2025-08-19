@@ -1,8 +1,9 @@
 import { Controller, Get, Post, Body, Param, HttpStatus, HttpCode, Patch } from '@nestjs/common';
 import { ParticipantService } from '../services/participant.service';
 import { JoinRetroDto } from '../dto/join-retro.dto';
-import { ApiBody, ApiOperation } from '@nestjs/swagger';
+import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 
+@ApiTags("Participant")
 @Controller('participant')
 export class ParticipantController {
   constructor(private readonly participantService: ParticipantService) {}

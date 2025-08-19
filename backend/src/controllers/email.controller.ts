@@ -1,6 +1,6 @@
 import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
 import { EmailService, EmailData } from '../services/email.service';
-import { ApiOperation, ApiProperty } from '@nestjs/swagger';
+import { ApiOperation, ApiProperty, ApiTags } from '@nestjs/swagger';
 import { IsNotEmpty, IsString, IsArray,ArrayMinSize,ValidateNested,IsEmail} from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -35,6 +35,7 @@ export class SendActionItemsEmailDto {
   @IsEmail({}, { each: true })
   participantEmails: string[];
 }
+@ApiTags("Email")
 @Controller('email')
 export class EmailController {
   constructor(private readonly emailService: EmailService) {}

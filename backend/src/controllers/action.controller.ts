@@ -1,8 +1,9 @@
 import { Controller, Post, Body, Get, Param } from '@nestjs/common';
 import { ActionService } from '../services/action.service';
 import { CreateActionDto } from '../dto/create-action.dto';
-import { ApiBody, ApiOperation } from '@nestjs/swagger';
+import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 
+@ApiTags("Action")
 @Controller('action-item')
 export class ActionController {
   constructor(private readonly actionService: ActionService) {}
