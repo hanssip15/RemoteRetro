@@ -443,7 +443,6 @@ function computeGroupsAndColors(
         }
       }
       
-      // Compute grouping after a short delay to allow DOM to update
       setTimeout(() => {
         const { itemToGroup, newSignatureColors, newUsedColors } = computeGroupsAndColors(
           items,
@@ -507,7 +506,6 @@ function computeGroupsAndColors(
       }
     }
   }, [user?.id]);
-
   // Handler untuk menerima grouping update dari partisipan lain
   const handleGroupingUpdate = useCallback((data: { 
     itemGroups: { [itemId: string]: string }; 
@@ -537,7 +535,6 @@ function computeGroupsAndColors(
 
   
 // ! ------------------------ Change Phase ------------------------ //
-  // TODO: Handle phase change
   useEffect(() => {
       if (retro?.currentPhase) {
         let mappedPhase = retro.currentPhase;
@@ -549,42 +546,21 @@ function computeGroupsAndColors(
       }
     }, [retro?.currentPhase, retro?.status]);
 
-
-  // Labelling Phase
   useEffect(() => {
-    if (phase === 'labelling') {
-      apiService.getGroup(retroId).then((groups) => {
+  const phases = ['labelling', 'voting', 'ActionItems'];
+
+  if (phases.includes(phase)) {
+    apiService.getGroup(retroId)
+      .then((groups) => {
         setLabellingItems(groups);
-      }).catch((error) => {
-        console.error('❌ Error fetching labelling items:', error);
+      })
+      .catch((error) => {
+        console.error(`❌ Error fetching labelling items for phase ${phase}:`, error);
         setLabellingItems([]);
       });
-    }
-  }, [phase, retroId, items]);
+  }
+}, [phase, retroId, items]);
 
-  // Voting Phase
-  useEffect(() => {
-    if (phase === 'voting') {
-      apiService.getGroup(retroId).then((groups) => {
-        setLabellingItems(groups);
-      }).catch((error) => {
-        console.error('❌ Error fetching labelling items:', error);
-        setLabellingItems([]);
-      });
-    }
-  }, [phase, retroId, items]);
-
-  // Action Items Phase
-  useEffect(() => {
-    if (phase === 'ActionItems') {
-      apiService.getGroup(retroId).then((groups) => {
-        setLabellingItems(groups);
-      }).catch((error) => {
-        console.error('❌ Error fetching labelling items for ActionItems:', error);
-        setLabellingItems([]);
-      });
-    }
-  }, [phase, retroId]);
 
   // Final Phase
   useEffect(() => {
