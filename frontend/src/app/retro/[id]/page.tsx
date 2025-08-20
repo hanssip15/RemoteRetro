@@ -159,7 +159,17 @@ export default function RetroPage() {
   fetchUser();
 }, []);
 
+const handleLogout = useCallback(async () => {
+    try {
+      await api.removeAuthToken(); // Panggil backend untuk logout
+    } catch (error) {
+      console.error('Failed to logout:', error);
+    }
+    window.location.href = '/';
+  }, []);
 
+  const isCurrentFacilitator = participants.find(x => x.role)?.user.id === user?.id;
+  const currentUserParticipant = participants.find(x => x.user.id === user?.id);
 // !------------------------ Participant ------------------------ //
 
 useEffect(() => {
@@ -187,6 +197,38 @@ useEffect(() => {
 // Mendapatkan peran user 
 const currentUserRole = participants.find(p => p.user.id === user?.id)?.role || false;
 
+
+// !------------------------ Retro ------------------------ //
+  const fetchRetroData = useCallback(async () => {
+    try {
+      const data = await apiService.getRetro(retroId)
+      if (data.retro.format === "happy_sad_confused") {
+        setFormat(["format_1", "format_2", "format_3"])
+      } else {
+        setFormat(["format_1", "format_2", "format_3"])
+      }
+      if (!data.retro) {
+        throw new Error("No retro data in response")
+      }
+      setRetro(data.retro)
+      setParticipants(data.participants.filter((p: any) => p.isActive === true))
+      if (user) {
+        const currentUserParticipant = data.participants.find((p: any) => p.user.id === user.id);
+        if (currentUserParticipant) {
+          setIsUserJoined(true);
+          setLoading(false);
+        } else {
+          setIsUserJoined(false);
+          setLoading(true);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching retro data:", error)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+      setError(`Failed to fetch retro data: ${errorMessage}`)
+      setLoading(false)
+    }
+  }, [retroId, user])
 
 // !------------------------ Grouping ------------------------ //
 function computeGroupsAndColors(
@@ -323,7 +365,6 @@ function computeGroupsAndColors(
   }, [convertGroupsToDatabaseFormat, retroId]);
 
 
-
   // Fungsi untuk mendapatkan data grup yang sudah dikelompokkan
   const getGroupedItems = useCallback((): GroupedItem[] => {
     const groupsMap = new Map<string, { items: RetroItem[], color: string }>();
@@ -437,169 +478,6 @@ function computeGroupsAndColors(
     }, 100);
   };
 
-  
-
-
-  
-// ! ------------------------ Change Phase ------------------------ //
-  useEffect(() => {
-    if (retro?.currentPhase) {
-      let mappedPhase = retro.currentPhase;
-      if (retro.currentPhase === 'submit') {
-        mappedPhase = 'ideation';
-      }
-      setPhase(mappedPhase as typeof phase);
-    } else if (retro?.status === 'draft') {
-      setPhase('lobby');
-    } else {
-      setPhase('prime-directive');
-    }
-  }, [retro?.currentPhase, retro?.status]);
-
-  useEffect(() => {
-    if (phase === 'labelling') {
-      apiService.getGroup(retroId).then((groups) => {
-        setLabellingItems(groups);
-      }).catch((error) => {
-        console.error('❌ Error fetching labelling items:', error);
-        setLabellingItems([]);
-      });
-    }
-  }, [phase, retroId, items]);
-
-  useEffect(() => {
-    if (phase === 'voting') {
-      apiService.getGroup(retroId).then((groups) => {
-        setLabellingItems(groups);
-      }).catch((error) => {
-        console.error('❌ Error fetching labelling items:', error);
-        setLabellingItems([]);
-      });
-    }
-  }, [phase, retroId, items]);
-
-  // Add useEffect for ActionItems phase to ensure labellingItems are loaded
-  useEffect(() => {
-    if (phase === 'ActionItems') {
-      apiService.getGroup(retroId).then((groups) => {
-        setLabellingItems(groups);
-      }).catch((error) => {
-        console.error('❌ Error fetching labelling items for ActionItems:', error);
-        setLabellingItems([]);
-      });
-    }
-  }, [phase, retroId]);
-
-  useEffect(() => {
-    if (phase === 'final') {
-      // Add a small delay to ensure phase change is complete
-      const loadFinalPhaseData = async () => {
-        try {
-          setIsLoadingFromDatabase(true);
-          
-          // Load labelling items
-          const groups = await apiService.getGroup(retroId);
-          setLabellingItems(groups);
-          
-          // Load action items
-          const final = await apiService.getAction(retroId);
-          console.log('🔍 Raw action items from API:', final);
-          
-          // Transform database format to frontend format
-          const transformedActionItems = final.map((item: any) => ({
-            id: item.id,
-            task: item.action_item,
-            assigneeName: item.assign_to,
-            assigneeId: item.assign_to, // Using assign_to as assigneeId for consistency
-            createdBy: item.createdBy,
-            createdAt: item.createdAt,
-            edited: item.edited || false
-          }));
-          console.log('🔍 Transformed action items:', transformedActionItems);
-          setActionItems(transformedActionItems);
-          
-          console.log('✅ Action items loaded for final phase');
-          console.log('actionItems length:', transformedActionItems.length);
-        } catch (error) {
-          console.error('❌ Error loading final phase data:', error);
-          setLabellingItems([]);
-          setActionItems([]);
-        } finally {
-          setIsLoadingFromDatabase(false);
-        }
-      };
-      
-      // Add a small delay to ensure phase change is complete
-      setTimeout(loadFinalPhaseData, 100);
-    }
-  }, [phase, retroId]);
-  
-// ! ------------------------ Idea Generation ------------------------ //
-
-
-  // Memoize WebSocket handlers to prevent unnecessary re-renders
-  const handleItemAdded = useCallback((newItem: RetroItem) => {
-    
-    setItems(prev => {
-      // Check if item already exists to avoid duplicates
-      const exists = prev.find(item => item.id === newItem.id);
-      if (exists) {
-        return prev;
-      }
-      
-      // Check if we have an optimistic item with same content
-      const optimisticItem = prev.find(item => 
-        item.id.startsWith('temp-') && 
-        item.content === newItem.content &&
-        item.category === newItem.category
-      );
-      
-      if (optimisticItem) {
-        return prev.map(item => item.id === optimisticItem.id ? newItem : item);
-      }
-      
-      const newItems = [...prev, newItem];
-      return newItems;
-    });
-  }, [items.length]);
-
-  
-
-  const handleItemUpdated = useCallback((updatedItem: RetroItem) => {
-    setItems(prev => prev.map(item => {
-      if (item.id === updatedItem.id) {
-        // Check if we have an optimistic update for this item
-        const optimisticUpdate = optimisticUpdates[updatedItem.id];
-        if (optimisticUpdate) {
-          // We have an optimistic update, ignore WebSocket update
-          return item;
-        } else {
-          // No optimistic update, use WebSocket data
-          return updatedItem;
-        }
-      }
-      return item;
-    }));
-  }, [optimisticUpdates]);
-
-  const handleItemDeleted = useCallback((itemId: string) => {
-    setItems(prev => prev.filter(item => item.id !== itemId));
-  }, []);
-
-  const handleItemsUpdate = useCallback((newItems: RetroItem[]) => {
-    setItems(newItems);
-  }, []);
-
-  // const handleParticipantUpdate = useCallback(() => {
-  //   // Refresh participants data
-  //   fetchRetroData();
-  // }, []);
-
-  const handlePhaseChange = useCallback((newPhase: 'prime-directive' | 'ideation' | 'grouping' | 'labelling' | 'voting' | 'final' | 'ActionItems') => {
-    setPhase(newPhase);
-    // Don't set isPhaseChanging to false here as it's handled by the button
-  }, []);
-
   // Handler untuk menerima posisi item dari partisipan lain
   const handleItemPositionUpdate = useCallback((data: { 
     itemId?: string; 
@@ -657,206 +535,102 @@ function computeGroupsAndColors(
     }
   }, [user?.id]);
 
-  // Handler untuk menerima label update dari facilitator lain
-  const handleLabelUpdate = useCallback((data: { 
-    groupId: number; 
-    label: string; 
-    userId: string 
-  }) => {
-    // Hanya update jika bukan dari user saat ini
-    if (data.userId !== user?.id) {
-      setLabellingItems(prev => 
-        prev.map(group => 
-          group.id === data.groupId 
-            ? { ...group, label: data.label }
-            : group
-        )
-      );
+
+  
+// ! ------------------------ Change Phase ------------------------ //
+  // TODO: Handle phase change
+  useEffect(() => {
+      if (retro?.currentPhase) {
+        let mappedPhase = retro.currentPhase;
+        if (retro.currentPhase === 'submit') {
+          mappedPhase = 'ideation';
+        }
+        setPhase(mappedPhase as typeof phase);
+      } else if (retro?.status === 'draft') {
+        setPhase('lobby');
+      } else {
+        setPhase('prime-directive');
+      }
+    }, [retro?.currentPhase, retro?.status]);
+
+
+  // Labelling Phase
+  useEffect(() => {
+    if (phase === 'labelling') {
+      apiService.getGroup(retroId).then((groups) => {
+        setLabellingItems(groups);
+      }).catch((error) => {
+        console.error('❌ Error fetching labelling items:', error);
+        setLabellingItems([]);
+      });
     }
-  }, [user?.id]);
+  }, [phase, retroId, items]);
 
-  // Handler untuk menerima vote update dari participant lain
-  const handleVoteUpdate = useCallback((data: { 
-    groupId: number; 
-    votes: number; 
-    userId: string;
-    userVotes: { [groupId: number]: number };
-  }) => {
-    // Hanya update jika bukan dari user saat ini
-    if (data.userId !== user?.id) { 
-      setLabellingItems(prev => 
-        prev.map(group => 
-          group.id === data.groupId 
-            ? { ...group, votes: data.votes }
-            : group
-        )
-      );
+  // Voting Phase
+  useEffect(() => {
+    if (phase === 'voting') {
+      apiService.getGroup(retroId).then((groups) => {
+        setLabellingItems(groups);
+      }).catch((error) => {
+        console.error('❌ Error fetching labelling items:', error);
+        setLabellingItems([]);
+      });
     }
-  }, [user?.id]);
+  }, [phase, retroId, items]);
 
+  // Action Items Phase
+  useEffect(() => {
+    if (phase === 'ActionItems') {
+      apiService.getGroup(retroId).then((groups) => {
+        setLabellingItems(groups);
+      }).catch((error) => {
+        console.error('❌ Error fetching labelling items for ActionItems:', error);
+        setLabellingItems([]);
+      });
+    }
+  }, [phase, retroId]);
 
-  // Handler untuk menerima vote submission dari facilitator
-  const handleVoteSubmission = useCallback((data: { 
-    facilitatorId: string; 
-    groupVotes: { [groupId: number]: number };
-  }) => {
-    // Update semua votes sesuai dengan yang disimpan facilitator
-    setLabellingItems(prev => 
-      prev.map(group => 
-        group.id && data.groupVotes[group.id] !== undefined
-          ? { ...group, votes: data.groupVotes[group.id] }
-          : group
-      )
-    );
+  // Final Phase
+  useEffect(() => {
+    if (phase === 'final') {
+      const loadFinalPhaseData = async () => {
+        try {
+          setIsLoadingFromDatabase(true);
+          
+          // Load labelling items
+          const groups = await apiService.getGroup(retroId);
+          setLabellingItems(groups);
+          const final = await apiService.getAction(retroId);
+          const transformedActionItems = final.map((item: any) => ({
+            id: item.id,
+            task: item.action_item,
+            assigneeName: item.assign_to,
+            assigneeId: item.assign_to, // Using assign_to as assigneeId for consistency
+            createdBy: item.createdBy,
+            createdAt: item.createdAt,
+            edited: item.edited || false
+          }));
+          setActionItems(transformedActionItems);          
+        } catch (error) {
+          console.error('❌ Error loading final phase data:', error);
+          setLabellingItems([]);
+          setActionItems([]);
+        } finally {
+          setIsLoadingFromDatabase(false);
+        }
+      };
+      
+      // Add a small delay to ensure phase change is complete
+      setTimeout(loadFinalPhaseData, 100);
+    }
+  }, [phase, retroId]);
+
+  // Handler Change Phase
+  const handlePhaseChange = useCallback((newPhase: 'prime-directive' | 'ideation' | 'grouping' | 'labelling' | 'voting' | 'final' | 'ActionItems') => {
+    setPhase(newPhase);
   }, []);
 
-  // Handler untuk menerima action items update dari WebSocket
-  const handleActionItemsUpdate = useCallback((actionItems: any[]) => {
-    // Don't update action items from WebSocket during final phase
-    // or when loading from database
-    if (phase !== 'final' && !isLoadingFromDatabase) {
-      setActionItems(actionItems);
-    }
-  }, [phase, isLoadingFromDatabase]);
-
-  // Handler untuk menerima retro state yang berisi action items
-  const handleRetroState = useCallback((state: any) => {
-    // Don't update action items from WebSocket during final phase
-    // or when loading from database
-    if (state.actionItems && phase !== 'final' && !isLoadingFromDatabase) {
-      setActionItems(state.actionItems);
-    }
-  }, [phase, isLoadingFromDatabase]);
-
-  // Initialize WebSocket connection using the stable hook
-  const { isConnected, socket } = useRetroSocket({
-    retroId,
-    userId: userId!,
-    onItemAdded: handleItemAdded,
-    onItemUpdated: handleItemUpdated,
-    onItemDeleted: handleItemDeleted,
-    onItemsUpdate: handleItemsUpdate,
-    onParticipantUpdate: async () => {
-      // Fetch ulang data partisipan dari backend dan update state di RetroPage
-      try {
-        const data = await apiService.getRetro(retroId);
-        const activeParticipants = data.participants.filter((p: any) => p.isActive === true);
-        setParticipants(activeParticipants);
-      } catch (e) {
-        console.error('❌ Error updating participants:', e);
-      }
-    },
-    onPhaseChange: handlePhaseChange,
-    onItemPositionUpdate: handleItemPositionUpdate,
-    onGroupingUpdate: handleGroupingUpdate,
-    onLabelUpdate: handleLabelUpdate,
-    onVoteUpdate: handleVoteUpdate,
-    onVoteSubmission: handleVoteSubmission,
-    onActionItemsUpdate: handleActionItemsUpdate,
-    onRetroState: handleRetroState,
-  });
-
-  // Debounced grouping update function - now with access to socket and isConnected
-  const debouncedGroupingUpdate = useCallback((itemToGroup: { [id: string]: string }, newSignatureColors: { [signature: string]: string }, newUsedColors: string[]) => {
-    // Cancel previous timeout
-    if (groupingUpdateTimeoutRef.current) {
-      clearTimeout(groupingUpdateTimeoutRef.current);
-    }
-
-    // Store pending update
-    pendingGroupingUpdateRef.current = {
-      itemToGroup,
-      newSignatureColors,
-      newUsedColors
-    };
-
-    // Set new timeout
-    groupingUpdateTimeoutRef.current = setTimeout(() => {
-      if (pendingGroupingUpdateRef.current) {
-        const { itemToGroup, newSignatureColors, newUsedColors } = pendingGroupingUpdateRef.current;
-        
-        // State locking mechanism
-        if (isUpdatingGroupsRef.current) {
-          // If already updating, queue this update
-          pendingStateUpdatesRef.current.push({
-            itemToGroup,
-            newSignatureColors,
-            newUsedColors
-          });
-          return;
-        }
-
-        // Lock state updates
-        isUpdatingGroupsRef.current = true;
-        
-        // Update local state
-        setItemGroups(itemToGroup);
-        setSignatureColors(newSignatureColors);
-        setUsedColors(newUsedColors);
-        
-        // Broadcast grouping update to other users with timestamp and version
-        if (socket && isConnected && user) {
-          const currentTime = Date.now();
-          const currentVersion = groupingUpdateVersionRef.current + 1;
-          groupingUpdateVersionRef.current = currentVersion;
-          
-          socket.emit('grouping-update', {
-            retroId: retroId,
-            itemGroups: itemToGroup,
-            signatureColors: newSignatureColors,
-            userId: user.id,
-            timestamp: new Date(currentTime).toISOString(),
-            version: currentVersion
-          });
-        }
-        
-        // Clear pending update
-        pendingGroupingUpdateRef.current = null;
-        
-        // Unlock after a short delay to allow state to settle
-        setTimeout(() => {
-          isUpdatingGroupsRef.current = false;
-          
-          // Process any queued updates
-          if (pendingStateUpdatesRef.current.length > 0) {
-            const nextUpdate = pendingStateUpdatesRef.current.shift();
-            if (nextUpdate) {
-              debouncedGroupingUpdate(nextUpdate.itemToGroup, nextUpdate.newSignatureColors, nextUpdate.newUsedColors);
-            }
-          }
-        }, 50);
-      }
-    }, 150); // Increased delay for better stability
-  }, [socket, isConnected, user, retroId]);
-
-
-  useEffect(() => {
-  if (socket && retroId && user) {
-    // Minta data userVotes saat halaman di-load atau socket connect
-    socket.emit('request-user-votes', {
-      retroId,
-      userId: user.id
-    });
-
-    // Terima hasil userVotes
-    socket.on(`user-votes:${retroId}:${user.id}`, (data: { userVotes: { [groupId: number]: number } }) => {
-      if (data && data.userVotes) {
-        setUserVotes(data.userVotes);
-      }
-    });
-
-    // Cleanup listener saat komponen unmount
-    return () => {
-      socket.off(`user-votes:${retroId}:${user.id}`);
-    };
-  }
-}, [socket, retroId, user]);
-
-
- 
-
-  // Fungsi untuk mengirim phase change ke semua partisipan
-  const broadcastPhaseChange = useCallback(async (newPhase: 'prime-directive' | 'ideation' | 'grouping' | 'labelling' | 'voting' | 'final' | 'ActionItems') => {
+    const broadcastPhaseChange = useCallback(async (newPhase: 'prime-directive' | 'ideation' | 'grouping' | 'labelling' | 'voting' | 'final' | 'ActionItems') => {
     if (!user?.id) {
       console.error('❌ No user ID available for phase change');
       return;
@@ -877,110 +651,9 @@ function computeGroupsAndColors(
     }
   }, [retroId, user?.id, saveGroupData]);
 
-  const fetchRetroData = useCallback(async () => {
-    try {
-      const data = await apiService.getRetro(retroId)
-      if (data.retro.format === "happy_sad_confused") {
-        setFormat(["format_1", "format_2", "format_3"])
-      } else {
-        setFormat(["format_1", "format_2", "format_3"])
-      }
-      if (!data.retro) {
-        throw new Error("No retro data in response")
-      }
-      setRetro(data.retro)
-      setParticipants(data.participants.filter((p: any) => p.isActive === true))
-      if (user) {
-        const currentUserParticipant = data.participants.find((p: any) => p.user.id === user.id);
-        if (currentUserParticipant) {
-          setIsUserJoined(true);
-          setLoading(false);
-        } else {
-          // Tetap loading sampai user berhasil join
-          setIsUserJoined(false);
-          setLoading(true);
-        }
-      }
-    } catch (error) {
-      console.error("Error fetching retro data:", error)
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
-      setError(`Failed to fetch retro data: ${errorMessage}`)
-      setLoading(false)
-    }
-  }, [retroId, user])
+  // ! ------------------------ Idea Generation ------------------------ //
 
-  
-  const fetchItemsAndState = useCallback(async () => {
-    try {
-      const itemsData = await apiService.getItems(retroId);
-      setItems(itemsData);
-  
-      if (socket && isConnected && user) {
-        // Emit request untuk semua data awal
-        socket.emit('request-retro-state', { retroId });
-  
-        const handleRetroState = (state: {
-          itemPositions?: { [key: string]: { x: number; y: number } },
-          itemGroups?: any,
-          signatureColors?: any
-        }) => {
-          const fromBackend = state.itemPositions || {};
-  
-          // Buat posisi berdasarkan urutan itemsData
-          const mergedPositions: { [key: string]: { x: number; y: number } } = {};
-          itemsData.forEach((item, index) => {
-            mergedPositions[item.id] = fromBackend[item.id] || {
-              x: 200 + (index % 3) * 220,
-              y: 100 + Math.floor(index / 3) * 70
-            };
-          });
-  
-          // Set posisi yang sudah tersinkron dengan urutan itemsData
-          setItemPositions(mergedPositions);
-  
-          if (state.itemGroups) {
-            setItemGroups(state.itemGroups);
-          }
-  
-          if (state.signatureColors) {
-            setSignatureColors(state.signatureColors);
-          }
-  
-          // Broadcast posisi jika backend belum kirim
-          if (Object.keys(fromBackend).length === 0) {
-            socket.emit('item-position-update', {
-              retroId,
-              itemPositions: mergedPositions,
-              userId: user.id
-            });
-          }
-        };
-  
-        socket.on(`retro-state:${retroId}`, handleRetroState);
-  
-        return () => {
-          socket.off(`retro-state:${retroId}`, handleRetroState);
-        };
-      } else {
-        // Fallback: jika socket belum ready, set default posisi
-        const fallbackPositions: { [key: string]: { x: number; y: number } } = {};
-        itemsData.forEach((item, index) => {
-          fallbackPositions[item.id] = {
-            x: 200 + (index % 3) * 220,
-            y: 100 + Math.floor(index / 3) * 70
-          };
-        });
-        setItemPositions(fallbackPositions);
-      }
-    } catch (error) {
-      console.error("Error fetching items and state:", error);
-    }
-  }, [retroId, socket, isConnected, user]);
-  
-
-
-  
-  const handleAdd = useCallback(async () => {
+const handleAdd = useCallback(async () => {
     if (!inputText.trim() || !user) return;
 
     setIsAddingItem(true)
@@ -1094,7 +767,61 @@ function computeGroupsAndColors(
     }
   }, [handleAdd, isAddingItem]);
 
-  const getCategoryDisplayName = useCallback((category: string) => {
+ // Handler Item Added
+const handleItemAdded = useCallback((newItem: RetroItem) => {
+    
+    setItems(prev => {
+      // Check if item already exists to avoid duplicates
+      const exists = prev.find(item => item.id === newItem.id);
+      if (exists) {
+        return prev;
+      }
+      
+      // Check if we have an optimistic item with same content
+      const optimisticItem = prev.find(item => 
+        item.id.startsWith('temp-') && 
+        item.content === newItem.content &&
+        item.category === newItem.category
+      );
+      
+      if (optimisticItem) {
+        return prev.map(item => item.id === optimisticItem.id ? newItem : item);
+      }
+      
+      const newItems = [...prev, newItem];
+      return newItems;
+    });
+  }, [items.length]);
+  
+ // Handler Item Updated
+ // TODO: Handle Item Updated kok ada 2 ? 
+  const handleItemUpdated = useCallback((updatedItem: RetroItem) => {
+    setItems(prev => prev.map(item => {
+      if (item.id === updatedItem.id) {
+        // Check if we have an optimistic update for this item
+        const optimisticUpdate = optimisticUpdates[updatedItem.id];
+        if (optimisticUpdate) {
+          // We have an optimistic update, ignore WebSocket update
+          return item;
+        } else {
+          // No optimistic update, use WebSocket data
+          return updatedItem;
+        }
+      }
+      return item;
+    }));
+  }, [optimisticUpdates]);
+    const handleItemsUpdate = useCallback((newItems: RetroItem[]) => {
+      setItems(newItems);
+    }, []);
+
+  // Handle Item Deleted
+  const handleItemDeleted = useCallback((itemId: string) => {
+    setItems(prev => prev.filter(item => item.id !== itemId));
+  }, []);
+
+
+    const getCategoryDisplayName = useCallback((category: string) => {
     if (retro?.format === "happy_sad_confused") {
       const mapping = {
         "format_1": "Happy",
@@ -1112,39 +839,297 @@ function computeGroupsAndColors(
     }
   }, [retro?.format])
 
-  const handleLogout = useCallback(async () => {
-    try {
-      await api.removeAuthToken(); // Panggil backend untuk logout
-    } catch (error) {
-      console.error('Failed to logout:', error);
+
+
+
+  
+  // ! ------------------------ Labelling ------------------------ //
+
+  // Handler untuk menerima label update dari facilitator lain
+  const handleLabelUpdate = useCallback((data: { 
+    groupId: number; 
+    label: string; 
+    userId: string 
+  }) => {
+    // Hanya update jika bukan dari user saat ini
+    if (data.userId !== user?.id) {
+      setLabellingItems(prev => 
+        prev.map(group => 
+          group.id === data.groupId 
+            ? { ...group, label: data.label }
+            : group
+        )
+      );
     }
-    window.location.href = '/';
+  }, [user?.id]);
+
+  // ! ------------------------ Voting ------------------------ //
+
+
+  // Handler untuk menerima vote update dari participant lain
+  const handleVoteUpdate = useCallback((data: { 
+    groupId: number; 
+    votes: number; 
+    userId: string;
+    userVotes: { [groupId: number]: number };
+  }) => {
+    // Hanya update jika bukan dari user saat ini
+    if (data.userId !== user?.id) { 
+      setLabellingItems(prev => 
+        prev.map(group => 
+          group.id === data.groupId 
+            ? { ...group, votes: data.votes }
+            : group
+        )
+      );
+    }
+  }, [user?.id]);
+
+  // Handler untuk menerima vote submission dari facilitator
+  const handleVoteSubmission = useCallback((data: { 
+    facilitatorId: string; 
+    groupVotes: { [groupId: number]: number };
+  }) => {
+    // Update semua votes sesuai dengan yang disimpan facilitator
+    setLabellingItems(prev => 
+      prev.map(group => 
+        group.id && data.groupVotes[group.id] !== undefined
+          ? { ...group, votes: data.groupVotes[group.id] }
+          : group
+      )
+    );
   }, []);
 
-  useEffect(() => {
-    // If the ID is "new", redirect to the new retro page
-    if (retroId === "new") {
-      navigate("/retro/new")
-      return
+  // ! ------------------------ Action Items ------------------------ //
+
+  // Handler untuk menerima action items update dari WebSocket
+  const handleActionItemsUpdate = useCallback((actionItems: any[]) => {
+    // Don't update action items from WebSocket during final phase
+    // or when loading from database
+    if (phase !== 'final' && !isLoadingFromDatabase) {
+      setActionItems(actionItems);
+    }
+  }, [phase, isLoadingFromDatabase]);
+
+  // Handler untuk menerima retro state yang berisi action items
+  const handleRetroState = useCallback((state: any) => {
+    // Don't update action items from WebSocket during final phase
+    // or when loading from database
+    if (state.actionItems && phase !== 'final' && !isLoadingFromDatabase) {
+      setActionItems(state.actionItems);
+    }
+  }, [phase, isLoadingFromDatabase]);
+
+
+  // ! ------------------------ Socket Initialization ------------------------ //
+  // Initialize WebSocket connection using the stable hook
+  const { isConnected, socket } = useRetroSocket({
+    retroId,
+    userId: userId!,
+    onItemAdded: handleItemAdded,
+    onItemUpdated: handleItemUpdated,
+    onItemDeleted: handleItemDeleted,
+    onItemsUpdate: handleItemsUpdate,
+    onParticipantUpdate: async () => {
+      // Fetch ulang data partisipan dari backend dan update state di RetroPage
+      try {
+        const data = await apiService.getRetro(retroId);
+        const activeParticipants = data.participants.filter((p: any) => p.isActive === true);
+        setParticipants(activeParticipants);
+      } catch (e) {
+        console.error('❌ Error updating participants:', e);
+      }
+    },
+    onPhaseChange: handlePhaseChange,
+    onItemPositionUpdate: handleItemPositionUpdate,
+    onGroupingUpdate: handleGroupingUpdate,
+    onLabelUpdate: handleLabelUpdate,
+    onVoteUpdate: handleVoteUpdate,
+    onVoteSubmission: handleVoteSubmission,
+    onActionItemsUpdate: handleActionItemsUpdate,
+    onRetroState: handleRetroState,
+  });
+
+
+  // ! ------------------------ Grouping - Socket ------------------------ //
+  // Debounced grouping update function - now with access to socket and isConnected
+  const debouncedGroupingUpdate = useCallback((itemToGroup: { [id: string]: string }, newSignatureColors: { [signature: string]: string }, newUsedColors: string[]) => {
+    // Cancel previous timeout
+    if (groupingUpdateTimeoutRef.current) {
+      clearTimeout(groupingUpdateTimeoutRef.current);
     }
 
+    // Store pending update
+    pendingGroupingUpdateRef.current = {
+      itemToGroup,
+      newSignatureColors,
+      newUsedColors
+    };
+
+    // Set new timeout
+    groupingUpdateTimeoutRef.current = setTimeout(() => {
+      if (pendingGroupingUpdateRef.current) {
+        const { itemToGroup, newSignatureColors, newUsedColors } = pendingGroupingUpdateRef.current;
+        
+        // State locking mechanism
+        if (isUpdatingGroupsRef.current) {
+          // If already updating, queue this update
+          pendingStateUpdatesRef.current.push({
+            itemToGroup,
+            newSignatureColors,
+            newUsedColors
+          });
+          return;
+        }
+
+        // Lock state updates
+        isUpdatingGroupsRef.current = true;
+        
+        // Update local state
+        setItemGroups(itemToGroup);
+        setSignatureColors(newSignatureColors);
+        setUsedColors(newUsedColors);
+        
+        // Broadcast grouping update to other users with timestamp and version
+        if (socket && isConnected && user) {
+          const currentTime = Date.now();
+          const currentVersion = groupingUpdateVersionRef.current + 1;
+          groupingUpdateVersionRef.current = currentVersion;
+          
+          socket.emit('grouping-update', {
+            retroId: retroId,
+            itemGroups: itemToGroup,
+            signatureColors: newSignatureColors,
+            userId: user.id,
+            timestamp: new Date(currentTime).toISOString(),
+            version: currentVersion
+          });
+        }
+        
+        // Clear pending update
+        pendingGroupingUpdateRef.current = null;
+        
+        // Unlock after a short delay to allow state to settle
+        setTimeout(() => {
+          isUpdatingGroupsRef.current = false;
+          
+          // Process any queued updates
+          if (pendingStateUpdatesRef.current.length > 0) {
+            const nextUpdate = pendingStateUpdatesRef.current.shift();
+            if (nextUpdate) {
+              debouncedGroupingUpdate(nextUpdate.itemToGroup, nextUpdate.newSignatureColors, nextUpdate.newUsedColors);
+            }
+          }
+        }, 50);
+      }
+    }, 150); // Increased delay for better stability
+  }, [socket, isConnected, user, retroId]);
+
+  const fetchItemsAndState = useCallback(async () => {
+    try {
+      const itemsData = await apiService.getItems(retroId);
+      setItems(itemsData);
+  
+      if (socket && isConnected && user) {
+        // Emit request untuk semua data awal
+        socket.emit('request-retro-state', { retroId });
+  
+        const handleRetroState = (state: {
+          itemPositions?: { [key: string]: { x: number; y: number } },
+          itemGroups?: any,
+          signatureColors?: any
+        }) => {
+          const fromBackend = state.itemPositions || {};
+  
+          // Buat posisi berdasarkan urutan itemsData
+          const mergedPositions: { [key: string]: { x: number; y: number } } = {};
+          itemsData.forEach((item, index) => {
+            mergedPositions[item.id] = fromBackend[item.id] || {
+              x: 200 + (index % 3) * 220,
+              y: 100 + Math.floor(index / 3) * 70
+            };
+          });
+  
+          // Set posisi yang sudah tersinkron dengan urutan itemsData
+          setItemPositions(mergedPositions);
+  
+          if (state.itemGroups) {
+            setItemGroups(state.itemGroups);
+          }
+  
+          if (state.signatureColors) {
+            setSignatureColors(state.signatureColors);
+          }
+  
+          // Broadcast posisi jika backend belum kirim
+          if (Object.keys(fromBackend).length === 0) {
+            socket.emit('item-position-update', {
+              retroId,
+              itemPositions: mergedPositions,
+              userId: user.id
+            });
+          }
+        };
+  
+        socket.on(`retro-state:${retroId}`, handleRetroState);
+  
+        return () => {
+          socket.off(`retro-state:${retroId}`, handleRetroState);
+        };
+      } else {
+        // Fallback: jika socket belum ready, set default posisi
+        const fallbackPositions: { [key: string]: { x: number; y: number } } = {};
+        itemsData.forEach((item, index) => {
+          fallbackPositions[item.id] = {
+            x: 200 + (index % 3) * 220,
+            y: 100 + Math.floor(index / 3) * 70
+          };
+        });
+        setItemPositions(fallbackPositions);
+      }
+    } catch (error) {
+      console.error("Error fetching items and state:", error);
+    }
+  }, [retroId, socket, isConnected, user]);
+
+    // Melakukan fetch pada data retro serta items
+  useEffect(() => {
     fetchRetroData()
     fetchItemsAndState()
   }, [retroId, navigate, fetchRetroData, fetchItemsAndState])
 
-  const isCurrentFacilitator = participants.find(x => x.role)?.user.id === user?.id;
-  const currentUserParticipant = participants.find(x => x.user.id === user?.id);
-  
-  const handleAddActionItemWebSocket = () => {
+    // ! ------------------------ Voting - socket ------------------------ //
+  useEffect(() => {
+  if (socket && retroId && user) {
+    // Minta data userVotes saat halaman di-load atau socket connect
+    socket.emit('request-user-votes', {
+      retroId,
+      userId: user.id
+    });
 
+    // Terima hasil userVotes
+    socket.on(`user-votes:${retroId}:${user.id}`, (data: { userVotes: { [groupId: number]: number } }) => {
+      if (data && data.userVotes) {
+        setUserVotes(data.userVotes);
+      }
+    });
+
+    // Cleanup listener saat komponen unmount
+    return () => {
+      socket.off(`user-votes:${retroId}:${user.id}`);
+    };
+  }
+}, [socket, retroId, user]);
+
+    // ! ------------------------ Action Items - socket ------------------------ //
+
+  const handleAddActionItemWebSocket = () => {
     if (!actionInput.trim() || !actionAssignee || !user?.id) {
       return;
     }
-
     // Cari nama assignee
     const assignee = participants.find((p: any) => p.user.id === actionAssignee);
     const assigneeName = assignee?.user.name || 'Unknown';
-    console.log ('ass : ',assignee, 'assname',assigneeName)
     // Kirim ke WebSocket
     if (socket && isConnected) {
       socket.emit('action-item-added', {
@@ -1157,15 +1142,10 @@ function computeGroupsAndColors(
     } else {
       console.log('❌ Socket not available or not connected');
     }
-
-    // Kosongkan input task saja, jangan kosongkan assignee
     setActionInput('');
-    // setActionAssignee(''); // Hapus baris ini agar assignee tidak berubah
   };
   
-  
-
-  // 2. Listen for typing events from socket
+  // ! ------------------------ Typing - socket ------------------------ //
   useEffect(() => {
     if (!socket) return;
     const handleTyping = (data: { userId: string }) => {
@@ -1187,7 +1167,6 @@ function computeGroupsAndColors(
     return () => { socket.off('typing', handleTyping); };
   }, [socket]);
 
-  // 3. Emit typing event when user types in input (contoh untuk inputText)
   const handleInputTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInputText(e.target.value);
     if (socket && user) {
@@ -1195,10 +1174,13 @@ function computeGroupsAndColors(
     }
   };
 
+  // ! ------------------------ Typing - socket ------------------------ //
+
   const [userVotes, setUserVotes] = useState<{ [groupIdx: number]: number }>({});
   const maxVotes = 3;
   const totalVotesUsed = Object.values(userVotes).reduce((a, b) => a + b, 0);
   const votesLeft = maxVotes - totalVotesUsed;
+
   const handleVote = (groupIdx: number, delta: number) => {
     setUserVotes(prev => {
       const current = prev[groupIdx] || 0;
@@ -1209,6 +1191,7 @@ function computeGroupsAndColors(
       return { ...prev, [groupIdx]: next };
     });
   };
+  
   useEffect(() => {
     if (socket && retroId && user) {
       socket.emit('request-voting-result', {
@@ -1227,24 +1210,28 @@ function computeGroupsAndColors(
   }, [socket, retroId, user, userVotes]);
 
   
+    // ! ------------------------ Action Item - socket ------------------------ //
+
 
   const [actionInput, setActionInput] = useState('');
   const [actionAssignee, setActionAssignee] = useState(participants[0]?.user.id || '');
   const [editingActionIdx, setEditingActionIdx] = useState<number | null>(null);
   const [editActionInput, setEditActionInput] = useState('');
   const [editActionAssignee, setEditActionAssignee] = useState('');
+
+  
+
   useEffect(() => {
     // Hanya set actionAssignee jika belum ada nilai dan ada participants
     if (participants.length > 0 && !actionAssignee) {
       setActionAssignee(participants[0].user.id);
     }
-  }, [participants, setActionAssignee]); // Hapus actionAssignee dari dependencies untuk mencegah infinite loop
+  }, [participants, setActionAssignee]); 
 
   const handleEditActionItem = (idx: number) => {
     const item = actionItems[idx];
     setEditingActionIdx(idx);
     setEditActionInput(item.task);
-    // Handle both old format (assignee) and new format (assigneeId)
     setEditActionAssignee(item.assigneeId || item.assignee || '');
   };
 
@@ -1254,8 +1241,6 @@ function computeGroupsAndColors(
     const item = actionItems[idx];
     const assignee = participants.find(p => p.user.id === editActionAssignee);
     const assigneeName = assignee?.user.name || 'Unknown';
-    
-    
     
     // Send to WebSocket
     if (socket && isConnected) {
@@ -1277,10 +1262,6 @@ function computeGroupsAndColors(
 
   const handleDeleteActionItem = (idx: number) => {
     const item = actionItems[idx];
-    
-    
-    
-    // Send to WebSocket
     if (socket && isConnected) {
       socket.emit('action-item-deleted', {
         retroId,
