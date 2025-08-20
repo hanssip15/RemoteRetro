@@ -43,58 +43,45 @@ export default function GroupingPhase({
   setHighContrast: (val: boolean) => void;
   socket?: any;
 }) {
-  // 1. Semua useState hooks di awal
   const [showModal, setShowModal] = useState(true);
   const [showConfirm, setShowConfirm] = useState(false);
   const [forceRender, setForceRender] = useState(false);
 
-  // 2. Semua useCallback hooks
   const handleModalClose = useCallback(() => setShowModal(false), []);
 
-  // 3. Semua useEffect hooks
   useEffect(() => {
     setShowModal(true);
   }, []);
 
   useEnterToCloseModal(showModal, handleModalClose);
 
-  // 5. Fallback: jika stuck di loading, force render setelah 3 detik
   useEffect(() => {
     if (items.length > 0 && Object.keys(itemPositions || {}).length === 0) {
       const timer = setTimeout(() => {
-        // Hanya force render jika benar-benar tidak ada positions setelah 3 detik
         if (Object.keys(itemPositions || {}).length === 0) {
           setForceRender(true);
         }
-      }, 3000);
+      }, 1000);
       return () => clearTimeout(timer);
     }
   }, [items.length, itemPositions]);
 
-  // 6. Semua useMemo hooks
   const positionsReady = useMemo(() => {
     const itemsLength = items.length;
     const positionsLength = Object.keys(itemPositions || {}).length;
     
-    // Ready jika ada items dan positions untuk semua items
-    // atau jika forceRender aktif
     const ready = (itemsLength > 0 && positionsLength === itemsLength) || forceRender;
-    
     return ready;
   }, [items.length, itemPositions, forceRender]);
 
-  // Cek jika tidak ada grup yang terbentuk, assign setiap item ke grup sendiri
   const processedItemGroups = useMemo(() => {
-    // Jika itemGroups kosong atau semua item punya signature unik (tidak ada grouping)
     if (!itemGroups || Object.keys(itemGroups).length === 0) {
-      // Setiap item jadi grup sendiri
       const result: { [id: string]: string } = {};
       (items || []).forEach((item: any) => {
-        result[item.id] = item.id; // signature = id unik
+        result[item.id] = item.id; 
       });
       return result;
     }
-    // Cek jika semua signature unik (tidak ada 2 item dengan signature sama)
     const sigCount: { [sig: string]: number } = {};
     (Object.values(itemGroups) as string[]).forEach((sig: string) => { sigCount[sig] = (sigCount[sig] || 0) + 1; });
     const allUnique = Object.values(sigCount).every((count: number) => count === 1);
@@ -105,22 +92,19 @@ export default function GroupingPhase({
       });
       return result;
     }
-    // Default: pakai itemGroups asli
     return itemGroups;
   }, [itemGroups, items]);
 
 
 
 
-  // 7. Early return untuk loading state
-  if (!positionsReady && !forceRender) {
+  if (!positionsReady) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading grouping board...</p>
           <p className="text-xs text-gray-400 mt-2">
-            Items: {items.length} | Positions: {Object.keys(itemPositions || {}).length}
           </p>
         </div>
       </div>

@@ -87,25 +87,25 @@ export default function RetroPage() {
   // State untuk tracking item yang sedang di-drag oleh user lain
   const [draggingByOthers, setDraggingByOthers] = useState<{ [itemId: string]: string }>({});
 
-  // Debouncing mechanism untuk grouping updates
-  const groupingUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const pendingGroupingUpdateRef = useRef<{
-    itemToGroup: { [id: string]: string };
-    newSignatureColors: { [signature: string]: string };
-    newUsedColors: string[];
-  } | null>(null);
+    // Debouncing mechanism untuk grouping updates
+    const groupingUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const pendingGroupingUpdateRef = useRef<{
+      itemToGroup: { [id: string]: string };
+      newSignatureColors: { [signature: string]: string };
+      newUsedColors: string[];
+    } | null>(null);
 
-  // State locking mechanism untuk mencegah race condition
-  const isUpdatingGroupsRef = useRef(false);
-  const pendingStateUpdatesRef = useRef<Array<{
-    itemToGroup: { [id: string]: string };
-    newSignatureColors: { [signature: string]: string };
-    newUsedColors: string[];
-  }>>([]);
+    // State locking mechanism untuk mencegah race condition
+    const isUpdatingGroupsRef = useRef(false);
+    const pendingStateUpdatesRef = useRef<Array<{
+      itemToGroup: { [id: string]: string };
+      newSignatureColors: { [signature: string]: string };
+      newUsedColors: string[];
+    }>>([]);
 
-  // Timestamp-based conflict resolution
-  const lastGroupingUpdateRef = useRef<number>(0);
-  const groupingUpdateVersionRef = useRef<number>(0);
+    // Timestamp-based conflict resolution
+    const lastGroupingUpdateRef = useRef<number>(0);
+    const groupingUpdateVersionRef = useRef<number>(0);
 
   // Helper warna random konsisten
   function getNextColor(used: string[]): string {
@@ -364,7 +364,6 @@ function computeGroupsAndColors(
  
   }, [convertGroupsToDatabaseFormat, retroId]);
 
-
   // Fungsi untuk mendapatkan data grup yang sudah dikelompokkan
   const getGroupedItems = useCallback((): GroupedItem[] => {
     const groupsMap = new Map<string, { items: RetroItem[], color: string }>();
@@ -542,9 +541,6 @@ function computeGroupsAndColors(
   useEffect(() => {
       if (retro?.currentPhase) {
         let mappedPhase = retro.currentPhase;
-        if (retro.currentPhase === 'submit') {
-          mappedPhase = 'ideation';
-        }
         setPhase(mappedPhase as typeof phase);
       } else if (retro?.status === 'draft') {
         setPhase('lobby');

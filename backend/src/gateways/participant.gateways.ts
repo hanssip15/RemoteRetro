@@ -442,12 +442,7 @@ handleRequestUserVotes(
         createdAt: new Date().toISOString(),
         edited: false
       };
-      
-      
-      // Add to state
       retroState[data.retroId].actionItems.push(newActionItem);
-      
-      
       // Broadcast to all clients in the retro room
       this.broadcastActionItemsUpdate(data.retroId, retroState[data.retroId].actionItems);
     }
