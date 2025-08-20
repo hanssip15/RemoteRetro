@@ -145,8 +145,6 @@ class ApiService {
         // Handle authentication errors
         if (response.status === 401 || response.status === 403) {
           // Clear invalid session data
-          sessionStorage.removeItem('auth_token');
-          sessionStorage.removeItem('user_data');
           throw new Error('Authentication failed. Please login again.');
         }
         
@@ -354,11 +352,15 @@ export const fetchProtectedData = async () => {
 
 export const apiService = new ApiService();
 
+let cachedUser: any = null;
+
 export const api = Object.assign(apiService, {
   getCurrentUser: async (): Promise<any> => {
+    if (cachedUser) return cachedUser;
+
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/me`, {
-        credentials: 'include', // penting agar cookie dikirim
+        credentials: 'include',
       });
 
       if (!res.ok) {
@@ -373,7 +375,8 @@ export const api = Object.assign(apiService, {
     }
   },
 
-  setAuthToken: (_token: string, _userData?: any) => {
+  setUser: (userData: any) => {
+    cachedUser = userData;
   },
 
   // Logout dari backend dan bersihkan apa pun di frontend (kalau perlu)
@@ -384,20 +387,14 @@ export const api = Object.assign(apiService, {
       });
     } catch (error) {
       console.error('Failed to logout:', error);
+    } finally {
+      cachedUser = null;
     }
   },
-
   // Cek apakah user sudah login dengan cara memanggil API
   isAuthenticated: async (): Promise<boolean> => {
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/me`, {
-      credentials: 'include', // penting agar cookie dikirim
-    });
-
-    return !!res.ok;
+    const user = await api.getCurrentUser();
+    return !!user;
   },
 
-  // Simpan user data kalau mau secara lokal (tidak wajib)
-  setUserData: (userData: any) => {
-    sessionStorage.setItem('user_data', JSON.stringify(userData));
-  }
 });
