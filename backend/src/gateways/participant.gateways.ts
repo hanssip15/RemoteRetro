@@ -10,6 +10,7 @@ import {
   } from '@nestjs/websockets';
   import { Server, Socket } from 'socket.io';
   import { ParticipantService } from '../services/participant.service';
+import { Participant } from 'src/entities/participant.entity';
   // Tambahkan di luar class (atau static property jika ingin lebih rapi)
   const retroState: {
     [retroId: string]: {
@@ -128,7 +129,10 @@ import {
     }
 
 
-  
+    broadcastParticipantAdded(retroId: string, participant: Participant) {
+      this.server.to(`retro:${retroId}`).emit(`participants-added:${retroId}`, participant);
+    }
+
     broadcastParticipantUpdate(retroId: string) {
       this.server.to(`retro:${retroId}`).emit(`participants-update:${retroId}`);
     }

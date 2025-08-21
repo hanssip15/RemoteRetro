@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Suspense, lazy } from 'react';
 import { SocketProvider } from './contexts/SocketContext';
+import ProtectedRoute from './components/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary';
 
 import './index.css';
@@ -42,9 +43,21 @@ function App() {
             <Routes>
               <Route path="/" element={<HomePage />} />
               <Route path="/auth/callback" element={<AuthCallbackPage />} />
-              <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/retro/new" element={<NewRetroPage />} />
-              <Route path="/retro/:id" element={<RetroPage />} />
+              <Route path="/dashboard" element={
+                <ProtectedRoute>
+                  <DashboardPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/retro/new" element={
+                <ProtectedRoute>
+                  <NewRetroPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/retro/:id" element={
+                <ProtectedRoute>
+                  <RetroPage />
+                </ProtectedRoute>
+              } />
               <Route path="/debug-db" element={<DebugPage />} />
               <Route path="/test-api" element={<TestApiPage />} />
               <Route path="/test-error" element={<TestErrorComponent />} />

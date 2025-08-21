@@ -75,6 +75,7 @@ export class RetroService {
       id: crypto.randomUUID(), // Generate UUID for ID
       ...createRetroDto,
       status: 'draft',
+      currentPhase: 'lobby',
       format: createRetroDto.format || 'happy_sad_confused' // Default format
     };
     const retro = this.retroRepository.create(retroData);

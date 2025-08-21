@@ -49,8 +49,15 @@ export default function DashboardPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [user, setUser] = useState<User | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
   
+  useEffect(() => {
+  const fetchUser = async () => {
+    const user = await api.getCurrentUser();
+    await fetchDashboardData(false,user.id);
+    setUser(user);
+  };
+  fetchUser();
+}, []);
 
   const fetchDashboardData = async (silent = false, userId: string) => {
     if (!silent) {
@@ -86,30 +93,6 @@ export default function DashboardPage() {
     }
   }
 
-  useEffect(() => {
-  const fetchUserAndDashboard = async () => {
-    try {
-      const userData = await api.getCurrentUser()
-      if (!userData) {
-        api.removeAuthToken()
-    window.location.href = `${import.meta.env.VITE_API_URL}/auth/google`;
-        return
-      }
-      setUser(userData)
-      setIsAuthenticated(true)
-
-      // Panggil fetchDashboard setelah user valid
-      await fetchDashboardData(false, userData.id)
-    } catch (err) {
-      console.error(err)
-      setError('Failed to fetch user. Please try again.')
-      await api.removeAuthToken()
-    window.location.href = `${import.meta.env.VITE_API_URL}/auth/google`;
-    }
-  }
-
-  fetchUserAndDashboard()
-}, [currentPage])
 
   const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage)
@@ -158,74 +141,19 @@ export default function DashboardPage() {
     window.location.href = '/';
   }
 
-  // Show authentication error
-  if (isAuthenticated === false) {
-    return (
+  if (loading) {
+        return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Authentication Required</h2>
-          <p className="text-gray-600 mb-6">Please login to access the dashboard</p>
-          <Link to="/">
-            <Button>Go to Login</Button>
-          </Link>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <h1> Loading.....</h1>
+          <p className="text-xs text-gray-400 mt-2">
+          </p>
         </div>
       </div>
-    )
+    );
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        {/* Header with loading state */}
-        <div className="bg-white border-b">
-          <div className="container mx-auto px-4 py-4">
-            <div className="flex justify-between items-center">
-              <div className="h-8 bg-gray-200 rounded w-48 animate-pulse"></div>
-              <div className="h-10 w-10 bg-gray-200 rounded-full animate-pulse"></div>
-            </div>
-          </div>
-        </div>
-
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex justify-between items-center mb-8">
-            <div>
-              <div className="h-8 bg-gray-200 rounded w-48 mb-2 animate-pulse"></div>
-              <div className="h-4 bg-gray-200 rounded w-64 animate-pulse"></div>
-            </div>
-            <div className="h-10 bg-gray-200 rounded w-32 animate-pulse"></div>
-          </div>
-
-          {/* Loading Stats Cards */}
-          <div className="grid md:grid-cols-3 gap-6 mb-8">
-            {[1, 2, 3].map((i) => (
-              <Card key={i}>
-                <CardContent className="p-6">
-                  <div className="h-4 bg-gray-200 rounded w-24 mb-4 animate-pulse"></div>
-                  <div className="h-8 bg-gray-200 rounded w-16 mb-2 animate-pulse"></div>
-                  <div className="h-3 bg-gray-200 rounded w-32 animate-pulse"></div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          {/* Loading Recent Retros */}
-          <Card>
-            <CardHeader>
-              <div className="h-6 bg-gray-200 rounded w-48 mb-2 animate-pulse"></div>
-              <div className="h-4 bg-gray-200 rounded w-64 animate-pulse"></div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="h-20 bg-gray-200 rounded animate-pulse"></div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    )
-  }
 
   if (error) {
     return (
