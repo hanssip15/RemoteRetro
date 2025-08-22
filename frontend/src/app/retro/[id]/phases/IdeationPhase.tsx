@@ -202,7 +202,6 @@ export default function IdeationPhase(props: any) {
               {isAddingItem ? "Adding..." : "Submit"}
             </Button>
           </div>
-          {/* Tombol Grouping */}
           {isCurrentFacilitator && (
             <>
               <Button

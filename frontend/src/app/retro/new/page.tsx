@@ -11,6 +11,7 @@ import { ArrowLeft } from "lucide-react"
 import { Link, useNavigate } from "react-router-dom"
 import { api, apiService, User } from "@/services/api"
 
+
 const RETRO_FORMATS = [
   {
     key: "happy_sad_confused",
@@ -39,51 +40,31 @@ export default function NewRetroPage() {
   const [title, setTitle] = useState("")
   const [selectedFormat, setSelectedFormat] = useState<string>("happy_sad_confused")
   const [user, setUser] = useState<User>()
-
+  const [loading, setLoading] = useState(true);
    useEffect(() => {
   const fetchUser = async () => {
-    try {
-        const userData = await api.getCurrentUser();
-        if (!userData) {
-          api.removeAuthToken(); // optional logout
-          navigate('/');
-        return;
-        }
-
-        setUser(userData);
-
-    } catch (err) {
-      console.error(err);
-      // setError('Failed to fetch user. Please try again.');
-      await api.removeAuthToken();
-      navigate('/');
-    }
+      const user = await api.getCurrentUser();
+      setUser(user);
+      setLoading(false);
   };
-
   fetchUser();
 }, []);
+    
 
-  useEffect(() => {
-    const authStatus = api.isAuthenticated()
 
-    if (!authStatus) {
-      navigate('/')
-    }
-  }, []) // Remove navigate dependency to prevent re-runs
-
-  // Prevent unwanted navigation during form submission
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (isSubmitting) {
-        e.preventDefault()
-        e.returnValue = ''
-      }
-    }
-
-    window.addEventListener('beforeunload', handleBeforeUnload)
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
-  }, [isSubmitting])
-
+  if (loading) {
+        return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <h1> Loading.....</h1>
+          <p className="text-xs text-gray-400 mt-2">
+          </p>
+        </div>
+      </div>
+    );
+  }
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     e.stopPropagation()
@@ -155,6 +136,7 @@ export default function NewRetroPage() {
 
     setSelectedFormat(key);
   };
+
 
 
    return (

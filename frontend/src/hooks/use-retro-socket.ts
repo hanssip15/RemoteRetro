@@ -1,3 +1,4 @@
+import { Participant } from '@/services/api';
 import { useEffect, useMemo, useCallback, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 
@@ -8,7 +9,8 @@ interface UseRetroSocketOptions {
   onItemUpdated?: (item: any) => void;
   onItemDeleted?: (itemId: string) => void;
   onItemsUpdate?: (items: any[]) => void;
-  onParticipantUpdate?: () => void;
+  onParticipantUpdate?: (participants: any[]) => void;
+  onParticipantAdded?: (participant: Participant ) => void;
   onRetroStarted?: () => void;
   onPhaseChange?: (phase: 'prime-directive' | 'ideation' | 'grouping' | 'labelling' | 'voting' | 'final' | 'ActionItems') => void;
   onItemPositionUpdate?: (data: { itemId: string; position: { x: number; y: number }; userId: string }) => void;
@@ -28,6 +30,7 @@ export const useRetroSocket = ({
   onItemDeleted,
   onItemsUpdate,
   onParticipantUpdate,
+  onParticipantAdded,
   onRetroStarted,
   onPhaseChange,
   onItemPositionUpdate,
@@ -48,6 +51,7 @@ export const useRetroSocket = ({
     onItemDeleted,
     onItemsUpdate,
     onParticipantUpdate,
+    onParticipantAdded,
     onRetroStarted,
     onPhaseChange,
     onItemPositionUpdate,
@@ -98,11 +102,12 @@ export const useRetroSocket = ({
         // Re-join the retro room after reconnection
         socketRef.current?.emit('join-retro-room', retroId);
       });
-  
-      socketRef.current.on(`participants-update:${retroId}`, () => {
-        callbacks.onParticipantUpdate?.();
+      
+      socketRef.current.on(`participants-added:${retroId}`, (participant: Participant ) => {
+        callbacks.onParticipantAdded?.(participant);
       });
-  
+
+
       socketRef.current.on(`retro-started:${retroId}`, () => {
         callbacks.onRetroStarted?.();
       });
@@ -152,8 +157,12 @@ export const useRetroSocket = ({
       callbacks.onItemsUpdate?.(items);
     };
 
-    const handleParticipantUpdate = () => {
-      callbacks.onParticipantUpdate?.();
+    const handleParticipantAdded = (participant: Participant) => {
+      callbacks.onParticipantAdded?.(participant);
+    };
+
+     const handleParticipantUpdate = (participants: any[]) => {
+      callbacks.onParticipantUpdate?.(participants);
     };
 
     const handleRetroStarted = () => {
@@ -199,6 +208,7 @@ export const useRetroSocket = ({
       socketRef.current.on(`item-deleted:${retroId}`, handleItemDeleted);
       socketRef.current.on(`items-update:${retroId}`, handleItemsUpdate);
       socketRef.current.on(`participants-update:${retroId}`, handleParticipantUpdate);
+      socketRef.current.on(`participants-added:${retroId}`, handleParticipantAdded);
       socketRef.current.on(`retro-started:${retroId}`, handleRetroStarted);
       socketRef.current.on(`phase-change:${retroId}`, handlePhaseChange);
       socketRef.current.on(`item-position-update:${retroId}`, handleItemPositionUpdate);
@@ -218,6 +228,7 @@ export const useRetroSocket = ({
         socketRef.current.off(`item-deleted:${retroId}`, handleItemDeleted);
         socketRef.current.off(`items-update:${retroId}`, handleItemsUpdate);
         socketRef.current.off(`participants-update:${retroId}`, handleParticipantUpdate);
+        socketRef.current.off(`participants-added:${retroId}`, handleParticipantAdded);
         socketRef.current.off(`retro-started:${retroId}`, handleRetroStarted);
         socketRef.current.off(`phase-change:${retroId}`, handlePhaseChange);
         socketRef.current.off(`item-position-update:${retroId}`, handleItemPositionUpdate);

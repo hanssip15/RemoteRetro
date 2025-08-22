@@ -51,10 +51,18 @@ export class ParticipantService {
         where: { retroId, userId },
       });
       if (existingParticipant) return existingParticipant;
-      const participant = this.participantRepository.create({ retroId, userId, role });
+      const participant = this.participantRepository.create({ retroId, userId, role, isActive:true });
       const savedParticipant = await this.participantRepository.save(participant);
-      this.participantGateway.broadcastParticipantUpdate(retroId);
 
+      const participantWithUser = await this.participantRepository.findOne({
+      where: { id: savedParticipant.id },
+      relations: ['user'],  // pastikan relasi didefinisikan di entity
+    });
+
+      if (participantWithUser) {
+        console.log('Participant added with user data:', participantWithUser);
+        this.participantGateway.broadcastParticipantAdded(retroId, participantWithUser);
+      } 
       return savedParticipant;
 
     } catch (error: any) {
@@ -98,15 +106,6 @@ async activated(retroId: string, userId: string): Promise<void> {
   this.participantGateway.broadcastParticipantUpdate(retroId);
 }
 
-  async countUniqueMembers(): Promise<number> {
-    const result = await this.participantRepository
-      .createQueryBuilder('participant')
-      .leftJoin('participant.user', 'user')
-      .select('COUNT(DISTINCT user.name)', 'count')
-      .getRawOne();
-    
-    return parseInt(result.count) || 0;
-  }
 
   async updateRoleFacilitator(retroId: string, participantId: string): Promise<Participant> {
     const retro = await this.retroRepository.findOne({ where: { id: retroId } });
