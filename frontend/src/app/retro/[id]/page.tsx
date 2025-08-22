@@ -171,7 +171,6 @@ useEffect(() => {
 }, [user, participants, isUserJoined]);
 
 useEffect(() => {
-  console.log ("kwkwk : ",user,isUserJoined)
   if (user && !isUserJoined) {
     const timeout = setTimeout(() => {
       window.location.reload();
@@ -199,7 +198,6 @@ const currentUserRole = participants.find(p => p.user.id === user?.id)?.role || 
         throw new Error("No retro data in response")
       }
       setRetro(data.retro)
-      console.log("retrobos", retro)
       setParticipants(data.participants.filter((p: any) => p.isActive === true))
       if (user) {
         const currentUserParticipant = data.participants.find((p: any) => p.user.id === user.id);
@@ -861,6 +859,8 @@ const handleItemAdded = useCallback((newItem: RetroItem) => {
 
   // ! ------------------------ Action Items ------------------------ //
 
+
+
   // Handler untuk menerima action items update dari WebSocket
   const handleActionItemsUpdate = useCallback((actionItems: any[]) => {
     // Don't update action items from WebSocket during final phase
@@ -916,7 +916,6 @@ const handleItemAdded = useCallback((newItem: RetroItem) => {
     onActionItemsUpdate: handleActionItemsUpdate,
     onRetroState: handleRetroState,
   });
-
 
   // ! ------------------------ Grouping - Socket ------------------------ //
   // Debounced grouping update function - now with access to socket and isConnected
@@ -1088,30 +1087,8 @@ const handleItemAdded = useCallback((newItem: RetroItem) => {
   }
 }, [socket, retroId, user]);
 
-    // ! ------------------------ Action Items - socket ------------------------ //
 
-  const handleAddActionItemWebSocket = () => {
-    if (!actionInput.trim() || !actionAssignee || !user?.id) {
-      return;
-    }
-    // Cari nama assignee
-    const assignee = participants.find((p: any) => p.user.id === actionAssignee);
-    const assigneeName = assignee?.user.name || 'Unknown';
-    // Kirim ke WebSocket
-    if (socket && isConnected) {
-      socket.emit('action-item-added', {
-        retroId: retro?.id,
-        task: actionInput,
-        assigneeId: actionAssignee,
-        assigneeName,
-        createdBy: user.id
-      });
-    } else {
-      console.log('❌ Socket not available or not connected');
-    }
-    setActionInput('');
-  };
-  
+
   // ! ------------------------ Typing - socket ------------------------ //
   useEffect(() => {
     if (!socket) return;
@@ -1191,19 +1168,56 @@ const handleItemAdded = useCallback((newItem: RetroItem) => {
     }
   }, [participants, setActionAssignee]); 
 
+      const [allParticipants, setAllParticipants] = useState<Participant[]>([]);
+    useEffect(() => {
+      const fetchAllParticipants = async () => {
+        const all = await apiService.getParticipants(retroId);
+        setAllParticipants(all);
+      };
+      fetchAllParticipants();
+    }, [retroId, participants]);
+
+    const handleAddActionItemWebSocket = () => {
+    if (!actionInput.trim() || !actionAssignee || !user?.id) {
+      return;
+    }
+    // Cari nama assignee
+    const assignee = allParticipants.find((p: any) => p.user.id === actionAssignee);
+    const assigneeName = assignee?.user.name || 'Unknown';
+    // Kirim ke WebSocket
+    if (socket && isConnected) {
+      socket.emit('action-item-added', {
+        retroId: retro?.id,
+        task: actionInput,
+        assigneeId: actionAssignee,
+        assigneeName,
+        createdBy: user.id
+      });
+    } else {
+      console.log('❌ Socket not available or not connected');
+    }
+    setActionInput('');
+  };
+  
+
   const handleEditActionItem = (idx: number) => {
     const item = actionItems[idx];
+    console.log("Editing action item:", item);
     setEditingActionIdx(idx);
     setEditActionInput(item.task);
-    setEditActionAssignee(item.assigneeId || item.assignee || '');
+    setEditActionAssignee(item.assigneeId || '');
+
   };
+
+
 
   const handleSaveEditActionItem = (idx: number) => {
     if (!editActionInput.trim() || !editActionAssignee || !user?.id) return;
-    
     const item = actionItems[idx];
-    const assignee = participants.find(p => p.user.id === editActionAssignee);
-    const assigneeName = assignee?.user.name || 'Unknown';
+    // console.log("semua parts", allParticipants);
+    // console.log("Saving action item:", editActionAssignee)
+    const assignee = allParticipants.find(p => p.user.id === editActionAssignee);
+    const assigneeName = assignee?.user.name || '';
     
     // Send to WebSocket
     if (socket && isConnected) {
