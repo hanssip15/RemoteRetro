@@ -117,6 +117,7 @@ export default function FinalPhase({
           </div>
         </div>
       </div>
+      <div className="h-40" />
       <RetroFooter
         left={<div className="text-xl font-semibold text-left">This retro is all wrapped up!</div>}
         title={null}
