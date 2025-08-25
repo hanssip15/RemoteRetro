@@ -118,14 +118,5 @@ export class EmailService {
     `;
   }
 
-  // Method to test email configuration
-  async testEmailConnection(): Promise<boolean> {
-    try {
-      await this.transporter.verify();
-      return true;
-    } catch (error) {
-      console.error('❌ Email service configuration error:', error);
-      return false;
-    }
-  }
+
 } 

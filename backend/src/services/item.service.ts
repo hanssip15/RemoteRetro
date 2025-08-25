@@ -6,7 +6,7 @@ import { CreateRetroItemDto, UpdateItemDto } from '../dto/create-item.dto';
 import { Retro } from '../entities/retro.entity';
 import { Participant } from '../entities/participant.entity';
 import { ParticipantGateway } from '../gateways/participant.gateways';
-import { GroupItem } from 'src/entities/group-item.entity';
+import { GroupItem } from '../entities/group-item.entity';
 
 @Injectable()
 export class RetroItemsService {
@@ -64,7 +64,7 @@ export class RetroItemsService {
     const items = await this.retroItemRepository.find({
       where: { retro_id: retroId },
       relations: ['creator'],
-      order: { id: 'ASC' },
+      order: { created_at: 'ASC' },
     });
 
     // Transform to match frontend interface

@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Suspense, lazy } from 'react';
 import { SocketProvider } from './contexts/SocketContext';
 import ProtectedRoute from './components/ProtectedRoute';
+import ProtectedRouteRetroiD from './components/ProtectedRouteRetroId';
 import ErrorBoundary from './components/ErrorBoundary';
 
 import './index.css';
@@ -54,9 +55,9 @@ function App() {
                 </ProtectedRoute>
               } />
               <Route path="/retro/:id" element={
-                <ProtectedRoute>
+                <ProtectedRouteRetroiD>
                   <RetroPage />
-                </ProtectedRoute>
+                </ProtectedRouteRetroiD>
               } />
               <Route path="/debug-db" element={<DebugPage />} />
               <Route path="/test-api" element={<TestApiPage />} />
@@ -80,21 +81,3 @@ function App() {
 }
 
 export default App;
-// import { BrowserRouter, Routes, Route } from 'react-router-dom';
-// import LoginPage from './app/login/page';
-// import DashboardPage from './app/dashboard/page';
-// import AuthCallbackPage from './app/auth/callback/page';
-
-// function App() {
-//   return (
-//     <BrowserRouter>
-//       <Routes>
-//         <Route path="/login" element={<LoginPage />} />
-//         <Route path="/dashboard" element={<DashboardPage />} />
-//         <Route path="/auth/callback" element={<AuthCallbackPage />} />
-//       </Routes>
-//     </BrowserRouter>
-//   );
-// }
-
-// export default App;

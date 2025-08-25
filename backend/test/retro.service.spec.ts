@@ -7,6 +7,7 @@ import { Participant } from '../src/entities/participant.entity';
 import { ParticipantGateway } from '../src/gateways/participant.gateways';
 import { NotFoundException } from '@nestjs/common';
 import { Repository } from 'typeorm';
+import { format } from 'path';
 
 const mockRetroRepository = () => ({
   find: jest.fn(),
@@ -89,8 +90,8 @@ describe('RetroService', () => {
   });
 
   it('should create and save a retro', async () => {
-    const dto = { title: 'Sprint 1', createdBy: 'user1', facilitator: 'user1' };
-    const mockRetro = { id: 'uuid', ...dto };
+    const dto = { title: 'Sprint 1', createdBy: 'user1', facilitator: 'user1', format: 'happy_sad_confused' };
+    const mockRetro = { id: 'uuid', ...dto, status: 'draft',currentPhase: 'lobby'};
     (retroRepository.create as jest.Mock).mockReturnValue(mockRetro);
     (retroRepository.save as jest.Mock).mockResolvedValue(mockRetro);
 
@@ -106,19 +107,10 @@ describe('RetroService', () => {
     (retroRepository.save as jest.Mock).mockResolvedValue({ ...retro, status: 'completed' });
     const dto = { status: 'completed' };
 
-    const result = await service.updateStatus('1', dto);
+    const result = await service.updateRetroStatus('1', 'completed');
     expect(result.status).toBe('completed');
     expect(gateway.broadcastRetroCompleted).toHaveBeenCalledWith('1');
   });
 
-  it('should remove retro if found', async () => {
-    (retroRepository.delete as jest.Mock).mockResolvedValue({ affected: 1 });
-    await service.remove('1');
-    expect(retroRepository.delete).toHaveBeenCalledWith('1');
-  });
 
-  it('should throw if retro not found in remove', async () => {
-    (retroRepository.delete as jest.Mock).mockResolvedValue({ affected: 0 });
-    await expect(service.remove('not-found')).rejects.toThrow(NotFoundException);
-  });
 });

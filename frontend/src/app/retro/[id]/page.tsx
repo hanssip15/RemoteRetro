@@ -142,6 +142,7 @@ export default function RetroPage() {
     setUser(user);
     setUserId(user.id);
   };
+  localStorage.removeItem("redirect");
   fetchUser();
 }, []);
 
@@ -448,7 +449,14 @@ function computeGroupsAndColors(
   // @ts-ignore
   const handleStop = (id: string, e: any, data: any) => {
     setItemPositions(pos => ({ ...pos, [id]: { x: data.x, y: data.y } }));
-  
+    if (socket && isConnected && user) {
+  socket.emit('item-position-update', {
+    retroId,
+    itemId: id,
+    position: { x: data.x, y: data.y },
+    userId: user.id
+  });
+}
     // Final grouping computation after drag stops
     setTimeout(() => {
       const { itemToGroup, newSignatureColors, newUsedColors } = computeGroupsAndColors(

@@ -47,6 +47,7 @@ export default function NewRetroPage() {
       setUser(user);
       setLoading(false);
   };
+  localStorage.removeItem("redirect");
   fetchUser();
 }, []);
     
@@ -109,10 +110,10 @@ export default function NewRetroPage() {
       }
       
 
-      await apiService.addParticipant(retro.id,user.id, { 
-        role: true,
-        isActive: true
-      });
+      // await apiService.addParticipant(retro.id,user.id, { 
+      //   role: true,
+      //   isActive: true
+      // });
 
       navigate(`/retro/${retro.id}`)
     } catch (error) {

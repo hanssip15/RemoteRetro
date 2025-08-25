@@ -10,7 +10,7 @@ interface UseRetroSocketOptions {
   onItemDeleted?: (itemId: string) => void;
   onItemsUpdate?: (items: any[]) => void;
   onParticipantUpdate?: (participants: any[]) => void;
-  onParticipantAdded?: (participant: Participant ) => void;
+  onParticipantAdded?: (participant: Participant) => void;
   onRetroStarted?: () => void;
   onPhaseChange?: (phase: 'prime-directive' | 'ideation' | 'grouping' | 'labelling' | 'voting' | 'final' | 'ActionItems') => void;
   onItemPositionUpdate?: (data: { itemId: string; position: { x: number; y: number }; userId: string }) => void;
