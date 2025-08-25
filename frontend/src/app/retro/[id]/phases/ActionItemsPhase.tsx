@@ -158,7 +158,7 @@ export default function ActionItemsPhase({
             <div className="flex flex-col gap-2">
               {actionItems.length === 0 && <span className="text-gray-400 text-sm">No action items yet.</span>}
               {actionItems.map((item: any, idx: number) => (
-                <div key={item.id || idx} className="bg-gray-50 border rounded px-3 py-2 text-sm flex items-center justify-between gap-2">
+                <div key={item.id || idx} className="bg-gray-50 border rounded px-3 py-2 text-sm flex items-start justify-between gap-2">
                   {editingActionIdx === idx ? (
                     <>
                       <div className="flex-1 flex flex-col gap-1">
@@ -204,13 +204,13 @@ export default function ActionItemsPhase({
                     </>
                   ) : (
                     <>
-                      <div className="flex-1 flex flex-col">
-                        <span>
+                      <div className="flex-1 flex flex-col min-w-0">
+                        <span className="break-words">
                           {item.task} <span className="text-gray-700">({item.assigneeName})</span>
                           {item.edited && <span className="ml-2 text-xs text-gray-500 font-semibold">(edited)</span>}
                         </span>
                       </div>
-                      <div className="flex gap-1">
+                      <div className="flex gap-1 flex-shrink-0">
                         {(isCurrentFacilitator || item.createdBy == user.id) && (
                           <>
                         <button
