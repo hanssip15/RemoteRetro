@@ -2,7 +2,7 @@
 // import { io } from 'socket.io-client';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 
-import { useEffect, useState, useCallback, Dispatch, SetStateAction } from "react"
+import {useState, useCallback} from "react"
 import {useNavigate} from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -17,105 +17,23 @@ import { PhaseConfirmModal } from '@/components/ui/dialog';
 interface RetroLobbyPageProps {
   socket: any;
   isConnected: boolean;
-  userId: string;
   retroId: string;
   participants: Participant[];
-  setParticipants: Dispatch<SetStateAction<Participant[]>>;
   retro: Retro | null;
+  user: User | null;
 }
 
-export default function RetroLobbyPage({ socket, retroId, participants, setParticipants, retro }: RetroLobbyPageProps) {
+export default function RetroLobbyPage({ socket, retroId, participants, retro, user }: RetroLobbyPageProps) {
   const navigate = useNavigate()
   const [selectedParticipant, setSelectedParticipant] = useState<Participant | null>(null);
-  const [showRoleModal, setShowRoleModal] = useState(false);
-  
-  const [loading, setLoading] = useState(true)
+  const [showRoleModal, setShowRoleModal] = useState(false);  
   const [error] = useState<string | null>(null)
   const [showShareModal, setShowShareModal] = useState(false)
   const [showStartConfirm, setShowStartConfirm] = useState(false)
-  const [isJoining] = useState(false)
   const [joinError, setJoinError] = useState<string | null>(null)
   const [isOngoing, setIsOngoing] = useState(false)
   const [isPromoting, setIsPromoting] = useState(false)
-  const [user, setUser] = useState<User>()
-  const [isUserJoined, setIsUserJoined] = useState(false)
-  // Get current user from sessionStorage
-
-  // Timeout fallback untuk mencegah loading yang terlalu lama
-  useEffect(() => {
-    if (user && !isUserJoined) {
-      const timeout = setTimeout(() => {
-        window.location.reload();
-        setIsUserJoined(true);
-        setLoading(false);
-      }, 500); 
-      return () => clearTimeout(timeout);
-    }
-  }, [user, isUserJoined]);
-
-  // Fetch user data
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-          const userData = await api.getCurrentUser();
-          if (!userData) {
-            api.removeAuthToken(); // optional logout
-            navigate('/');
-          return;
-          }
-          setUser(userData);
-      } catch (err) {
-        console.error(err);
-        // setError('Failed to fetch user. Please try again.');
-        await api.removeAuthToken();
-        navigate('/');
-      }
-    };
-  
-    fetchUser();
-  }, []);
-
-  // Selesaikan loading jika user dan participants sudah ada
-  useEffect(() => {
-    if (user && participants && participants.length > 0) {
-      // Cek apakah current user sudah ada di dalam participants
-      const currentUserParticipant = participants.find((p) => p.user.id === user.id);
-      if (currentUserParticipant) {
-        setIsUserJoined(true);
-        setLoading(false);
-      } else {
-        // Tetap loading sampai user berhasil join
-        setIsUserJoined(false);
-        setLoading(true);
-      }
-    }
-  }, [user, participants]);
-
-  // Cek join status setiap kali participants berubah
-  useEffect(() => {
-    if (user && participants && participants.length > 0) {
-      const currentUserParticipant = participants.find((p) => p.user.id === user.id);
-      if (currentUserParticipant && !isUserJoined) {
-        setIsUserJoined(true);
-        setLoading(false);
-      }
-    }
-  }, [user, participants, isUserJoined]);
-
-  useEffect(() => {
-    // Step 1: Check if user is authenticated
-    const authStatus = api.isAuthenticated()
-    if (!authStatus) {
-      navigate('/')
-      return
-    }
-    if (!retroId) return;    
-  }, [retroId]);
-
-  const handleChangeView = async () => {
-    navigate(`/retro/${retroId}`)
-  }
-
+ 
   const handleStartRetro = useCallback(async () => {
     try {
       if (socket) {
@@ -124,7 +42,6 @@ export default function RetroLobbyPage({ socket, retroId, participants, setParti
       setIsOngoing(true)
       await apiService.updateRetroStatus(retroId, "ongoing" )
       await apiService.updateRetroPhase(retroId, 'prime-directive')
-      handleChangeView()
     } catch (error) {
       console.error("Error starting retro:", error)
       const errorMessage = error instanceof Error ? error.message : 'Failed to start retro'
@@ -137,7 +54,7 @@ export default function RetroLobbyPage({ socket, retroId, participants, setParti
     try {
       setIsPromoting(true);
       await apiService.updateParticipantRole(retroId, selectedParticipant.id);
-      setParticipants(prev => prev.map(p => p.id === selectedParticipant.id ? { ...p, role: true } : p));
+      // setParticipants(prev => prev.map(p => p.id === selectedParticipant.id ? { ...p, role: true } : p));
       setShowRoleModal(false);
       setSelectedParticipant(null);
     } catch (error) {
@@ -147,31 +64,11 @@ export default function RetroLobbyPage({ socket, retroId, participants, setParti
     } finally {
       setIsPromoting(false);
     }
-  }, [retroId, selectedParticipant, setParticipants]);
+  }, [retroId, selectedParticipant]);
   
   const shareUrl = typeof window !== "undefined" ? window.location.href : ""
   const facilitator = participants.find((p) => p.role === true)
   const isFacilitator = user?.id === facilitator?.user.id
-
-
-
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading lobby...</p>
-          {!isUserJoined && user && (
-            <p className="text-sm text-indigo-600 mt-2">Joining as participant...</p>
-          )}
-          {isJoining && (
-            <p className="text-sm text-indigo-600 mt-2">Joining as participant...</p>
-          )}
-        </div>
-      </div>
-    )
-  }
 
   if (error && !retro) {
     return (

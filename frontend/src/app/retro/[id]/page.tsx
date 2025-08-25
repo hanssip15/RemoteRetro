@@ -135,29 +135,16 @@ export default function RetroPage() {
 
 
 // ------------------------ Authentication ------------------------ // 
+  
   useEffect(() => {
   const fetchUser = async () => {
-    try {
-      
-        const userData = await api.getCurrentUser();
-        if (!userData) {
-          api.removeAuthToken(); 
-          navigate('/');
-        return;
-        }
-        setUser(userData);
-        setUserId(userData.id);
-        setIsUserJoined(true)
-    } catch (err) {
-      console.error(err);
-      setError('Failed to fetch user. Please try again.');
-      await api.removeAuthToken();
-      navigate('/');
-    }
+    const user = await api.getCurrentUser();
+    setUser(user);
+    setUserId(user.id);
   };
-
   fetchUser();
 }, []);
+
 
 const handleLogout = useCallback(async () => {
     try {
@@ -532,8 +519,6 @@ function computeGroupsAndColors(
     }
   }, [user?.id]);
 
-
-  
 // ! ------------------------ Change Phase ------------------------ //
   useEffect(() => {
       if (retro?.currentPhase) {
@@ -874,6 +859,8 @@ const handleItemAdded = useCallback((newItem: RetroItem) => {
 
   // ! ------------------------ Action Items ------------------------ //
 
+
+
   // Handler untuk menerima action items update dari WebSocket
   const handleActionItemsUpdate = useCallback((actionItems: any[]) => {
     // Don't update action items from WebSocket during final phase
@@ -892,6 +879,13 @@ const handleItemAdded = useCallback((newItem: RetroItem) => {
     }
   }, [phase, isLoadingFromDatabase]);
 
+
+    const handleParticipantAdded = useCallback((participant: Participant) => {
+    console.log ( "yang masuk :", participant)
+    setParticipants(prev => 
+      [...prev, participant]
+    );
+  }, []);
 
   // ! ------------------------ Socket Initialization ------------------------ //
   // Initialize WebSocket connection using the stable hook
@@ -912,6 +906,7 @@ const handleItemAdded = useCallback((newItem: RetroItem) => {
         console.error('❌ Error updating participants:', e);
       }
     },
+    onParticipantAdded: handleParticipantAdded,
     onPhaseChange: handlePhaseChange,
     onItemPositionUpdate: handleItemPositionUpdate,
     onGroupingUpdate: handleGroupingUpdate,
@@ -921,7 +916,6 @@ const handleItemAdded = useCallback((newItem: RetroItem) => {
     onActionItemsUpdate: handleActionItemsUpdate,
     onRetroState: handleRetroState,
   });
-
 
   // ! ------------------------ Grouping - Socket ------------------------ //
   // Debounced grouping update function - now with access to socket and isConnected
@@ -1093,30 +1087,8 @@ const handleItemAdded = useCallback((newItem: RetroItem) => {
   }
 }, [socket, retroId, user]);
 
-    // ! ------------------------ Action Items - socket ------------------------ //
 
-  const handleAddActionItemWebSocket = () => {
-    if (!actionInput.trim() || !actionAssignee || !user?.id) {
-      return;
-    }
-    // Cari nama assignee
-    const assignee = participants.find((p: any) => p.user.id === actionAssignee);
-    const assigneeName = assignee?.user.name || 'Unknown';
-    // Kirim ke WebSocket
-    if (socket && isConnected) {
-      socket.emit('action-item-added', {
-        retroId: retro?.id,
-        task: actionInput,
-        assigneeId: actionAssignee,
-        assigneeName,
-        createdBy: user.id
-      });
-    } else {
-      console.log('❌ Socket not available or not connected');
-    }
-    setActionInput('');
-  };
-  
+
   // ! ------------------------ Typing - socket ------------------------ //
   useEffect(() => {
     if (!socket) return;
@@ -1183,15 +1155,11 @@ const handleItemAdded = useCallback((newItem: RetroItem) => {
 
   
     // ! ------------------------ Action Item - socket ------------------------ //
-
-
   const [actionInput, setActionInput] = useState('');
   const [actionAssignee, setActionAssignee] = useState(participants[0]?.user.id || '');
   const [editingActionIdx, setEditingActionIdx] = useState<number | null>(null);
   const [editActionInput, setEditActionInput] = useState('');
   const [editActionAssignee, setEditActionAssignee] = useState('');
-
-  
 
   useEffect(() => {
     // Hanya set actionAssignee jika belum ada nilai dan ada participants
@@ -1200,19 +1168,56 @@ const handleItemAdded = useCallback((newItem: RetroItem) => {
     }
   }, [participants, setActionAssignee]); 
 
+      const [allParticipants, setAllParticipants] = useState<Participant[]>([]);
+    useEffect(() => {
+      const fetchAllParticipants = async () => {
+        const all = await apiService.getParticipants(retroId);
+        setAllParticipants(all);
+      };
+      fetchAllParticipants();
+    }, [retroId, participants]);
+
+    const handleAddActionItemWebSocket = () => {
+    if (!actionInput.trim() || !actionAssignee || !user?.id) {
+      return;
+    }
+    // Cari nama assignee
+    const assignee = allParticipants.find((p: any) => p.user.id === actionAssignee);
+    const assigneeName = assignee?.user.name || 'Unknown';
+    // Kirim ke WebSocket
+    if (socket && isConnected) {
+      socket.emit('action-item-added', {
+        retroId: retro?.id,
+        task: actionInput,
+        assigneeId: actionAssignee,
+        assigneeName,
+        createdBy: user.id
+      });
+    } else {
+      console.log('❌ Socket not available or not connected');
+    }
+    setActionInput('');
+  };
+  
+
   const handleEditActionItem = (idx: number) => {
     const item = actionItems[idx];
+    console.log("Editing action item:", item);
     setEditingActionIdx(idx);
     setEditActionInput(item.task);
-    setEditActionAssignee(item.assigneeId || item.assignee || '');
+    setEditActionAssignee(item.assigneeId || '');
+
   };
+
+
 
   const handleSaveEditActionItem = (idx: number) => {
     if (!editActionInput.trim() || !editActionAssignee || !user?.id) return;
-    
     const item = actionItems[idx];
-    const assignee = participants.find(p => p.user.id === editActionAssignee);
-    const assigneeName = assignee?.user.name || 'Unknown';
+    // console.log("semua parts", allParticipants);
+    // console.log("Saving action item:", editActionAssignee)
+    const assignee = allParticipants.find(p => p.user.id === editActionAssignee);
+    const assigneeName = assignee?.user.name || '';
     
     // Send to WebSocket
     if (socket && isConnected) {
@@ -1242,15 +1247,24 @@ const handleItemAdded = useCallback((newItem: RetroItem) => {
     }
   };
 
+  if (loading) {
+    return(
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading retrospective...</p>
+        </div>
+      </div>
+    )
+  }
   // Phase switching
   if (phase === 'lobby') return (
     <RetroLobbyPage
       socket={socket}
       isConnected={isConnected}
-      userId={userId || ''}
+      user={user}
       retroId={retroId}
       participants={participants}
-      setParticipants={setParticipants}
       retro={retro}
     />
   );
@@ -1498,13 +1512,11 @@ const handleItemAdded = useCallback((newItem: RetroItem) => {
         onClose={() => setShowShareModal(false)}
         shareUrl={typeof window !== 'undefined' ? window.location.href : ''}
       />
+
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading retrospective...</p>
-          {!isUserJoined && user && (
-            <p className="text-sm text-indigo-600 mt-2">Joining as participant...</p>
-          )}
         </div>
       </div>
     </>

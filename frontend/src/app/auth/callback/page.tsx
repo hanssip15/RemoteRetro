@@ -14,11 +14,10 @@ const AuthCallbackPage = () => {
         if (user) {
           // simpan user ke cache (api.ts) / context
           api.setUser(user);
-
-          navigate("/dashboard");
-        } else {
-          navigate("/");
-        }
+          const redirect = localStorage.getItem("redirect") || "/dashboard";
+          // localStorage.removeItem("redirect");
+          navigate(redirect);
+        } 
       } catch (err) {
         console.error("Failed to fetch user:", err);
         navigate("/");

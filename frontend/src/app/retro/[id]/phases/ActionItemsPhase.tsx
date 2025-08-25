@@ -7,7 +7,7 @@ import { PhaseConfirmModal } from '@/components/ui/dialog';
 import { api, apiService } from '@/services/api';
 import { getCategoryEmoji } from '@/lib/utils';
 import useEnterToCloseModal from "@/hooks/useEnterToCloseModal";
-
+import { Participant } from '@/services/api';
 
 export default function ActionItemsPhase({
   retro,
@@ -45,14 +45,22 @@ export default function ActionItemsPhase({
   
   // Handler untuk tombol Add yang mengirim ke WebSocket
 
-  
+  const [allParticipants, setAllParticipants] = useState<Participant[]>([]);
+  useEffect(() => {
+    const fetchAllParticipants = async () => {
+      const all = await apiService.getParticipants(retro.id);
+      setAllParticipants(all);
+    };
+    fetchAllParticipants();
+  }, [retro.id, participants]);
+
   React.useEffect(() => {
     // Hanya set actionAssignee jika belum ada nilai dan ada participants
-    if (participants && participants.length > 0 && !actionAssignee) {
-      setActionAssignee(participants[0].user.id);
+    if (allParticipants && allParticipants.length > 0 && !actionAssignee) {
+      setActionAssignee(allParticipants[0].user.id);
     }
-  }, [participants, setActionAssignee]); // Hapus actionAssignee dari dependencies untuk mencegah infinite loop
-  
+  }, [allParticipants, setActionAssignee]); // Hapus actionAssignee dari dependencies untuk mencegah infinite loop
+
   // Helper function untuk memastikan actionAssignee tetap konsisten
   const handleActionAssigneeChange = (newAssignee: string) => {
     // Hanya update jika nilai benar-benar berbeda
@@ -168,7 +176,7 @@ export default function ActionItemsPhase({
                             value={editActionAssignee}
                             onChange={e => setEditActionAssignee(e.target.value)}
                           >
-                            {participants.map((p: any) => (
+                            {allParticipants.map((p: any) => (
                               <option key={p.user.id} value={p.user.id}>{p.user.name}</option>
                             ))}
                           </select>
@@ -265,8 +273,8 @@ export default function ActionItemsPhase({
                 value={actionAssignee}
                 onChange={e => handleActionAssigneeChange(e.target.value)}
               >
-                {participants.length > 0 ? (
-                  participants.map((p: any) => (
+                {allParticipants.length > 0 ? (
+                  allParticipants.map((p: any) => (
                     <option key={p.user.id} value={p.user.id}>{p.user.name}</option>
                   ))
                 ) : (
@@ -324,7 +332,7 @@ export default function ActionItemsPhase({
                       }
 
                       // Kirim email action items ke semua participant
-                      const participantEmails = participants.map((p: any) => p.user.email).filter(Boolean);
+                      const participantEmails = allParticipants.map((p: any) => p.user.email).filter(Boolean);
                       
                       await apiService.updateRetroStatus(retro.id, "completed")
                       await apiService.updateRetroPhase(retro.id, 'final'); 
