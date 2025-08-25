@@ -1019,8 +1019,8 @@ const handleItemAdded = useCallback((newItem: RetroItem) => {
           const mergedPositions: { [key: string]: { x: number; y: number } } = {};
           itemsData.forEach((item, index) => {
             mergedPositions[item.id] = fromBackend[item.id] || {
-              x: 200 + (index % 3) * 220,
-              y: 100 + Math.floor(index / 3) * 70
+              x: 20 + (index % 3) * 150,
+              y: 20 + Math.floor(index / 3) * 70
             };
           });
   
@@ -1055,8 +1055,8 @@ const handleItemAdded = useCallback((newItem: RetroItem) => {
         const fallbackPositions: { [key: string]: { x: number; y: number } } = {};
         itemsData.forEach((item, index) => {
           fallbackPositions[item.id] = {
-            x: 200 + (index % 3) * 220,
-            y: 100 + Math.floor(index / 3) * 70
+            x: 20 + (index % 3) * 150,
+            y: 20 + Math.floor(index / 3) * 70
           };
         });
         setItemPositions(fallbackPositions);

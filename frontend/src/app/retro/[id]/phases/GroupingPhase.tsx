@@ -60,7 +60,7 @@ export default function GroupingPhase({
 const positionsReady = useMemo(() => {
   const itemsLength = items.length;
   const positionsLength = Object.keys(itemPositions || {}).length;
-
+  console.log("-- positionsReady check:", { itemsLength, positionsLength, itemPositions });
   if (itemsLength === 0) return false;
 
   // Render kalau posisi lengkap
