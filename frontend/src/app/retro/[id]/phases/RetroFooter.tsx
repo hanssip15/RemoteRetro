@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/dialog';
 
 export default function RetroFooter({
-  left, // tambahkan prop left
+  left,
   center, right, participants = [], typingParticipants = [], children, isCurrentFacilitator, user,
   allUserVotes = {},
   maxVotes = 3
@@ -30,21 +30,18 @@ export default function RetroFooter({
   const prevFacilitatorId = useRef<string | null>(null);
 
   useEffect(() => {
-    // Cari id facilitator saat ini dari participants
     const facilitator = participants.find((p: any) => p.role)?.user.id;
-    // Modal hanya muncul jika facilitator berpindah ke user ini, dan sebelumnya sudah ada facilitator
     if (
       facilitator &&
       facilitator !== prevFacilitatorId.current &&
       facilitator === user?.id &&
-      prevFacilitatorId.current !== null // jangan trigger saat pertama kali render/creator
+      prevFacilitatorId.current !== null
     ) {
       setShowFacilitatorGrantedModal(true);
     }
     prevFacilitatorId.current = facilitator || null;
   }, [participants, user?.id]);
 
-  // Handler promote facilitator
   const handlePromoteToFacilitator = useCallback(async () => {
     if (!user || !selectedParticipant) return;
     setLoading(true);
@@ -52,7 +49,6 @@ export default function RetroFooter({
       await apiService.updateParticipantRole(retroId, selectedParticipant.id);
       setShowRoleModalLocal(false);
       setSelectedParticipantLocal(null);
-      // Optionally: refresh data
     } catch (error) {
       alert("Failed to promote facilitator");
     } finally {
@@ -62,7 +58,7 @@ export default function RetroFooter({
 
   return (
     <>
-      {/* Modal */}
+      {/* Modal Promote Facilitator */}
       <Dialog open={showRoleModal && !!selectedParticipant} onOpenChange={setShowRoleModalLocal}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -86,7 +82,7 @@ export default function RetroFooter({
             <Button 
               onClick={handlePromoteToFacilitator}
               disabled={loading}
-              style={{ backgroundColor: '#22c55e' }} // green-600
+              style={{ backgroundColor: '#22c55e' }}
               className="text-white hover:bg-green-700"
             >
               {loading ? "Promoting..." : "Promote"}
@@ -95,7 +91,7 @@ export default function RetroFooter({
         </DialogContent>
       </Dialog>
 
-      {/* Modal for facilitator granted */}
+      {/* Modal Facilitator Granted */}
       <Dialog open={showFacilitatorGrantedModal} onOpenChange={setShowFacilitatorGrantedModal}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -106,7 +102,7 @@ export default function RetroFooter({
           </DialogDescription>
           <DialogFooter className="flex-row justify-end mt-4">
             <Button
-              style={{ backgroundColor: '#2563eb' }} // blue-600
+              style={{ backgroundColor: '#2563eb' }}
               className="text-white hover:bg-blue-700"
               onClick={() => setShowFacilitatorGrantedModal(false)}
             >
@@ -116,11 +112,11 @@ export default function RetroFooter({
         </DialogContent>
       </Dialog>
 
-      {/* ...footer content, avatar bar, dsb... */}
+      {/* Footer content */}
       <div className="fixed bottom-0 left-0 w-full z-40">
-        {/* Avatar bar: tanpa background putih */}
+        {/* Avatar bar */}
         {participants.length > 0 && (
-          <div className="w-full flex justify-center pb-1 mb-4">
+          <div className="w-full flex justify-center pb-1 mb-1">
             <div className="flex flex-row items-end gap-6">
               {participants.map((p: any) => (
                 <div key={p.id} className="flex flex-col items-center relative group">
@@ -141,7 +137,6 @@ export default function RetroFooter({
                         {p.user.name?.charAt(0)?.toUpperCase() || <User className="h-4 w-4" />}
                       </AvatarFallback>
                     </Avatar>
-                    {/* Icon edit hanya untuk facilitator dan bukan diri sendiri */}
                     {isCurrentFacilitator && p.user.id !== user?.id && (
                       <button
                         className="absolute -top-2 -right-2 bg-white rounded-full shadow p-1 border border-gray-200 hover:bg-gray-100 transition"
@@ -151,7 +146,6 @@ export default function RetroFooter({
                           setSelectedParticipantLocal(p);
                         }}
                       >
-                        {/* Hanya icon pensil tanpa bulatan */}
                         <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
                           <path d="M15.232 5.232a2.5 2.5 0 1 1 3.536 3.536L8.5 19H5v-3.5l12.232-12.268z" stroke="#222" strokeWidth="1.5"/>
                         </svg>
@@ -159,41 +153,45 @@ export default function RetroFooter({
                     )}
                   </div>
                   <span className="text-xs text-gray-900 mt-1 font-medium">{p.user.name}{p.role ? ' (Facilitator)' : ''}</span>
-                  {/* ALL VOTES IN indicator: selalu sediakan space agar avatar tidak bergerak */}
-                  <div className="text-xs font-bold mt-1" style={{ minHeight: 16 }}>
+                  
+                  {/* === PERUBAHAN DIMULAI DI SINI === */}
+                  {/* Indikator Status Gabungan (Mengetik atau Semua Vote Masuk) */}
+                  <div className="flex justify-center items-center mt-1" style={{ minHeight: 16 }}>
                     {(() => {
+                      const isTyping = typingParticipants.includes(p.user.id);
+
                       const userVoteObj = allUserVotes?.[p.user.id] || {};
                       const totalVotes = (Object.values(userVoteObj) as number[]).reduce((a: number, b: number) => a + Number(b), 0);
                       const hasUsedAllVotes = totalVotes >= maxVotes;
-                      return hasUsedAllVotes ? (
-                        <span className="text-green-600">ALL VOTES IN</span>
-                      ) : (
-                        <span style={{ opacity:0 }}>ALL VOTES IN</span>
-                      );
+
+                      if (isTyping) {
+                        return (
+                          <div className="flex space-x-1">
+                            <span className="dot" style={{ animationDelay: '0s' }}></span>
+                            <span className="dot" style={{ animationDelay: '0.2s' }}></span>
+                            <span className="dot" style={{ animationDelay: '0.4s' }}></span>
+                          </div>
+                        );
+                      }
+                      
+                      if (hasUsedAllVotes) {
+                        return (
+                          <span className="text-xs font-bold text-green-600">ALL VOTES IN</span>
+                        );
+                      }
+
+                      // Placeholder untuk menjaga layout tetap stabil
+                      return <span className="text-xs" style={{ opacity: 0 }}>&nbsp;</span>;
                     })()}
                   </div>
-                  {/* Typing indicator: selalu sediakan space agar avatar tidak bergerak */}
-                  <div className="flex space-x-1 mt-1" style={{ minHeight: 12 }}>
-                    {typingParticipants.includes(p.user.id) ? (
-                      <>
-                        <span className="dot" style={{ animationDelay: '0s' }}></span>
-                        <span className="dot" style={{ animationDelay: '0.2s' }}></span>
-                        <span className="dot" style={{ animationDelay: '0.4s' }}></span>
-                      </>
-                    ) : (
-                      <>
-                        <span style={{ width: 8, height: 8, margin: '0 2px', opacity: 0, display: 'inline-block' }}></span>
-                        <span style={{ width: 8, height: 8, margin: '0 2px', opacity: 0, display: 'inline-block' }}></span>
-                        <span style={{ width: 8, height: 8, margin: '0 2px', opacity: 0, display: 'inline-block' }}></span>
-                      </>
-                    )}
-                  </div>
+                  {/* === PERUBAHAN SELESAI DI SINI === */}
+
                 </div>
               ))}
             </div>
           </div>
         )}
-        {/* Card putih/footer utama */}
+        {/* Main white footer card */}
         <div className="w-full bg-white border-t rounded-t-xl shadow-lg">
           {(left || center || right) && (
             <div className="container mx-auto px-4 py-4 flex flex-row items-center justify-between gap-4 md:gap-4 md:flex-row">
@@ -207,4 +205,4 @@ export default function RetroFooter({
       </div>
     </>
   );
-} 
+}

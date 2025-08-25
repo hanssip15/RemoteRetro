@@ -78,73 +78,80 @@ export default function IdeationPhase(props: any) {
         setShowShareModal={setShowShareModal}
         handleLogout={handleLogout}
       />
-      {/* Board */}
-      <div className="container mx-auto px-4 py-8 flex-1 pb-56">
-        {/* Mobile: Tab emoji dan list filter */}
-        <div className="sm:hidden">
-          <div className="flex justify-between items-center mb-2 border-b">
-            {['format_1', 'format_2', 'format_3'].map((cat, idx) => (
-              <button
-                key={cat}
-                className={`flex-1 py-2 text-2xl border-b-2 transition-colors ${activeMobileCategory === cat ? 'border-blue-500 bg-blue-50' : 'border-transparent'}`}
-                onClick={() => setActiveMobileCategory(cat)}
-              >
-                {retro?.format === "happy_sad_confused"
-                  ? (idx === 0 ? '😀' : idx === 1 ? '😢' : '🤔')
-                  : (idx === 0 ? '🟢' : idx === 1 ? '🛑' : '🔄')}
-              </button>
-            ))}
-          </div>
-          <div className="bg-white rounded-b-lg shadow p-2">
-            {items.filter((item:any) => item.category === activeMobileCategory).map((item:any) => (
-              <FeedbackCard
-                key={`${item.id}-${item.category}`}
-                item={{ ...item, author: item.author || "Anonymous" }}
-                currentUser={user}
-                userRole={currentUserRole}
-                onUpdate={handleUpdateItem}
-                onDelete={handleDeleteItem}
-                getCategoryDisplayName={getCategoryDisplayName}
-                isUpdating={updatingItemId === item.id}
-              />
-            ))}
-            {items.filter((item:any) => item.category === activeMobileCategory).length === 0 && (
-              <div className="text-center text-gray-400 py-4">No items yet</div>
-            )}
-          </div>
-        </div>
-        {/* Desktop: 3 kolom */}
-        <div className="hidden sm:grid lg:grid-cols-3 gap-6">
-          {[0,1,2].map(idx => (
-            <Card className="h-fit" key={idx}>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  {/* Emoji sesuai kategori */}
-                  <span role="img" aria-label="cat">
-                    {retro?.format === "happy_sad_confused"
-                      ? (idx === 0 ? '😀' : idx === 1 ? '😢' : '🤔')
-                      : (idx === 0 ? '🟢' : idx === 1 ? '🛑' : '🔄')}
-                  </span> {getCategoryDisplayName(`format_${idx+1}`)}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-4 space-y-4 min-h-[200px]">
-                {items.filter((item:any) => item.category === `format_${idx+1}`).map((item:any) => (
-                  <FeedbackCard
-                    key={`${item.id}-${item.category}`}
-                    item={{ ...item, author: item.author || "Anonymous" }}
-                    currentUser={user}
-                    userRole={currentUserRole}
-                    onUpdate={handleUpdateItem}
-                    onDelete={handleDeleteItem}
-                    getCategoryDisplayName={getCategoryDisplayName}
-                    isUpdating={updatingItemId === item.id}
-                  />
-                ))}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
+             {/* Board */}
+       <div className="container mx-auto px-4 py-8 flex-1">
+         {/* Mobile: Tab emoji dan list filter */}
+         <div className="sm:hidden">
+           <div className="flex justify-between items-center mb-2 border-b">
+             {['format_1', 'format_2', 'format_3'].map((cat, idx) => (
+               <button
+                 key={cat}
+                 className={`flex-1 py-2 text-2xl border-b-2 transition-colors ${activeMobileCategory === cat ? 'border-blue-500 bg-blue-50' : 'border-transparent'}`}
+                 onClick={() => setActiveMobileCategory(cat)}
+               >
+                 {retro?.format === "happy_sad_confused"
+                   ? (idx === 0 ? '😀' : idx === 1 ? '😢' : '🤔')
+                   : (idx === 0 ? '🟢' : idx === 1 ? '🛑' : '🔄')}
+               </button>
+             ))}
+           </div>
+           <div className="bg-white rounded-b-lg shadow max-h-[calc(100vh-400px)] overflow-y-auto p-2">
+             <div className="space-y-4">
+               {items.filter((item:any) => item.category === activeMobileCategory).map((item:any) => (
+                 <FeedbackCard
+                   key={`${item.id}-${item.category}`}
+                   item={{ ...item, author: item.author || "Anonymous" }}
+                   currentUser={user}
+                   userRole={currentUserRole}
+                   onUpdate={handleUpdateItem}
+                   onDelete={handleDeleteItem}
+                   getCategoryDisplayName={getCategoryDisplayName}
+                   isUpdating={updatingItemId === item.id}
+                 />
+               ))}
+               {items.filter((item:any) => item.category === activeMobileCategory).length === 0 && (
+                 <div className="text-center text-gray-400 py-8">No items yet</div>
+               )}
+             </div>
+           </div>
+         </div>
+         {/* Desktop: 3 kolom */}
+         <div className="hidden sm:grid lg:grid-cols-3 gap-6">
+           {[0,1,2].map(idx => (
+             <Card className="max-h-[calc(100vh-300px)] flex flex-col" key={idx}>
+               <CardHeader className="flex-shrink-0">
+                 <CardTitle className="flex items-center gap-2">
+                   {/* Emoji sesuai kategori */}
+                   <span role="img" aria-label="cat">
+                     {retro?.format === "happy_sad_confused"
+                       ? (idx === 0 ? '😀' : idx === 1 ? '😢' : '🤔')
+                       : (idx === 0 ? '🟢' : idx === 1 ? '🛑' : '🔄')}
+                   </span> {getCategoryDisplayName(`format_${idx+1}`)}
+                 </CardTitle>
+               </CardHeader>
+               <CardContent className="p-4 flex-1 overflow-y-auto">
+                 <div className="space-y-4">
+                   {items.filter((item:any) => item.category === `format_${idx+1}`).map((item:any) => (
+                     <FeedbackCard
+                       key={`${item.id}-${item.category}`}
+                       item={{ ...item, author: item.author || "Anonymous" }}
+                       currentUser={user}
+                       userRole={currentUserRole}
+                       onUpdate={handleUpdateItem}
+                       onDelete={handleDeleteItem}
+                       getCategoryDisplayName={getCategoryDisplayName}
+                       isUpdating={updatingItemId === item.id}
+                     />
+                   ))}
+                   {items.filter((item:any) => item.category === `format_${idx+1}`).length === 0 && (
+                     <div className="text-center text-gray-400 py-8">No items yet</div>
+                   )}
+                 </div>
+               </CardContent>
+             </Card>
+           ))}
+         </div>
+       </div>
       {/* Footer modular */}
       <RetroFooter
         title={null}

@@ -98,8 +98,8 @@ export function FeedbackCard({
           </div>
         ) : (
           <div className="flex items-start justify-between w-full">
-            <div>
-              <p className="text-sm leading-relaxed">{item.content}</p>
+            <div className="min-w-0">
+              <p className="text-sm leading-relaxed break-words">{item.content}</p>
               {item.isEdited && (
                 <span className="text-xs text-gray-500 ml-2 flex-shrink-0">edited</span>
               )}
