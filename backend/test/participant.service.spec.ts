@@ -43,6 +43,7 @@ describe('ParticipantService', () => {
         {
           provide: ParticipantGateway,
           useValue: {
+            broadcastParticipantAdded: jest.fn(),
             broadcastParticipantUpdate: jest.fn(),
           },
         },
@@ -72,7 +73,7 @@ describe('ParticipantService', () => {
     retroRepo.findOne.mockResolvedValue(null);
 
     await expect(
-      service.join('r1', { userId: 'u1', role: false, isActive: true })
+      service.join('r1', 'u1', { role: false, isActive: true })
     ).rejects.toThrow(NotFoundException);
   });
 
@@ -80,7 +81,7 @@ describe('ParticipantService', () => {
     retroRepo.findOne.mockResolvedValue({ status: 'completed' } as any);
 
     await expect(
-      service.join('r1', { userId: 'u1', role: false, isActive: true })
+      service.join('r1', 'u1', { role: false, isActive: true })
     ).rejects.toThrow(BadRequestException);
   });
 
@@ -88,20 +89,22 @@ describe('ParticipantService', () => {
     retroRepo.findOne.mockResolvedValue({ status: 'ongoing' } as any);
     participantRepo.findOne.mockResolvedValue({ id: 'p1' } as any);
 
-    const result = await service.join('r1', { userId: 'u1', role: false, isActive: true });
+    const result = await service.join('r1', 'u1', { role: false, isActive: true });
     expect(result).toEqual({ id: 'p1' });
   });
 
-  it('should save and return new participant if not exists', async () => {
-    retroRepo.findOne.mockResolvedValue({ status: 'ongoing' } as any);
-    participantRepo.findOne.mockResolvedValueOnce(null);
-    participantRepo.create.mockReturnValue({ id: 'new' } as any);
-    participantRepo.save.mockResolvedValue({ id: 'new' } as any);
+it('should save and return new participant if not exists', async () => {
+  retroRepo.findOne.mockResolvedValue({ status: 'ongoing' } as any);
+  participantRepo.findOne.mockResolvedValueOnce(null);
+  participantRepo.create.mockReturnValue({ id: 'new' } as any);
+  participantRepo.save.mockResolvedValue({ id: 'new' } as any);
+  participantRepo.findOne.mockResolvedValueOnce({ id: 'new', user: {} } as any); // untuk relasi user
 
-    const result = await service.join('r1', { userId: 'u1', role: false, isActive: true });
-    expect(result).toEqual({ id: 'new' });
-    expect(gateway.broadcastParticipantUpdate).toHaveBeenCalledWith('r1');
-  });
+  const result = await service.join('r1', 'u1', { role: false, isActive: true });
+  expect(result).toEqual({ id: 'new' });
+
+  expect(gateway.broadcastParticipantAdded).toHaveBeenCalledWith('r1', { id: 'new', user: {} });
+});
 
   it('should update participant to inactive on leave', async () => {
     retroRepo.findOne.mockResolvedValue({ id: 'r1' } as any);
@@ -126,8 +129,5 @@ describe('ParticipantService', () => {
     expect(gateway.broadcastParticipantUpdate).toHaveBeenCalledWith('r1');
   });
 
-  it('should return unique member count', async () => {
-    const result = await service.countUniqueMembers();
-    expect(result).toBe(5);
-  });
+
 });

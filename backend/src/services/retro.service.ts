@@ -6,6 +6,7 @@ import { RetroItem } from '../entities/retro-item.entity';
 import { Participant } from '../entities/participant.entity';
 import { CreateRetroDto} from '../dto/retro.dto';
 import { ParticipantGateway } from '../gateways/participant.gateways';
+import { DataSource } from 'typeorm';
 
 @Injectable()
 export class RetroService {
@@ -18,6 +19,8 @@ export class RetroService {
     @InjectRepository(Participant)
     private participantRepository: Repository<Participant>,
     private readonly participantGateway: ParticipantGateway,
+    private readonly dataSource: DataSource
+
   ) {}
 
   async findAll(): Promise<Retro[]> {
@@ -69,19 +72,30 @@ export class RetroService {
     this.participantGateway.broadcastParticipantUpdate(retroId);
   }
 }
-  async create(createRetroDto: CreateRetroDto): Promise<Retro> {
-    
-    const retroData = {
-      id: crypto.randomUUID(), // Generate UUID for ID
-      ...createRetroDto,
+
+  async create(dto: CreateRetroDto) {
+  return await this.dataSource.transaction(async (manager) => {
+    const retro = manager.create(Retro, {
+      id: crypto.randomUUID(),
+      title: dto.title,
+      format: dto.format,
+      createdBy: dto.createdBy,
+      facilitator: dto.facilitator,
       status: 'draft',
       currentPhase: 'lobby',
-      format: createRetroDto.format || 'happy_sad_confused' // Default format
-    };
-    const retro = this.retroRepository.create(retroData);
-    const savedRetro = await this.retroRepository.save(retro);
-    return savedRetro;
-  }
+    });
+    await manager.save(retro);
+    const participant = manager.create(Participant, {
+      retroId: retro.id,
+      userId: dto.createdBy,
+      role: true,
+      isActive: true,
+    });
+    await manager.save(participant);
+    return retro;
+  });
+}
+
 
   async updateRetroStatus(id: string, status: string): Promise<Retro> {
     const retro = await this.retroRepository.findOne({ where: { id } });

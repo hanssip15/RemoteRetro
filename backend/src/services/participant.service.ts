@@ -32,21 +32,18 @@ export class ParticipantService {
     const participant = await this.retroRepository.findOne({
       where: { id: retroId},
     });
-
     const isFacilitator = participant?.facilitator === userId;
-
     return isFacilitator
-    
   }
 
-  async join(retroId: string, userId:string, joinRetroDto: JoinRetroDto): Promise<Participant> {
+  async join(retroId: string, userId:string, joinRetroDto: JoinRetroDto): Promise<Participant | null> {
     const { role } = joinRetroDto;
 
     try {
       const retro = await this.retroRepository.findOne({ where: { id: retroId } });
-      if (!retro) throw new NotFoundException('Retro not found');
-      if (retro.status === 'completed') throw new BadRequestException('Retro is completed');
-
+        if (!retro) {
+          return null;
+        }
       const existingParticipant = await this.participantRepository.findOne({
         where: { retroId, userId },
       });
@@ -60,7 +57,6 @@ export class ParticipantService {
     });
 
       if (participantWithUser) {
-        console.log('Participant added with user data:', participantWithUser);
         this.participantGateway.broadcastParticipantAdded(retroId, participantWithUser);
       } 
       return savedParticipant;

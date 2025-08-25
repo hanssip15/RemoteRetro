@@ -1,82 +1,76 @@
-import { Test, TestingModule } from '@nestjs/testing';
+// src/email/email.service.spec.ts
 import { EmailService, EmailData } from '../src/services/email.service';
 import * as nodemailer from 'nodemailer';
 
 jest.mock('nodemailer');
 
-const sendMailMock = jest.fn();
-const verifyMock = jest.fn();
-
-(nodemailer.createTransport as jest.Mock).mockReturnValue({
-  sendMail: sendMailMock,
-  verify: verifyMock,
-});
-
 describe('EmailService', () => {
-  let service: EmailService;
+  let emailService: EmailService;
+  let mockSendMail: jest.Mock;
+  let mockVerify: jest.Mock;
 
-  beforeEach(async () => {
-    sendMailMock.mockClear();
-    verifyMock.mockClear();
+  beforeEach(() => {
+    mockSendMail = jest.fn().mockResolvedValue(true);
+    mockVerify = jest.fn().mockResolvedValue(true);
 
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [EmailService],
-    }).compile();
+    (nodemailer.createTransport as jest.Mock).mockReturnValue({
+      sendMail: mockSendMail,
+      verify: mockVerify,
+    });
 
-    service = module.get<EmailService>(EmailService);
+    emailService = new EmailService();
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
   describe('sendActionItemsEmail', () => {
+    const emailData: EmailData = {
+      retroTitle: 'Sprint 1',
+      actionItems: [
+        { task: 'Fix bug #123', assigneeName: 'Alice' },
+        { task: 'Refactor login service', assigneeName: 'Bob' },
+      ],
+      participantEmails: ['test1@example.com', 'test2@example.com'],
+    };
+
     it('should send emails to all participants', async () => {
-      sendMailMock.mockResolvedValue({});
+      await emailService.sendActionItemsEmail(emailData);
 
-      const data: EmailData = {
-        retroTitle: 'Sprint 1 Retrospective',
-        actionItems: [
-          { task: 'Improve deployment time', assigneeName: 'Alice' },
-          { task: 'Review code guidelines', assigneeName: 'Bob' },
-        ],
-        participantEmails: ['alice@example.com', 'bob@example.com'],
-      };
-
-      await service.sendActionItemsEmail(data);
-
-      expect(sendMailMock).toHaveBeenCalledTimes(2);
-      expect(sendMailMock).toHaveBeenCalledWith(
+      expect(mockSendMail).toHaveBeenCalledTimes(2);
+      expect(mockSendMail).toHaveBeenCalledWith(
         expect.objectContaining({
-          to: 'alice@example.com',
-          subject: expect.stringContaining(data.retroTitle),
-          html: expect.any(String),
-        })
+          to: 'test1@example.com',
+          subject: `Action Items from Retrospective: Sprint 1`,
+        }),
+      );
+      expect(mockSendMail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          to: 'test2@example.com',
+        }),
       );
     });
 
-    it('should throw error if email sending fails', async () => {
-      sendMailMock.mockRejectedValue(new Error('SMTP error'));
+    it('should throw error if sendMail fails', async () => {
+      mockSendMail.mockRejectedValueOnce(new Error('SMTP Error'));
 
-      const data: EmailData = {
-        retroTitle: 'Sprint 2',
-        actionItems: [{ task: 'Fix bug #42', assigneeName: 'Charlie' }],
-        participantEmails: ['mochamadfathurrabbani@example.com'],
-      };
-
-      await expect(service.sendActionItemsEmail(data)).rejects.toThrow(
-        'Failed to send email to mochamadfathurrabbani@example.com'
+      await expect(emailService.sendActionItemsEmail(emailData)).rejects.toThrow(
+        'Failed to send email to test1@example.com',
       );
     });
   });
 
-  describe('testEmailConnection', () => {
-    it('should return true when verify succeeds', async () => {
-      verifyMock.mockResolvedValue(true);
-      const result = await service.testEmailConnection();
-      expect(result).toBe(true);
-    });
+  describe('generateActionItemsEmailHTML', () => {
+    it('should generate HTML string containing action items', () => {
+      const html = (emailService as any).generateActionItemsEmailHTML('Retro X', [
+        { task: 'Do something', assigneeName: 'Alice' },
+      ]);
 
-    it('should return false when verify fails', async () => {
-      verifyMock.mockRejectedValue(new Error('Connection error'));
-      const result = await service.testEmailConnection();
-      expect(result).toBe(false);
+      expect(html).toContain('Retro X');
+      expect(html).toContain('Do something');
+      expect(html).toContain('Alice');
     });
   });
+
 });

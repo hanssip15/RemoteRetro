@@ -35,6 +35,8 @@ import { Participant } from 'src/entities/participant.entity';
     cors: {
       origin: '*',
     },
+    pingInterval: 10000,   // server kirim ping setiap 10 detik
+    pingTimeout: 5000
   })
   export class ParticipantGateway implements OnGatewayConnection, OnGatewayDisconnect {
     
