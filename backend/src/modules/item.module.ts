@@ -6,7 +6,7 @@ import { Participant } from '../entities/participant.entity';
 import { GroupItem } from 'src/entities/group-item.entity';
 import { RetroItemsService } from '../services/item.service';
 import { RetroItemsController } from '../controllers/item.controller';
-import { ParticipantGateway } from '../gateways/participant.gateways';
+import { ParticipantGateway } from '../gateways/participant.gateways';  
 import { RetroModule } from './retro.module'; // Tambahkan ini
 
 @Module({
