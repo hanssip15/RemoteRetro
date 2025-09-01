@@ -22,7 +22,7 @@ export class AuthController {
       const userData = { 
         name: name , 
         email, 
-        imageUrl: imageUrl || null 
+        imageUrl: imageUrl 
       };
       
       user = await this.usersService.create(userData);
@@ -34,7 +34,7 @@ export class AuthController {
       sub: user!.id, 
       email: user!.email, 
       name: user!.name, 
-      imageUrl: user!.imageUrl || null 
+      imageUrl: user!.imageUrl 
     };
     const token = this.jwtService.sign(payload);
     const frontendUrl = process.env.FRONTEND_URL; // Use environment variable or default to localhost

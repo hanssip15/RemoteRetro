@@ -1,10 +1,10 @@
 // src/auth/auth.service.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
-import { AuthService } from '../src/services/auth.service';
-import { UsersService } from '../src/services/user.service';
+import { AuthService } from '../../src/services/auth.service';
+import { UsersService } from '../../src/services/user.service';
 import { JwtService } from '@nestjs/jwt';
 import { UnauthorizedException } from '@nestjs/common';
-import { User } from '../src/entities/user.entity';
+import { User } from '../../src/entities/user.entity';
 
 describe('AuthService', () => {
   let authService: AuthService;

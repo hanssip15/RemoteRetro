@@ -12,7 +12,7 @@ import {
   import { ParticipantService } from '../services/participant.service';
 import { Participant } from 'src/entities/participant.entity';
   // Tambahkan di luar class (atau static property jika ingin lebih rapi)
-  const retroState: {
+  export const retroState: {
     [retroId: string]: {
       itemPositions: { [itemId: string]: { x: number; y: number } },
       itemGroups: { [itemId: string]: string },
@@ -173,7 +173,6 @@ import { Participant } from 'src/entities/participant.entity';
       this.server.to(`retro:${retroId}`).emit(`item-deleted:${retroId}`,itemId);
     }
 
-    // Broadcast all items for a retro
     broadcastItemsUpdate(retroId: string, items: any[]) {
       this.server.to(`retro:${retroId}`).emit(`items-update:${retroId}`, items);
     }
@@ -294,38 +293,38 @@ import { Participant } from 'src/entities/participant.entity';
       }
     }
 
-    // Handler baru: user minta state terkini
-    @SubscribeMessage('request-retro-state')
-    handleRequestRetroState(client: Socket, data: { retroId: string }) {
-      const state = retroState[data.retroId] || { itemPositions: {}, itemGroups: {}, signatureColors: {}, actionItems: [], allUserVotes: {} };
-      client.emit(`retro-state:${data.retroId}`, state);
-    }
+      // Handler baru: user minta state terkini
+      @SubscribeMessage('request-retro-state')
+      handleRequestRetroState(client: Socket, data: { retroId: string }) {
+        const state = retroState[data.retroId] || { itemPositions: {}, itemGroups: {}, signatureColors: {}, actionItems: [], allUserVotes: {} };
+        client.emit(`retro-state:${data.retroId}`, state);
+      }
 
-    @SubscribeMessage('typing')
-    handleTyping(client: Socket, data: { retroId: string; userId: string }) {
-      // Broadcast ke semua client di room retro
-      this.server.to(`retro:${data.retroId}`).emit('typing', { userId: data.userId });
-      // Opsional: log
-    }
+      @SubscribeMessage('typing')
+      handleTyping(client: Socket, data: { retroId: string; userId: string }) {
+        // Broadcast ke semua client di room retro
+        this.server.to(`retro:${data.retroId}`).emit('typing', { userId: data.userId });
+        // Opsional: log
+      }
 
-    // Handle label updates from facilitator
-    @SubscribeMessage('label-update')
-    handleLabelUpdate(client: Socket, data: { 
-      retroId: string; 
-      groupId: number; 
-      label: string; 
-      userId: string 
-    }) {
-      
-      // Broadcast label update to all participants in the retro
-      this.server.to(`retro:${data.retroId}`).emit(`label-update:${data.retroId}`, {
-        groupId: data.groupId,
-        label: data.label,
-        userId: data.userId,
-        timestamp: new Date().toISOString()
-      });
-      
-    }
+      // Handle label updates from facilitator
+      @SubscribeMessage('label-update')
+      handleLabelUpdate(client: Socket, data: { 
+        retroId: string; 
+        groupId: number; 
+        label: string; 
+        userId: string 
+      }) {
+        
+        // Broadcast label update to all participants in the retro
+        this.server.to(`retro:${data.retroId}`).emit(`label-update:${data.retroId}`, {
+          groupId: data.groupId,
+          label: data.label,
+          userId: data.userId,
+          timestamp: new Date().toISOString()
+        });
+        
+      }
 
     // Handle vote updates from participants
     @SubscribeMessage('vote-update')

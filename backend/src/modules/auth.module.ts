@@ -14,7 +14,7 @@ import { UsersModule } from '.././modules/user.module';
     PassportModule,
     JwtModule.registerAsync({
       useFactory: async () => ({
-        secret: process.env.JWT_SECRET || 'fallback',
+        secret: process.env.JWT_SECRET,
         signOptions: { expiresIn: '1d' },
       }),
     }),

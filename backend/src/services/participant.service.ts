@@ -42,7 +42,7 @@ export class ParticipantService {
     try {
       const retro = await this.retroRepository.findOne({ where: { id: retroId } });
         if (!retro) {
-          return null;
+          throw new NotFoundException(`Retro ${retroId} not found`);
         }
       const existingParticipant = await this.participantRepository.findOne({
         where: { retroId, userId },

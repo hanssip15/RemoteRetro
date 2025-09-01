@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsUUID, IsString, IsEnum } from 'class-validator';
-import { RetroFormatTypes } from 'src/entities/retro-item.entity';
+import { RetroFormatTypes } from '../entities/retro-item.entity';
 
 export class CreateRetroItemDto {
   @ApiProperty({ example: 'This is a retro item', description: 'The content of the retro item' })

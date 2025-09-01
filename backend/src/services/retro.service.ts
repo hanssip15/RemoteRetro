@@ -102,9 +102,6 @@ export class RetroService {
     if (!retro) {
       throw new NotFoundException(`Retro with ID ${id} not found`);
     }
-    if (status == '' || status == null){
-      throw new NotFoundException(`Status not found`);
-    }
     retro.status = status;
     if (status === 'completed') {
       this.participantGateway.broadcastRetroCompleted(id);
