@@ -97,21 +97,25 @@ export default function IdeationPhase(props: any) {
            </div>
            <div className="bg-white rounded-b-lg shadow max-h-[calc(100vh-400px)] overflow-y-auto p-2">
              <div className="space-y-4">
-               {items.filter((item:any) => item.category === activeMobileCategory).map((item:any) => (
-                 <FeedbackCard
-                   key={`${item.id}-${item.category}`}
-                   item={{ ...item, author: item.author || "Anonymous" }}
-                   currentUser={user}
-                   userRole={currentUserRole}
-                   onUpdate={handleUpdateItem}
-                   onDelete={handleDeleteItem}
-                   getCategoryDisplayName={getCategoryDisplayName}
-                   isUpdating={updatingItemId === item.id}
-                 />
-               ))}
-               {items.filter((item:any) => item.category === activeMobileCategory).length === 0 && (
-                 <div className="text-center text-gray-400 py-8">No items yet</div>
-               )}
+               {items
+                .filter((item: any) => item.category === activeMobileCategory)
+                .sort((a: any, b: any) => new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime()) // urut desc by updated_at
+                .map((item: any) => (
+                  <FeedbackCard
+                    key={`${item.id}-${item.category}`}
+                    item={{ ...item, author: item.author || "Anonymous" }}
+                    currentUser={user}
+                    userRole={currentUserRole}
+                    onUpdate={handleUpdateItem}
+                    onDelete={handleDeleteItem}
+                    getCategoryDisplayName={getCategoryDisplayName}
+                    isUpdating={updatingItemId === item.id}
+                  />
+                ))}
+
+              {items.filter((item: any) => item.category === activeMobileCategory).length === 0 && (
+                <div className="text-center text-gray-400 py-8">No items yet</div>
+              )}
              </div>
            </div>
          </div>

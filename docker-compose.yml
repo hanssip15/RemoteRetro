@@ -1,0 +1,27 @@
+services:
+  remoteretrobe:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "2237:8000"
+    env_file:
+      - ./backend/.env.example
+    networks:
+      - remoteretro
+
+  remoteretrofe:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    env_file:
+      - ./frontend/.env
+    restart: always
+    ports:
+      - "2238:3000"
+    networks:
+      - remoteretro
+
+networks:
+  remoteretro:
+    external: true

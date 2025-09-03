@@ -66,13 +66,12 @@ export const useRetroSocket = ({
       if (socketRef.current?.connected || isConnectingRef.current) {
         return;
       }
-  
       isConnectingRef.current = true;
-  
       // Connect to WebSocket server
       socketRef.current = io(import.meta.env.VITE_API_URL, {
         transports: ['websocket', 'polling'],
         timeout: 10000,
+        secure: true,
         reconnection: true,
         reconnectionAttempts: 5,
         reconnectionDelay: 1000,

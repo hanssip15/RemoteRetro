@@ -171,7 +171,7 @@ export default function LabellingPhase(props: any) {
               className="flex items-center px-1 py-1 text-sm md:px-8 md:py-2 md:text-base font-semibold"
               variant="phasePrimary"
             >
-              Next: Voting <span className="ml-2">&#8594;</span>
+              Voting <span className="ml-2">&#8594;</span>
             </Button>
             <PhaseConfirmModal
               open={showConfirm}

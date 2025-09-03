@@ -183,17 +183,17 @@ import { Participant } from 'src/entities/participant.entity';
     }
 
     // Handle phase change from facilitator
-    @SubscribeMessage('phase-change')
-    handlePhaseChange(client: Socket, data: { retroId: string; phase: string; facilitatorId: string }) {
+    // @SubscribeMessage('phase-change')
+    // handlePhaseChange(client: Socket, data: { retroId: string; phase: string; facilitatorId: string }) {
       
-      // Broadcast phase change to all participants in the retro
-      this.server.to(`retro:${data.retroId}`).emit(`phase-change:${data.retroId}`, {
-        phase: data.phase,
-        facilitatorId: data.facilitatorId,
-        timestamp: new Date().toISOString()
-      });
+    //   // Broadcast phase change to all participants in the retro
+    //   this.server.to(`retro:${data.retroId}`).emit(`phase-change:${data.retroId}`, {
+    //     phase: data.phase,
+    //     facilitatorId: data.facilitatorId,
+    //     timestamp: new Date().toISOString()
+    //   });
       
-    }
+    // }
 
     // Handle item position updates during dragging
     @SubscribeMessage('item-position-update')

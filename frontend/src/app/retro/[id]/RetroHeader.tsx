@@ -98,7 +98,6 @@ export default function RetroHeader({
                       <span>{(retro as any).duration} min</span>
                     </Badge>
                   )}
-                  <Badge variant={retro?.status === "draft" ? "default" : "secondary"}>{retro?.status ?? ''}</Badge>
                   {currentUserRole && (
                     <Badge variant="default" className="bg-blue-500">
                       Facilitator

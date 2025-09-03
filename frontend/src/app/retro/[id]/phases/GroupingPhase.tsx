@@ -240,7 +240,7 @@ const processedItemGroups = useMemo(() => {
                   className="flex items-center px-1 py-1 text-xs md:px-8 md:py-2 md:text-base font-semibold"
                   variant="phasePrimary"
                 >
-                  Next: Labelling <span className="ml-2">&#8594;</span>
+                  Labelling <span className="ml-2">&#8594;</span>
                 </Button>
                 <PhaseConfirmModal
                   open={showConfirm}

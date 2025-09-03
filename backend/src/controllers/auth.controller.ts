@@ -1,4 +1,4 @@
-import { Controller, Get, Req, UseGuards, Res } from '@nestjs/common';
+import { Controller, Get, Req, UseGuards, Res, ForbiddenException, Param } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../services/user.service';
@@ -69,6 +69,11 @@ export class AuthController {
       path: '/',
     });
     return res.json({ message: 'Logged out successfully' });
+  }
+
+  @Get('user/:id')
+  async getUser(@Param('id') id: string) {
+    return await this.usersService.findById(id);
   }
 
 }
