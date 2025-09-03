@@ -1,9 +1,8 @@
 import { Controller, Post, Body, Get, Param, Delete, Patch, Req, ForbiddenException, HttpCode, HttpStatus, Query, Put } from '@nestjs/common';
 import { RetroItemsService } from '../services/item.service';
-import { CreateRetroItemDto, UpdateItemDto } from '../dto/create-item.dto';
+import { CreateRetroItemDto, UpdateItemDto } from '../dto/item.dto';
 import { Request } from 'express';
 import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { Table } from 'typeorm';
 
 @ApiTags("Item")
 @Controller('item')
@@ -16,7 +15,7 @@ export class RetroItemsController {
   create(@Param('retro_id') retro_id: string, @Body() body: any) {
     const dto: CreateRetroItemDto = {
       content: body.content,
-      created_by: body.created_by || body.author, // Handle both field names
+      created_by: body.created_by, 
       format_type: body.category as any, // Map category to format_type
     };
     

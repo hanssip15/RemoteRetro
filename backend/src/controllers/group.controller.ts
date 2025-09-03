@@ -1,8 +1,5 @@
 import { Controller, Get, Post, Body, Param, Patch,} from '@nestjs/common';
 import { GroupService } from '../services/group.service';
-// import { Repository } from 'typeorm';
-// import { InjectRepository } from '@nestjs/typeorm';
-// import { GroupEntity } from 'src/entities/group.entity';
 import { ApiBody, ApiOperation, ApiProperty, ApiTags } from '@nestjs/swagger';
 import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
 

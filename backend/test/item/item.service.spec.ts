@@ -3,12 +3,13 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { NotFoundException } from '@nestjs/common';
 import { Repository } from 'typeorm';
 
-import { RetroItemsService } from '../src/services/item.service';
-import { RetroItem, RetroFormatTypes } from '../src/entities/retro-item.entity';
-import { Retro } from '../src/entities/retro.entity';
-import { Participant } from '../src/entities/participant.entity';
-import { GroupItem } from '../src/entities/group-item.entity';
-import { ParticipantGateway } from '../src/gateways/participant.gateways';
+import { RetroItemsService } from '../../src/services/item.service';
+import { RetroItem, RetroFormatTypes } from '../../src/entities/retro-item.entity';
+import { Retro } from '../../src/entities/retro.entity';
+import { Participant } from '../../src/entities/participant.entity';
+import { GroupItem } from '../../src/entities/group-item.entity';
+import { ParticipantGateway } from '../../src/gateways/participant.gateways';
+import { User } from 'src/entities/user.entity';
 
 describe('RetroItemsService', () => {
   let service: RetroItemsService;
@@ -157,6 +158,32 @@ describe('RetroItemsService', () => {
       await expect(service.update('i1', { content: 'x' } as any)).rejects.toThrow(NotFoundException);
     });
 
+    it('should throw if updated item not found', async () => {
+      retroItemRepo.findOne.mockResolvedValue(null);
+
+      await expect(service.update('i1', { content: 'x' } as any)).rejects.toThrow(NotFoundException);
+    });
+
+      it('should throw NotFoundException if updatedItem is not found after update', async () => {
+    const id = 'item-1';
+    const dto = { content: 'new content', format_type: RetroFormatTypes.format_1 };
+
+    // findOne pertama (cek item exist) → return item dummy
+    retroItemRepo.findOne
+      .mockResolvedValueOnce({ id, content: 'old', format_type: RetroFormatTypes.format_1, creator: { name: 'User' } as Partial<User> } as any)
+      // findOne kedua (cek updatedItem) → return null
+      .mockResolvedValueOnce(null);
+        
+    // retroItemRepo.update.mockResolvedValue(undefined);
+
+    await expect(service.update(id, dto)).rejects.toThrow(
+      new NotFoundException('Item not found after update'),
+    );
+
+    // Pastikan broadcast tidak dipanggil
+    expect(gateway.broadcastItemUpdated).not.toHaveBeenCalled();
+  });
+
     it('should update and return transformed item', async () => {
       retroItemRepo.findOne
         .mockResolvedValueOnce({ id: 'i1', retro_id: 'r1', creator: { name: 'User' } } as any) // first findOne
@@ -184,6 +211,7 @@ describe('RetroItemsService', () => {
       });
       expect(gateway.broadcastItemUpdated).toHaveBeenCalledWith('r1', expect.any(Object));
     });
+
   });
 
   describe('remove', () => {

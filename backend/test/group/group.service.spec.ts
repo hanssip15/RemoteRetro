@@ -1,8 +1,8 @@
 // src/group/group.service.spec.ts
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { GroupService } from '../src/services/group.service';
-import { GroupEntity } from '../src/entities/group.entity';
+import { GroupService } from '../../src/services/group.service';
+import { GroupEntity } from '../../src/entities/group.entity';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 

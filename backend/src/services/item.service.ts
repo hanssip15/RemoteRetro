@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/commo
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { RetroItem, RetroFormatTypes } from '../entities/retro-item.entity';
-import { CreateRetroItemDto, UpdateItemDto } from '../dto/create-item.dto';
+import { CreateRetroItemDto, UpdateItemDto } from '../dto/item.dto';
 import { Retro } from '../entities/retro.entity';
 import { Participant } from '../entities/participant.entity';
 import { ParticipantGateway } from '../gateways/participant.gateways';
@@ -38,7 +38,7 @@ export class RetroItemsService {
       retroId: savedItem.retro_id,
       category: savedItem.format_type,
       content: savedItem.content,
-      author: savedItem.creator?.name || savedItem.creator?.email,
+      author: savedItem.creator?.name,
       createdBy: savedItem.created_by,
       isEdited: savedItem.is_edited,
     };
@@ -107,7 +107,7 @@ export class RetroItemsService {
       id: updatedItem.id,
       category: updatedItem.format_type,
       content: updatedItem.content,
-      author: updatedItem.creator?.name || updatedItem.creator?.email,
+      author: updatedItem.creator?.name,
       createdBy: updatedItem.created_by,
       isEdited: updatedItem.is_edited,
     };

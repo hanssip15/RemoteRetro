@@ -293,6 +293,7 @@ CREATE TABLE "public"."retro_items" (
     "content" "text" NOT NULL,
     "retro_id" character varying NOT NULL,
     "created_by" "uuid",
+    "created_at"
     "format_type" "public"."retro_format_types",
     "id" "uuid" DEFAULT "public"."uuid_generate_v4"() NOT NULL,
     "is_edited" boolean DEFAULT false

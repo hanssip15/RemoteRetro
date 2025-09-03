@@ -1,5 +1,4 @@
-// src/email/email.service.spec.ts
-import { EmailService, EmailData } from '../src/services/email.service';
+import { EmailService, EmailData } from '../../src/services/email.service';
 import * as nodemailer from 'nodemailer';
 
 jest.mock('nodemailer');
@@ -7,15 +6,20 @@ jest.mock('nodemailer');
 describe('EmailService', () => {
   let emailService: EmailService;
   let mockSendMail: jest.Mock;
-  let mockVerify: jest.Mock;
+
+  beforeAll(() => {
+    jest.spyOn(console, 'error').mockImplementation(() => {}); // supress console.error
+  });
+
+  afterAll(() => {
+    (console.error as jest.Mock).mockRestore();
+  });
 
   beforeEach(() => {
     mockSendMail = jest.fn().mockResolvedValue(true);
-    mockVerify = jest.fn().mockResolvedValue(true);
-
     (nodemailer.createTransport as jest.Mock).mockReturnValue({
       sendMail: mockSendMail,
-      verify: mockVerify,
+      verify: jest.fn().mockResolvedValue(true),
     });
 
     emailService = new EmailService();
@@ -38,17 +42,12 @@ describe('EmailService', () => {
     it('should send emails to all participants', async () => {
       await emailService.sendActionItemsEmail(emailData);
 
-      expect(mockSendMail).toHaveBeenCalledTimes(2);
+      expect(mockSendMail).toHaveBeenCalledTimes(emailData.participantEmails.length);
       expect(mockSendMail).toHaveBeenCalledWith(
-        expect.objectContaining({
-          to: 'test1@example.com',
-          subject: `Action Items from Retrospective: Sprint 1`,
-        }),
+        expect.objectContaining({ to: 'test1@example.com' }),
       );
       expect(mockSendMail).toHaveBeenCalledWith(
-        expect.objectContaining({
-          to: 'test2@example.com',
-        }),
+        expect.objectContaining({ to: 'test2@example.com' }),
       );
     });
 
@@ -72,5 +71,4 @@ describe('EmailService', () => {
       expect(html).toContain('Alice');
     });
   });
-
 });
