@@ -27,12 +27,11 @@ import { EmailController } from './controllers/email.controller';
     }),
     TypeOrmModule.forRoot({
       type: 'postgres',
-      url: process.env.DATABASE_URL,
-      // //host: process.env.POSTGRES_HOST,     // 'ag.cnt.id'
-      // //port: parseInt(process.env.POSTGRES_PORT || '5432', 10), // ubah string ke number ✅
-      // //username: process.env.POSTGRES_USER, // 'retrosprint'
-      // //password: process.env.POSTGRES_PASSWORD, // 'BismillahBisa123!'
-      // //database: process.env.POSTGRES_DB,   // 'retrosprintdb'
+      host: process.env.POSTGRES_HOST,     // 'ag.cnt.id'
+      port: parseInt(process.env.POSTGRES_PORT || '5432', 10), // ubah string ke number ✅
+      username: process.env.POSTGRES_USER, // 'retrosprint'
+      password: process.env.POSTGRES_PASSWORD, // 'BismillahBisa123!'
+      database: process.env.POSTGRES_DB,   // 'retrosprintdb'
       entities: [User, Retro, RetroItem, Participant],
       synchronize: false,
       autoLoadEntities: true,
