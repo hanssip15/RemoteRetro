@@ -154,7 +154,19 @@ export default function GroupingPhase({
           if (!highContrast && signature && groupSize > 1 && signatureColors[signature]) {
             borderColor = signatureColors[signature];
           }
-          const pos = itemPositions[item.id] || { x: 20 + (idx % 3) * 150, y: 20 + Math.floor(idx / 3) * 70 };
+          // Fallback layout if a specific item's position is missing: X starts at 10px, gaps 15px, wrap rows
+          const baseX = 10;
+          const baseY = 10;
+          const gapX = 15;
+          const gapY = 15;
+          const approxItemWidth = 120;
+          const approxItemHeight = 55;
+          const containerWidth = Math.max(800, typeof window !== 'undefined' ? (window.innerWidth - 40) : 1000);
+          const maxPerRow = Math.max(1, Math.floor((containerWidth - baseX) / (approxItemWidth + gapX)));
+          const col = idx % maxPerRow;
+          const row = Math.floor(idx / maxPerRow);
+          const defaultPos = { x: baseX + col * (approxItemWidth + gapX), y: baseY + row * (approxItemHeight + gapY) };
+          const pos = itemPositions[item.id] || defaultPos;
           const isBeingDraggedByOthers = draggingByOthers[item.id];
           const draggingUser = participants.find((p: any) => p.user.id === isBeingDraggedByOthers);
           return (

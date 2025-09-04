@@ -1008,12 +1008,27 @@ const handleItemAdded = useCallback((newItem: RetroItem) => {
           const fromBackend = state.itemPositions || {};
   
           // Buat posisi berdasarkan urutan itemsData
+          // Default flow layout: start X=10, gapX=15, gapY=15; wrap by container width (approx)
+          const baseX = 10;
+          const baseY = 10;
+          const gapX = 15;
+          const gapY = 15;
+          const approxItemWidth = 120; // conservative width estimate (px)
+          const approxItemHeight = 55; // estimated height for spacing
+          const containerWidth = Math.max(800, typeof window !== 'undefined' ? (window.innerWidth - 40) : 1000);
+          const maxPerRow = Math.max(1, Math.floor((containerWidth - baseX) / (approxItemWidth + gapX)));
+
           const mergedPositions: { [key: string]: { x: number; y: number } } = {};
           itemsData.forEach((item, index) => {
-            mergedPositions[item.id] = fromBackend[item.id] || {
-              x: 200 + (index % 3) * 220,
-              y: 100 + Math.floor(index / 3) * 70
-            };
+            if (fromBackend[item.id]) {
+              mergedPositions[item.id] = fromBackend[item.id];
+            } else {
+              const col = index % maxPerRow;
+              const row = Math.floor(index / maxPerRow);
+              const x = baseX + col * (approxItemWidth + gapX);
+              const y = baseY + row * (approxItemHeight + gapY);
+              mergedPositions[item.id] = { x, y };
+            }
           });
   
           // Set posisi yang sudah tersinkron dengan urutan itemsData
@@ -1044,12 +1059,23 @@ const handleItemAdded = useCallback((newItem: RetroItem) => {
         };
       } else {
         // Fallback: jika socket belum ready, set default posisi
+        // Default flow layout fallback (same as above)
+        const baseX = 10;
+        const baseY = 10;
+        const gapX = 15;
+        const gapY = 15;
+        const approxItemWidth = 120;
+        const approxItemHeight = 55;
+        const containerWidth = Math.max(800, typeof window !== 'undefined' ? (window.innerWidth - 40) : 1000);
+        const maxPerRow = Math.max(1, Math.floor((containerWidth - baseX) / (approxItemWidth + gapX)));
+
         const fallbackPositions: { [key: string]: { x: number; y: number } } = {};
         itemsData.forEach((item, index) => {
-          fallbackPositions[item.id] = {
-            x: 200 + (index % 3) * 220,
-            y: 100 + Math.floor(index / 3) * 70
-          };
+          const col = index % maxPerRow;
+          const row = Math.floor(index / maxPerRow);
+          const x = baseX + col * (approxItemWidth + gapX);
+          const y = baseY + row * (approxItemHeight + gapY);
+          fallbackPositions[item.id] = { x, y };
         });
         setItemPositions(fallbackPositions);
       }
