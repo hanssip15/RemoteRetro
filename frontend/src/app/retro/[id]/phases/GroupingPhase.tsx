@@ -49,6 +49,7 @@ export default function GroupingPhase({
   const [showConfirm, setShowConfirm] = useState(false);
   const [forceRender, setForceRender] = useState(false);
   const boardRef = useRef<HTMLDivElement | null>(null);
+  const [measuredPositions, setMeasuredPositions] = useState<{ [key: string]: { x: number; y: number } }>({});
 
   const handleModalClose = useCallback(() => setShowModal(false), []);
 
@@ -60,22 +61,19 @@ export default function GroupingPhase({
 
   useEffect(() => {
     if (items.length > 0 && Object.keys(itemPositions || {}).length === 0) {
-      const timer = setTimeout(() => {
-        if (Object.keys(itemPositions || {}).length === 0) {
-          setForceRender(true);
-        }
-      }, 1000);
-      return () => clearTimeout(timer);
+      // Render immediately to allow measurement
+      setForceRender(true);
     }
   }, [items.length, itemPositions]);
 
   const positionsReady = useMemo(() => {
     const itemsLength = items.length;
     const positionsLength = Object.keys(itemPositions || {}).length;
-    
-    const ready = (itemsLength > 0 && positionsLength === itemsLength) || forceRender;
+    const measuredLength = Object.keys(measuredPositions || {}).length;
+
+    const ready = (itemsLength > 0 && (positionsLength === itemsLength || measuredLength === itemsLength)) || forceRender;
     return ready;
-  }, [items.length, itemPositions, forceRender]);
+  }, [items.length, itemPositions, measuredPositions, forceRender]);
 
   const processedItemGroups = useMemo(() => {
     if (!itemGroups || Object.keys(itemGroups).length === 0) {
@@ -101,7 +99,7 @@ export default function GroupingPhase({
   // After initial render (via forceRender) or when items change and no positions exist,
   // compute positions based on actual measured card sizes, with 15px gaps and wrapping.
   useEffect(() => {
-    const shouldCompute = items.length > 0 && (!itemPositions || Object.keys(itemPositions || {}).length === 0) && (forceRender || true);
+    const shouldCompute = items.length > 0 && (!itemPositions || Object.keys(itemPositions || {}).length === 0);
     if (!shouldCompute) return;
     const container = boardRef.current;
     const containerWidth = container?.clientWidth || (typeof window !== 'undefined' ? window.innerWidth - 40 : 1000);
@@ -130,6 +128,7 @@ export default function GroupingPhase({
         currentX += width + gap;
         if (height > rowHeight) rowHeight = height;
       }
+      setMeasuredPositions(positions);
       if (socket && isConnected && user) {
         socket.emit('item-position-update', {
           retroId: retro.id,
@@ -197,19 +196,8 @@ export default function GroupingPhase({
           if (!highContrast && signature && groupSize > 1 && signatureColors[signature]) {
             borderColor = signatureColors[signature];
           }
-          // Fallback layout if a specific item's position is missing: X starts at 10px, gaps 15px, wrap rows
-          const baseX = 10;
-          const baseY = 10;
-          const gapX = 15;
-          const gapY = 15;
-          const approxItemWidth = 120;
-          const approxItemHeight = 55;
-          const containerWidth = Math.max(800, typeof window !== 'undefined' ? (window.innerWidth - 40) : 1000);
-          const maxPerRow = Math.max(1, Math.floor((containerWidth - baseX) / (approxItemWidth + gapX)));
-          const col = idx % maxPerRow;
-          const row = Math.floor(idx / maxPerRow);
-          const defaultPos = { x: baseX + col * (approxItemWidth + gapX), y: baseY + row * (approxItemHeight + gapY) };
-          const pos = itemPositions[item.id] || defaultPos;
+          // Use server-synced positions if available, otherwise use measured layout positions for immediate render
+          const pos = itemPositions[item.id] || measuredPositions[item.id] || { x: 10 + idx * 15, y: 10 };
           const isBeingDraggedByOthers = draggingByOthers[item.id];
           const draggingUser = participants.find((p: any) => p.user.id === isBeingDraggedByOthers);
           return (

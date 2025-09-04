@@ -1007,32 +1007,14 @@ const handleItemAdded = useCallback((newItem: RetroItem) => {
         }) => {
           const fromBackend = state.itemPositions || {};
   
-          // Buat posisi berdasarkan urutan itemsData
-          // Default flow layout: start X=10, gapX=15, gapY=15; wrap by container width (approx)
-          const baseX = 10;
-          const baseY = 10;
-          const gapX = 15;
-          const gapY = 15;
-          const approxItemWidth = 120; // conservative width estimate (px)
-          const approxItemHeight = 55; // estimated height for spacing
-          const containerWidth = Math.max(800, typeof window !== 'undefined' ? (window.innerWidth - 40) : 1000);
-          const maxPerRow = Math.max(1, Math.floor((containerWidth - baseX) / (approxItemWidth + gapX)));
-
+          // Gunakan posisi dari backend saja; jika kosong biarkan GroupingPhase yang mengukur dan broadcast
           const mergedPositions: { [key: string]: { x: number; y: number } } = {};
-          itemsData.forEach((item, index) => {
-            if (fromBackend[item.id]) {
-              mergedPositions[item.id] = fromBackend[item.id];
-            } else {
-              const col = index % maxPerRow;
-              const row = Math.floor(index / maxPerRow);
-              const x = baseX + col * (approxItemWidth + gapX);
-              const y = baseY + row * (approxItemHeight + gapY);
-              mergedPositions[item.id] = { x, y };
-            }
+          Object.keys(fromBackend).forEach((id) => {
+            mergedPositions[id] = fromBackend[id];
           });
-  
-          // Set posisi yang sudah tersinkron dengan urutan itemsData
-          setItemPositions(mergedPositions);
+          if (Object.keys(mergedPositions).length > 0) {
+            setItemPositions(mergedPositions);
+          }
   
           if (state.itemGroups) {
             setItemGroups(state.itemGroups);
@@ -1042,14 +1024,7 @@ const handleItemAdded = useCallback((newItem: RetroItem) => {
             setSignatureColors(state.signatureColors);
           }
   
-          // Broadcast posisi jika backend belum kirim
-          if (Object.keys(fromBackend).length === 0) {
-            socket.emit('item-position-update', {
-              retroId,
-              itemPositions: mergedPositions,
-              userId: user.id
-            });
-          }
+          // Jika backend belum kirim posisi, GroupingPhase akan mengukur dan broadcast
         };
   
         socket.on(`retro-state:${retroId}`, handleRetroState);
@@ -1058,26 +1033,7 @@ const handleItemAdded = useCallback((newItem: RetroItem) => {
           socket.off(`retro-state:${retroId}`, handleRetroState);
         };
       } else {
-        // Fallback: jika socket belum ready, set default posisi
-        // Default flow layout fallback (same as above)
-        const baseX = 10;
-        const baseY = 10;
-        const gapX = 15;
-        const gapY = 15;
-        const approxItemWidth = 120;
-        const approxItemHeight = 55;
-        const containerWidth = Math.max(800, typeof window !== 'undefined' ? (window.innerWidth - 40) : 1000);
-        const maxPerRow = Math.max(1, Math.floor((containerWidth - baseX) / (approxItemWidth + gapX)));
-
-        const fallbackPositions: { [key: string]: { x: number; y: number } } = {};
-        itemsData.forEach((item, index) => {
-          const col = index % maxPerRow;
-          const row = Math.floor(index / maxPerRow);
-          const x = baseX + col * (approxItemWidth + gapX);
-          const y = baseY + row * (approxItemHeight + gapY);
-          fallbackPositions[item.id] = { x, y };
-        });
-        setItemPositions(fallbackPositions);
+        // Fallback: biarkan GroupingPhase mengukur dan menerapkan layout 15px gap
       }
     } catch (error) {
       console.error("Error fetching items and state:", error);
