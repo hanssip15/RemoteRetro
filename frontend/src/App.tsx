@@ -2,7 +2,6 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Suspense, lazy } from 'react';
 import { SocketProvider } from './contexts/SocketContext';
 import ProtectedRoute from './components/ProtectedRoute';
-import ProtectedRouteRetroiD from './components/ProtectedRouteRetroId';
 import ErrorBoundary from './components/ErrorBoundary';
 
 import './index.css';
@@ -18,6 +17,7 @@ const AuthCallbackPage = lazy(() => import('./app/auth/callback/page'));
 
 // Error pages
 const NotFoundPage = lazy(() => import('./app/error/404/page'));
+
 const GeneralErrorPage = lazy(() => import('./app/error/general/page'));
 const NetworkErrorPage = lazy(() => import('./app/error/network/page'));
 
@@ -55,9 +55,9 @@ function App() {
                 </ProtectedRoute>
               } />
               <Route path="/retro/:id" element={
-                <ProtectedRouteRetroiD>
+                <ProtectedRoute checkRetroId={true}>
                   <RetroPage />
-                </ProtectedRouteRetroiD>
+                </ProtectedRoute>
               } />
               <Route path="/debug-db" element={<DebugPage />} />
               <Route path="/test-api" element={<TestApiPage />} />
