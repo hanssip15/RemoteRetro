@@ -65,17 +65,22 @@ import { Participant } from 'src/entities/participant.entity';
     }
   }
   
-    async handleDisconnect(client: Socket) {
-    const info = this.socketUserMap.get(client.id);
-    if (info) {
-      const { userId, retroId } = info;
+async handleDisconnect(client: Socket) {
+  const info = this.socketUserMap.get(client.id);
+  if (info) {
+    const { userId, retroId } = info;
+    try {
       await this.participantService.leave(retroId, userId);
+    } catch (error) {
+      // Jangan biarkan server crash hanya karena retro tidak ketemu
+      console.warn(`Failed to leave retro ${retroId} for user ${userId}:`, error.message);
+    } finally {
       this.socketUserMap.delete(client.id);
-      
-      // Broadcast participant update setelah user leave
       this.broadcastParticipantUpdate(retroId);
     }
   }
+}
+
 
     @SubscribeMessage('join-retro-room')
     handleJoinRetroRoom(client: Socket, retroId: string) {
