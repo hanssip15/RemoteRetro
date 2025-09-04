@@ -1,0 +1,9 @@
+@echo off
+echo Starting RetroSprint Testing...
+echo.
+
+start "Backend" cmd /k "cd backend && npm run test -- --detectOpenHandles --coverage"
+echo.
+echo Project is tested...
+echo Press any key to exit this script...
+pause > nul 

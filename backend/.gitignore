@@ -3,11 +3,11 @@ node_modules/
 
 # Build output
 dist/
-coverage/
 
 # Environment files
 .env
 .env.*.local
+
 
 # Logs
 *.log
@@ -42,3 +42,4 @@ coverage/
 # Others
 *.bak
 *.tmp
+coverage/

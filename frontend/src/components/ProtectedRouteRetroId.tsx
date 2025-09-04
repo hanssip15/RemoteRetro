@@ -1,6 +1,6 @@
 // ProtectedRoute.tsx
 import { useEffect, useState } from "react";
-import { api } from "@/services/api";
+import { api, apiService } from "@/services/api";
 import { useParams, useNavigate } from "react-router-dom";
 
 export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -15,8 +15,9 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
       const currentPath = window.location.pathname + window.location.search;
       try {
         // ✅ Cek Auth
-        const userData = await api.getCurrentUser();
-        if (!userData) {
+        const currentUser = await api.getCurrentUser();
+        const userData = await apiService.getUserByUserId(currentUser.id);
+        if (!currentUser && !userData) {
           await api.removeAuthToken();
           localStorage.setItem("redirect", currentPath);
           window.location.replace(`${import.meta.env.VITE_API_URL}/auth/google`);

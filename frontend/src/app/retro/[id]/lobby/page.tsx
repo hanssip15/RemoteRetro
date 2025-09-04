@@ -1,8 +1,17 @@
 "use client"
 // import { io } from 'socket.io-client';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  PhaseConfirmModal
+} from '@/components/ui/dialog';
 
-import {useState, useCallback} from "react"
+import {useState, useCallback, useEffect, useRef} from "react"
 import {useNavigate} from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -11,7 +20,6 @@ import { Users, Play, Crown } from "lucide-react"
 import RetroHeader from '../RetroHeader';
 import { Link } from "react-router-dom"
 import { apiService, Retro, Participant, api, User } from "@/services/api"
-import { PhaseConfirmModal } from '@/components/ui/dialog';
 
 
 interface RetroLobbyPageProps {
@@ -33,7 +41,22 @@ export default function RetroLobbyPage({ socket, retroId, participants, retro, u
   const [joinError, setJoinError] = useState<string | null>(null)
   const [isOngoing, setIsOngoing] = useState(false)
   const [isPromoting, setIsPromoting] = useState(false)
- 
+  const [showFacilitatorGrantedModal, setShowFacilitatorGrantedModal] = useState(false);
+  const prevFacilitatorId = useRef<string | null>(null);
+  
+   useEffect(() => {
+      const facilitator = participants.find((p: any) => p.role)?.user.id;
+      if (
+        facilitator &&
+        facilitator !== prevFacilitatorId.current &&
+        facilitator === user?.id &&
+        prevFacilitatorId.current !== null
+      ) {
+        setShowFacilitatorGrantedModal(true);
+      }
+      prevFacilitatorId.current = facilitator || null;
+    }, [participants, user?.id]);
+  
   const handleStartRetro = useCallback(async () => {
     try {
       if (socket) {
@@ -227,7 +250,25 @@ export default function RetroLobbyPage({ socket, retroId, participants, retro, u
           </Card>
         </div>
       </div>
-
+<Dialog open={showFacilitatorGrantedModal} onOpenChange={setShowFacilitatorGrantedModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>You've been granted the facilitatorship!</DialogTitle>
+          </DialogHeader>
+          <DialogDescription>
+            As <b>facilitator</b>, you are responsible for advancing the retrospective and keeping the vibe inclusive!
+          </DialogDescription>
+          <DialogFooter className="flex-row justify-end mt-4">
+            <Button
+              style={{ backgroundColor: '#2563eb' }}
+              className="text-white hover:bg-blue-700"
+              onClick={() => setShowFacilitatorGrantedModal(false)}
+            >
+              Got it!
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
 
       {showShareModal && shareUrl && (

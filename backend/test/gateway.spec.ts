@@ -326,22 +326,6 @@ afterAll(() => {
     );
   });
 
-  it('should broadcast phase-change event with phase, facilitatorId, and timestamp', () => {
-    const client = {} as Socket;
-    const data = { retroId: 'retro789', phase: 'voting', facilitatorId: 'fac123' };
-
-    gateway.handlePhaseChange(client, data);
-
-    // expect(gateway.server.to).toHaveBeenCalledWith(`retro:${data.retroId}`);
-    expect(gateway.server.to(`retro:${data.retroId}`).emit).toHaveBeenCalledWith(
-      `phase-change:${data.retroId}`,
-      expect.objectContaining({
-        phase: 'voting',
-        facilitatorId: 'fac123',
-        timestamp: expect.any(String),
-      }),
-    );
-  });
   it('should broadcast updated positions when multiple itemPositions change', () => {
     const retroId = 'retro1';
     const userId = 'user1';

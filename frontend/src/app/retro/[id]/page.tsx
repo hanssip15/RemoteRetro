@@ -450,14 +450,13 @@ function computeGroupsAndColors(
   const handleStop = (id: string, e: any, data: any) => {
     setItemPositions(pos => ({ ...pos, [id]: { x: data.x, y: data.y } }));
     if (socket && isConnected && user) {
-  socket.emit('item-position-update', {
-    retroId,
-    itemId: id,
-    position: { x: data.x, y: data.y },
-    userId: user.id
-  });
-}
-    // Final grouping computation after drag stops
+      socket.emit('item-position-update', {
+        retroId,
+        itemId: id,
+        position: { x: data.x, y: data.y },
+        userId: user.id
+      });
+    }
     setTimeout(() => {
       const { itemToGroup, newSignatureColors, newUsedColors } = computeGroupsAndColors(
         items,
@@ -675,11 +674,29 @@ const handleAdd = useCallback(async () => {
     setOptimisticUpdates(prev => ({ ...prev, [itemId]: { content, category } }))
     
     // Optimistic update - immediately update the item in state
-    setItems(prev => prev.map(item => 
-      item.id === itemId 
+ setItems(prev => {
+  const itemToUpdate = prev.find(item => item.id === itemId);
+  if (!itemToUpdate) return prev;
+
+  const isCategoryChanged = itemToUpdate.category !== category;
+
+  if (isCategoryChanged) {
+    // hapus item lama + taruh versi baru di belakang
+    const filtered = prev.filter(item => item.id !== itemId);
+    return [
+      ...filtered,
+      { ...itemToUpdate, content, category, isEdited: true }
+    ];
+  } else {
+    // update biasa tanpa pindah posisi
+    return prev.map(item =>
+      item.id === itemId
         ? { ...item, content, category, isEdited: true }
         : item
-    ));
+    );
+  }
+});
+
 
     try {
       await apiService.updateItem(itemId, { 
@@ -760,22 +777,32 @@ const handleItemAdded = useCallback((newItem: RetroItem) => {
   
  // Handler Item Updated
  // TODO: Handle Item Updated kok ada 2 ? 
-  const handleItemUpdated = useCallback((updatedItem: RetroItem) => {
-    setItems(prev => prev.map(item => {
-      if (item.id === updatedItem.id) {
-        // Check if we have an optimistic update for this item
-        const optimisticUpdate = optimisticUpdates[updatedItem.id];
-        if (optimisticUpdate) {
-          // We have an optimistic update, ignore WebSocket update
-          return item;
-        } else {
-          // No optimistic update, use WebSocket data
-          return updatedItem;
-        }
+ const handleItemUpdated = useCallback(
+  (updatedItem: RetroItem) => {
+    setItems(prev => {
+      const existingItem = prev.find(item => item.id === updatedItem.id);
+      if (!existingItem) {
+        // Kalau item belum ada → taruh di belakang
+        return [...prev, updatedItem];
       }
-      return item;
-    }));
-  }, [optimisticUpdates]);
+
+      const isCategoryChanged = existingItem.category !== updatedItem.category;
+
+      if (isCategoryChanged) {
+        // Hapus item lama, tambahkan versi baru di belakang
+        const filtered = prev.filter(item => item.id !== updatedItem.id);
+        return [...filtered, updatedItem];
+      } else {
+        // Update biasa, posisi tetap
+        return prev.map(item =>
+          item.id === updatedItem.id ? updatedItem : item
+        );
+      }
+    });
+  },
+  [optimisticUpdates]
+);
+
     const handleItemsUpdate = useCallback((newItems: RetroItem[]) => {
       setItems(newItems);
     }, []);
@@ -1374,6 +1401,7 @@ const handleItemAdded = useCallback((newItem: RetroItem) => {
         setSelectedParticipant={setSelectedParticipant}
         setPhase={setPhase}
         getCategoryDisplayName={getCategoryDisplayName}
+        setItemPositions={setItemPositions}
       />
     </>
   );

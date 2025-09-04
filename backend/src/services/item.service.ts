@@ -64,7 +64,7 @@ export class RetroItemsService {
     const items = await this.retroItemRepository.find({
       where: { retro_id: retroId },
       relations: ['creator'],
-      order: { created_at: 'ASC' },
+      order: { updated_at: 'ASC' },
     });
 
     // Transform to match frontend interface
@@ -82,41 +82,53 @@ export class RetroItemsService {
   }
 
   async update(id: string, dto: UpdateItemDto): Promise<any> {
-    const { content, format_type } = dto;
-    const item = await this.retroItemRepository.findOne({ 
-      where: { id },
-      relations: ['creator']
-    });
-    
-    if (!item) {
-      throw new NotFoundException('Item not found');
-    }
+  const { content, format_type } = dto;
 
-    // Update the item
-    await this.retroItemRepository.update(id, { content, format_type, is_edited: true });
- const updatedItem = await this.retroItemRepository.findOne({
+  const item = await this.retroItemRepository.findOne({
     where: { id },
     relations: ['creator'],
   });
-    if (!updatedItem) {
-      throw new NotFoundException('Item not found after update');
-    }
 
-    // Transform to match frontend interface
-    const transformedItem = {
-      id: updatedItem.id,
-      category: updatedItem.format_type,
-      content: updatedItem.content,
-      author: updatedItem.creator?.name,
-      createdBy: updatedItem.created_by,
-      isEdited: updatedItem.is_edited,
-    };
-
-    // Broadcast the updated item
-    this.participantGateway.broadcastItemUpdated(updatedItem.retro_id, transformedItem);
-
-    return transformedItem;
+  if (!item) {
+    throw new NotFoundException('Item not found');
   }
+
+  // Tentukan updated_at
+  const updated_at = item.format_type !== format_type ? new Date() : item.updated_at;
+
+  // Update item
+  await this.retroItemRepository.update(id, {
+    content,
+    format_type,
+    is_edited: true,
+    updated_at,
+  });
+
+  const updatedItem = await this.retroItemRepository.findOne({
+    where: { id },
+    relations: ['creator'],
+  });
+
+  if (!updatedItem) {
+    throw new NotFoundException('Item not found after update');
+  }
+
+  // Transform to match frontend interface
+  const transformedItem = {
+    id: updatedItem.id,
+    category: updatedItem.format_type,
+    content: updatedItem.content,
+    author: updatedItem.creator?.name,
+    createdBy: updatedItem.created_by,
+    isEdited: updatedItem.is_edited,
+    updatedAt: updatedItem.updated_at, // tambahkan kalau frontend butuh
+  };
+
+  // Broadcast the updated item
+  this.participantGateway.broadcastItemUpdated(updatedItem.retro_id, transformedItem);
+
+  return transformedItem;
+}
 
   async remove(id: string): Promise<void> {
     const item = await this.retroItemRepository.findOne({ 
