@@ -195,11 +195,13 @@ export default function GroupingPhase({
               <div
                 key={'m-' + item.id}
                 id={'measure-item-' + item.id}
-                className={`inline-block px-3 py-2 bg-white border rounded shadow text-sm select-none`}
+                className={`px-3 py-2 bg-white border rounded shadow text-sm cursor-move select-none relative`}
                 style={{
                   minWidth: 80,
                   textAlign: 'center',
                   border: `4px solid ${borderColor}`,
+                  position: 'absolute',
+                  boxSizing: 'border-box',
                 }}
               >
                 {item.content} <span className="text-xs text-gray-500">({getCategoryDisplayName(item.category)})</span>
@@ -237,6 +239,7 @@ export default function GroupingPhase({
                   border: `4px solid ${borderColor}`,
                   transition: 'border-color 0.2s',
                   position: 'absolute',
+                  boxSizing: 'border-box',
                 }}
               >
                 {item.content} <span className="text-xs text-gray-500">({getCategoryDisplayName(item.category)})</span>
