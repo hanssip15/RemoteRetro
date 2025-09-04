@@ -32,6 +32,7 @@ import { EmailController } from './controllers/email.controller';
       username: process.env.POSTGRES_USER, // 'retrosprint'
       password: process.env.POSTGRES_PASSWORD, // 'BismillahBisa123!'
       database: process.env.POSTGRES_DB,   // 'retrosprintdb'
+
       entities: [User, Retro, RetroItem, Participant],
       synchronize: false,
       autoLoadEntities: true,
