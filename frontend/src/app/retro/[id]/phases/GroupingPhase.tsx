@@ -47,7 +47,6 @@ export default function GroupingPhase({
 }) {
   const [showModal, setShowModal] = useState(true);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [forceRender, setForceRender] = useState(false);
   const boardRef = useRef<HTMLDivElement | null>(null);
   const [measuredPositions, setMeasuredPositions] = useState<{ [key: string]: { x: number; y: number } }>({});
   const measurementRef = useRef<HTMLDivElement | null>(null);
@@ -63,7 +62,7 @@ export default function GroupingPhase({
   useEnterToCloseModal(showModal, handleModalClose);
 
   useEffect(() => {
-    // No forced render; measurement container is always present below
+    // Measurement container is always present below
   }, [items.length, itemPositions]);
 
   const positionsReady = useMemo(() => {
@@ -232,7 +231,7 @@ export default function GroupingPhase({
             );
           })}
         </div>
-        {items.map((item: any, idx: number) => {
+        {items.map((item: any) => {
           const signature = processedItemGroups[item.id];
           const groupSize = signature ? Object.values(itemGroups).filter((sig: any) => sig === signature).length : 0;
           let borderColor = highContrast ? '#000000' : '#e5e7eb';

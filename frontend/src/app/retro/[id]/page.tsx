@@ -61,7 +61,7 @@ export default function RetroPage() {
   const [allUserVotes, setAllUserVotes] = useState<{ [userId: string]: { [groupIdx: number]: number } }>({});
   const [userId, setUserId] = useState<string>();
   const [isUserJoined, setIsUserJoined] = useState(false);
-  const [retroStateLoaded, setRetroStateLoaded] = useState(false);
+  // Track if retro state was received (not currently used outside of local scope)
   
   // Data structure untuk menyimpan grup yang bisa dimasukkan ke database
   // const [setGroupData] = useState<GroupData>({
@@ -1036,8 +1036,7 @@ const handleItemAdded = useCallback((newItem: RetroItem) => {
             setSignatureColors(state.signatureColors);
           }
   
-          // Tandai bahwa retro-state sudah diterima
-          setRetroStateLoaded(true);
+          // Retro-state diterima; no-op marker removed
         };
   
         socket.on(`retro-state:${retroId}`, handleRetroState);
