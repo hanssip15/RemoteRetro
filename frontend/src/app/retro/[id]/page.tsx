@@ -409,6 +409,23 @@ function computeGroupsAndColors(
   // Throttle untuk broadcast position updates
   const [lastBroadcastTime, setLastBroadcastTime] = useState<{ [itemId: string]: number }>({});
 
+  // Ensure initial grouping is computed and broadcast when server has no grouping yet
+  useEffect(() => {
+    if (!socket || !isConnected) return;
+    if (items.length === 0) return;
+    const haveAllPositions = Object.keys(itemPositions || {}).length === items.length;
+    const haveNoGroups = !itemGroups || Object.keys(itemGroups || {}).length === 0;
+    if (haveAllPositions && haveNoGroups) {
+      const { itemToGroup, newSignatureColors, newUsedColors } = computeGroupsAndColors(
+        items,
+        itemPositions,
+        signatureColors,
+        usedColors,
+      );
+      debouncedGroupingUpdate(itemToGroup, newSignatureColors, newUsedColors);
+    }
+  }, [socket, isConnected, items, itemPositions, itemGroups, signatureColors, usedColors]);
+
   // Handler drag - update posisi dan group/color
   // @ts-ignore
   const handleDrag = (id: string, e: any, data: any) => {
