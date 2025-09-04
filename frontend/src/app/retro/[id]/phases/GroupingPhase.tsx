@@ -60,20 +60,16 @@ export default function GroupingPhase({
   useEnterToCloseModal(showModal, handleModalClose);
 
   useEffect(() => {
-    if (items.length > 0 && Object.keys(itemPositions || {}).length === 0) {
-      // Render immediately to allow measurement
-      setForceRender(true);
-    }
+    // No forced render; measurement container is always present below
   }, [items.length, itemPositions]);
 
   const positionsReady = useMemo(() => {
     const itemsLength = items.length;
     const positionsLength = Object.keys(itemPositions || {}).length;
     const measuredLength = Object.keys(measuredPositions || {}).length;
-
-    const ready = (itemsLength > 0 && (positionsLength === itemsLength || measuredLength === itemsLength)) || forceRender;
+    const ready = itemsLength > 0 && (positionsLength === itemsLength || measuredLength === itemsLength);
     return ready;
-  }, [items.length, itemPositions, measuredPositions, forceRender]);
+  }, [items.length, itemPositions, measuredPositions]);
 
   const processedItemGroups = useMemo(() => {
     if (!itemGroups || Object.keys(itemGroups).length === 0) {
@@ -113,7 +109,7 @@ export default function GroupingPhase({
       let currentY = baseY;
       let rowHeight = 0;
       for (const item of items) {
-        const el = document.getElementById('group-item-' + item.id);
+        const el = document.getElementById('measure-item-' + item.id);
         if (!el) continue;
         const rect = el.getBoundingClientRect();
         const width = Math.ceil(rect.width);
@@ -140,18 +136,7 @@ export default function GroupingPhase({
     return () => cancelAnimationFrame(rAF);
   }, [items, forceRender, socket, isConnected, retro?.id, user?.id]);
 
-  if (!positionsReady) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading grouping board...</p>
-          <p className="text-xs text-gray-400 mt-2">
-          </p>
-        </div>
-      </div>
-    );
-  }
+  // Always render the board; show overlay loader until positions ready
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -189,6 +174,39 @@ export default function GroupingPhase({
         handleLogout={handleLogout}
       />
       <div ref={boardRef} className="flex-1 relative bg-white overflow-auto pb-40" style={{ minHeight: 'calc(100vh - 120px)' }}>
+        {!positionsReady && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Preparing layout…</p>
+            </div>
+          </div>
+        )}
+        {/* Hidden measurement container to get actual sizes before positioning */}
+        <div aria-hidden="true" style={{ position: 'absolute', visibility: 'hidden', pointerEvents: 'none', left: 0, top: 0, width: '100%' }}>
+          {items.map((item: any) => {
+            const signature = processedItemGroups[item.id];
+            const groupSize = signature ? Object.values(itemGroups).filter((sig: any) => sig === signature).length : 0;
+            let borderColor = highContrast ? '#000000' : '#e5e7eb';
+            if (!highContrast && signature && groupSize > 1 && signatureColors[signature]) {
+              borderColor = signatureColors[signature];
+            }
+            return (
+              <div
+                key={'m-' + item.id}
+                id={'measure-item-' + item.id}
+                className={`inline-block px-3 py-2 bg-white border rounded shadow text-sm select-none`}
+                style={{
+                  minWidth: 80,
+                  textAlign: 'center',
+                  border: `4px solid ${borderColor}`,
+                }}
+              >
+                {item.content} <span className="text-xs text-gray-500">({getCategoryDisplayName(item.category)})</span>
+              </div>
+            );
+          })}
+        </div>
         {items.map((item: any, idx: number) => {
           const signature = processedItemGroups[item.id];
           const groupSize = signature ? Object.values(itemGroups).filter((sig: any) => sig === signature).length : 0;
@@ -197,7 +215,8 @@ export default function GroupingPhase({
             borderColor = signatureColors[signature];
           }
           // Use server-synced positions if available, otherwise use measured layout positions for immediate render
-          const pos = itemPositions[item.id] || measuredPositions[item.id] || { x: 10 + idx * 15, y: 10 };
+          const pos = itemPositions[item.id] || measuredPositions[item.id];
+          if (!pos) return null;
           const isBeingDraggedByOthers = draggingByOthers[item.id];
           const draggingUser = participants.find((p: any) => p.user.id === isBeingDraggedByOthers);
           return (
