@@ -461,6 +461,17 @@ function computeGroupsAndColors(
       // Use debounced grouping update to prevent race conditions
       debouncedGroupingUpdate(itemToGroup, newSignatureColors, newUsedColors);
     }, 100);
+
+    // Ensure final position is persisted to backend via WebSocket
+    if (socket && isConnected && user) {
+      socket.emit('item-position-update', {
+        retroId: retroId,
+        itemId: id,
+        position: { x: data.x, y: data.y },
+        userId: user.id,
+        source: 'drag-stop'
+      });
+    }
   };
 
   // Handler untuk menerima posisi item dari partisipan lain
