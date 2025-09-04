@@ -57,20 +57,10 @@ Sebelum menjalankan project, pastikan Anda memiliki:
 ```bash
 # Clone repository
 git clone <repository-url>
-cd refactor
+cd RemoteRetro
 
 # Install dependencies untuk root project
-npm install
-
-# Install dependencies untuk frontend
-cd frontend
-npm install
-
-# Install dependencies untuk backend
-cd ../backend
-npm install
-```
-
+./setup.bat
 ### 2. Environment Variables
 
 Buat file `.env` di folder `backend/`:
@@ -98,8 +88,7 @@ CREATE DATABASE retrosprint;
 Jalankan script database initialization:
 
 ```bash
-cd backend
-npm run db:init
+./start.bat
 ```
 
 ### 4. Development
