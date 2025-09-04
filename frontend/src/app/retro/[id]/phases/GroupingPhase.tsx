@@ -50,6 +50,9 @@ export default function GroupingPhase({
   const [forceRender, setForceRender] = useState(false);
   const boardRef = useRef<HTMLDivElement | null>(null);
   const [measuredPositions, setMeasuredPositions] = useState<{ [key: string]: { x: number; y: number } }>({});
+  const measurementRef = useRef<HTMLDivElement | null>(null);
+  const reflowRafRef = useRef<number | null>(null);
+  const reflowTimeoutRef = useRef<number | null>(null);
 
   const handleModalClose = useCallback(() => setShowModal(false), []);
 
@@ -92,49 +95,69 @@ export default function GroupingPhase({
     return itemGroups;
   }, [itemGroups, items]);
 
-  // After initial render (via forceRender) or when items change and no positions exist,
-  // compute positions based on actual measured card sizes, with 15px gaps and wrapping.
-  useEffect(() => {
-    const shouldCompute = items.length > 0 && (!itemPositions || Object.keys(itemPositions || {}).length === 0);
-    if (!shouldCompute) return;
+  // Compute measured positions with consistent 15px horizontal gaps
+  const computeLayout = useCallback(() => {
+    if (!items || items.length === 0) return;
     const container = boardRef.current;
     const containerWidth = container?.clientWidth || (typeof window !== 'undefined' ? window.innerWidth - 40 : 1000);
     const baseX = 10;
     const baseY = 10;
     const gap = 15;
-    // Ensure DOM is painted before measuring
-    const rAF = requestAnimationFrame(() => {
-      const positions: { [key: string]: { x: number; y: number } } = {};
-      let currentX = baseX;
-      let currentY = baseY;
-      let rowHeight = 0;
-      for (const item of items) {
-        const el = document.getElementById('measure-item-' + item.id);
-        if (!el) continue;
-        const rect = el.getBoundingClientRect();
-        const PanjangKartuPrev = Math.ceil(rect.width); // horizontal length only
-        const height = Math.ceil(rect.height);
-        // Wrap if exceeding container width (keeping at least one item per row)
-        if (currentX !== baseX && currentX + PanjangKartuPrev > containerWidth) {
-          currentX = baseX;
-          currentY += rowHeight + gap;
-          rowHeight = 0;
-        }
-        positions[item.id] = { x: currentX, y: currentY };
-        currentX += PanjangKartuPrev + gap;
-        if (height > rowHeight) rowHeight = height;
+    const positions: { [key: string]: { x: number; y: number } } = {};
+    let currentX = baseX;
+    let currentY = baseY;
+    let rowHeight = 0;
+    for (const item of items) {
+      const el = document.getElementById('measure-item-' + item.id);
+      if (!el) continue;
+      const rect = el.getBoundingClientRect();
+      const PanjangKartuPrev = Math.ceil(rect.width);
+      const height = Math.ceil(rect.height);
+      if (currentX !== baseX && currentX + PanjangKartuPrev > containerWidth) {
+        currentX = baseX;
+        currentY += rowHeight + gap;
+        rowHeight = 0;
       }
-      setMeasuredPositions(positions);
-      if (socket && isConnected && user) {
-        socket.emit('item-position-update', {
-          retroId: retro.id,
-          itemPositions: positions,
-          userId: user.id,
-        });
-      }
+      positions[item.id] = { x: currentX, y: currentY };
+      currentX += PanjangKartuPrev + gap;
+      if (height > rowHeight) rowHeight = height;
+    }
+    setMeasuredPositions(positions);
+    if (socket && isConnected && user) {
+      socket.emit('item-position-update', {
+        retroId: retro.id,
+        itemPositions: positions,
+        userId: user.id,
+      });
+    }
+  }, [items, socket, isConnected, retro?.id, user?.id]);
+
+  // Trigger initial measurement-based layout when no server positions
+  useEffect(() => {
+    const shouldCompute = items.length > 0 && (!itemPositions || Object.keys(itemPositions || {}).length === 0);
+    if (!shouldCompute) return;
+    if (reflowRafRef.current) cancelAnimationFrame(reflowRafRef.current);
+    reflowRafRef.current = requestAnimationFrame(() => computeLayout());
+    return () => { if (reflowRafRef.current) cancelAnimationFrame(reflowRafRef.current); };
+  }, [items, itemPositions, computeLayout]);
+
+  // Recompute layout on measurement changes and window resize
+  useEffect(() => {
+    const m = measurementRef.current;
+    if (!m) return;
+    const ro = new ResizeObserver(() => {
+      if (reflowTimeoutRef.current) window.clearTimeout(reflowTimeoutRef.current);
+      reflowTimeoutRef.current = window.setTimeout(() => computeLayout(), 50);
     });
-    return () => cancelAnimationFrame(rAF);
-  }, [items, forceRender, socket, isConnected, retro?.id, user?.id]);
+    m.querySelectorAll('[id^="measure-item-"]').forEach(el => ro.observe(el));
+    const onResize = () => computeLayout();
+    window.addEventListener('resize', onResize);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', onResize);
+      if (reflowTimeoutRef.current) window.clearTimeout(reflowTimeoutRef.current);
+    };
+  }, [items, computeLayout]);
 
   // Always render the board; show overlay loader until positions ready
 
@@ -183,7 +206,7 @@ export default function GroupingPhase({
           </div>
         )}
         {/* Hidden measurement container to get actual sizes before positioning */}
-        <div aria-hidden="true" style={{ position: 'absolute', visibility: 'hidden', pointerEvents: 'none', left: 0, top: 0, width: '100%' }}>
+        <div ref={measurementRef} aria-hidden="true" style={{ position: 'absolute', visibility: 'hidden', pointerEvents: 'none', left: 0, top: 0, width: '100%' }}>
           {items.map((item: any) => {
             const signature = processedItemGroups[item.id];
             const groupSize = signature ? Object.values(itemGroups).filter((sig: any) => sig === signature).length : 0;
