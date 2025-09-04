@@ -112,16 +112,16 @@ export default function GroupingPhase({
         const el = document.getElementById('measure-item-' + item.id);
         if (!el) continue;
         const rect = el.getBoundingClientRect();
-        const width = Math.ceil(rect.width);
+        const PanjangKartuPrev = Math.ceil(rect.width); // horizontal length only
         const height = Math.ceil(rect.height);
         // Wrap if exceeding container width (keeping at least one item per row)
-        if (currentX !== baseX && currentX + width > containerWidth) {
+        if (currentX !== baseX && currentX + PanjangKartuPrev > containerWidth) {
           currentX = baseX;
           currentY += rowHeight + gap;
           rowHeight = 0;
         }
         positions[item.id] = { x: currentX, y: currentY };
-        currentX += width + gap;
+        currentX += PanjangKartuPrev + gap;
         if (height > rowHeight) rowHeight = height;
       }
       setMeasuredPositions(positions);
