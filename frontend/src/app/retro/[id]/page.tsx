@@ -412,6 +412,15 @@ function computeGroupsAndColors(
   // Handler drag - update posisi dan group/color
   // @ts-ignore
   const handleDrag = (id: string, e: any, data: any) => {
+    if (socket && isConnected && user) {
+      socket.emit('item-position-update', {
+        retroId: retroId,
+        itemId: id,
+        position: { x: data.x, y: data.y },
+        userId: user.id,
+        source: 'drag'
+      });
+    }
     setItemPositions(pos => {
       const newPos = { ...pos, [id]: { x: data.x, y: data.y } };
       
@@ -425,7 +434,8 @@ function computeGroupsAndColors(
             retroId: retroId,
             itemId: id,
             position: { x: data.x, y: data.y },
-            userId: user.id
+            userId: user.id,
+            source: 'drag'
           });
           setLastBroadcastTime(prev => ({ ...prev, [id]: now }));
         }
@@ -473,6 +483,13 @@ function computeGroupsAndColors(
         source: 'drag-stop'
       });
     }
+
+    // Lepas status dragging pada client sendiri
+    setDraggingByOthers(prev => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
   };
 
   // Handler untuk menerima posisi item dari partisipan lain
@@ -491,17 +508,8 @@ function computeGroupsAndColors(
       // Handle single item position (for dragging)
       else if (data.itemId && data.position) {
         setItemPositions(pos => ({ ...pos, [data.itemId!]: data.position! }));
-        // Set item sebagai sedang di-drag oleh user lain
+        // Tandai sedang di-drag user lain selama event drag berlangsung
         setDraggingByOthers(prev => ({ ...prev, [data.itemId!]: data.userId }));
-        
-        // Clear dragging state setelah 2 detik
-        setTimeout(() => {
-          setDraggingByOthers(prev => {
-            const newState = { ...prev };
-            delete newState[data.itemId!];
-            return newState;
-          });
-        }, 2000);
       }
     }
   }, [user?.id]);

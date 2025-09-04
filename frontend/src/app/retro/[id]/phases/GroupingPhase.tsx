@@ -251,6 +251,7 @@ export default function GroupingPhase({
               onDrag={(e: any, data: any) => handleDrag(item.id, e, data)}
               onStop={(e: any, data: any) => handleStop(item.id, e, data)}
               bounds="parent"
+              disabled={Boolean(isBeingDraggedByOthers && draggingUser && draggingUser.user && draggingUser.user.id !== user?.id)}
             >
               <div
                 id={'group-item-' + item.id}
