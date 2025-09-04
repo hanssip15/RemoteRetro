@@ -36,13 +36,13 @@ export class ParticipantService {
     return isFacilitator
   }
 
-  async join(retroId: string, userId:string, joinRetroDto: JoinRetroDto): Promise<Participant | null> {
+  async join(retroId: string, userId:string, joinRetroDto: JoinRetroDto): Promise<void | Participant> {
     const { role } = joinRetroDto;
 
     try {
       const retro = await this.retroRepository.findOne({ where: { id: retroId } });
         if (!retro) {
-          throw new NotFoundException(`Retro ${retroId} not found`);
+          return;
         }
       const existingParticipant = await this.participantRepository.findOne({
         where: { retroId, userId },
@@ -75,7 +75,9 @@ export class ParticipantService {
   // Check if retro exists
   const retro = await this.retroRepository.findOne({ where: { id: retroId } });
   if (!retro) {
-    throw new NotFoundException('Retro not found');
+    // jangan throw, cukup log
+    console.warn(`Retro ${retroId} not found while leaving`);
+    return;
   }
 
 

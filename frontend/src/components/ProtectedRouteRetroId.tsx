@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { api, apiService } from "@/services/api";
 import { useParams, useNavigate } from "react-router-dom";
+import NotFoundPage from "@/app/error/404/page";
 
 export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
@@ -33,7 +34,6 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
           } catch (err) {
             console.error("Retro ID invalid:", err);
             setIsValidRetro(false);
-            navigate("/404", { replace: true });
             return;
           }
         }
@@ -62,7 +62,7 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
   if (!isAuthenticated) return null;
 
   // kalau retroId invalid → jangan render children
-  if (isValidRetro === false) return null;
-
+if (isValidRetro === false) return <NotFoundPage />;
+  
   return <>{children}</>;
 }

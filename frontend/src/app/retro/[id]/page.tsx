@@ -1396,7 +1396,6 @@ const handleItemAdded = useCallback((newItem: RetroItem) => {
         draggingByOthers={draggingByOthers}
         isCurrentFacilitator={isCurrentFacilitator}
         currentUserParticipant={currentUserParticipant}
-        typingParticipants={typingParticipants}
         setShowRoleModal={setShowRoleModal}
         setSelectedParticipant={setSelectedParticipant}
         setPhase={setPhase}

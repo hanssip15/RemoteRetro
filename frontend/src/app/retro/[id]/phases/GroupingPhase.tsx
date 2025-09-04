@@ -29,7 +29,6 @@ export default function GroupingPhase({
   broadcastPhaseChange,
   draggingByOthers,
   isCurrentFacilitator,
-  typingParticipants,
   setShowRoleModal,
   setSelectedParticipant,
   setPhase,
@@ -60,7 +59,6 @@ export default function GroupingPhase({
 const positionsReady = useMemo(() => {
   const itemsLength = items.length;
   const positionsLength = Object.keys(itemPositions || {}).length;
-  console.log("-- positionsReady check:", { itemsLength, positionsLength, itemPositions });
   if (itemsLength === 0) return false;
 
   // Render kalau posisi lengkap
@@ -289,8 +287,7 @@ const processedItemGroups = useMemo(() => {
               </>
             )
           }
-          participants={participants}
-          typingParticipants={typingParticipants}
+          // participants={participants}
           isCurrentFacilitator={isCurrentFacilitator}
           user={user}
           setShowRoleModal={setShowRoleModal}

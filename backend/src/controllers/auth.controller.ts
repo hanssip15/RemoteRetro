@@ -1,4 +1,4 @@
-import { Controller, Get, Req, UseGuards, Res, Param } from '@nestjs/common';
+import { Controller, Get, Req, UseGuards, Res, Param, NotFoundException } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../services/user.service';
@@ -46,19 +46,25 @@ export class AuthController {
     });
     return res.redirect(`${frontendUrl}/auth/callback?token=${token}`);
   }
-  @Get('me')
-  @UseGuards(AuthGuard('jwt'))
-  async getCurrentUser(@Req() req: Request) {
+@Get('me')
+@UseGuards(AuthGuard('jwt'))
+async getCurrentUser(@Req() req: Request) {
+  const userPayload = req.user as any;
 
-    // req.user contains the decoded JWT payload
-    const user = req.user as any;
-    return {
-      id: user?.sub,
-      email: user?.email,
-      name: user?.name,
-      imageUrl: user?.imageUrl
-    };
+  // Ambil user dari database
+  const user = await this.usersService.findByEmail(userPayload.email);
+
+  if (!user) {
+    throw new NotFoundException('User tidak ditemukan di database');
   }
+  
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    imageUrl: user.imageUrl,
+  };
+}
 
   @Get('logout')
   logout(@Res() res: Response) {
