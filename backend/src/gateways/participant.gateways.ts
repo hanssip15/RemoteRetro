@@ -266,6 +266,7 @@ import { Participant } from 'src/entities/participant.entity';
           itemId: data.itemId,
           position: data.position,
           userId: data.userId,
+          source: data.source,
           timestamp: new Date().toISOString()
         });
       }

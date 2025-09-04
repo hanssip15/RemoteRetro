@@ -411,8 +411,8 @@ function computeGroupsAndColors(
 
   // Ensure initial grouping is computed and broadcast when server has no grouping yet
   useEffect(() => {
-    if (!socket || !isConnected) return;
-    if (items.length === 0) return;
+    // This effect runs after socket is initialized further below; guard with optional checks
+    if (!items || items.length === 0) return;
     const haveAllPositions = Object.keys(itemPositions || {}).length === items.length;
     const haveNoGroups = !itemGroups || Object.keys(itemGroups || {}).length === 0;
     if (haveAllPositions && haveNoGroups) {
@@ -424,7 +424,7 @@ function computeGroupsAndColors(
       );
       debouncedGroupingUpdate(itemToGroup, newSignatureColors, newUsedColors);
     }
-  }, [socket, isConnected, items, itemPositions, itemGroups, signatureColors, usedColors]);
+  }, [items, itemPositions, itemGroups, signatureColors, usedColors]);
 
   // Handler drag - update posisi dan group/color
   // @ts-ignore
@@ -525,8 +525,18 @@ function computeGroupsAndColors(
       // Handle single item position (for dragging)
       else if (data.itemId && data.position) {
         setItemPositions(pos => ({ ...pos, [data.itemId!]: data.position! }));
-        // Tandai sedang di-drag user lain selama event drag berlangsung
-        setDraggingByOthers(prev => ({ ...prev, [data.itemId!]: data.userId }));
+        // Lock/unlock drag state based on source
+        // @ts-ignore
+        const source = (data as any).source;
+        if (source === 'drag') {
+          setDraggingByOthers(prev => ({ ...prev, [data.itemId!]: data.userId }));
+        } else if (source === 'drag-stop') {
+          setDraggingByOthers(prev => {
+            const next = { ...prev };
+            delete next[data.itemId!];
+            return next;
+          });
+        }
       }
     }
   }, [user?.id]);
