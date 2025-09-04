@@ -61,6 +61,7 @@ export default function RetroPage() {
   const [allUserVotes, setAllUserVotes] = useState<{ [userId: string]: { [groupIdx: number]: number } }>({});
   const [userId, setUserId] = useState<string>();
   const [isUserJoined, setIsUserJoined] = useState(false);
+  const [retroStateLoaded, setRetroStateLoaded] = useState(false);
   
   // Data structure untuk menyimpan grup yang bisa dimasukkan ke database
   // const [setGroupData] = useState<GroupData>({
@@ -1035,7 +1036,8 @@ const handleItemAdded = useCallback((newItem: RetroItem) => {
             setSignatureColors(state.signatureColors);
           }
   
-          // Jika backend belum kirim posisi, GroupingPhase akan mengukur dan broadcast
+          // Tandai bahwa retro-state sudah diterima
+          setRetroStateLoaded(true);
         };
   
         socket.on(`retro-state:${retroId}`, handleRetroState);
