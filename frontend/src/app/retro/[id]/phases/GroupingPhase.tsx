@@ -127,6 +127,7 @@ export default function GroupingPhase({
         retroId: retro.id,
         itemPositions: positions,
         userId: user.id,
+        source: 'init-layout'
       });
     }
   }, [items, socket, isConnected, retro?.id, user?.id]);
