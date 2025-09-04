@@ -132,6 +132,10 @@ export default function GroupingPhase({
     }
   }, [items, socket, isConnected, retro?.id, user?.id]);
 
+  const handleReflowLayout = useCallback(() => {
+    computeLayout();
+  }, [computeLayout]);
+
   // Trigger initial measurement-based layout when no server positions
   useEffect(() => {
     const shouldCompute = items.length > 0 && (!itemPositions || Object.keys(itemPositions || {}).length === 0);
@@ -311,6 +315,13 @@ export default function GroupingPhase({
           right={
             isCurrentFacilitator && (
               <>
+                <Button
+                  onClick={handleReflowLayout}
+                  className="mr-2 flex items-center px-2 py-1 text-xs md:px-4 md:py-2 md:text-sm"
+                  variant="outline"
+                >
+                  Reflow layout
+                </Button>
                 <Button
                   onClick={() => setShowConfirm(true)}
                   className="flex items-center px-1 py-1 text-xs md:px-8 md:py-2 md:text-base font-semibold"
