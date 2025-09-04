@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, HttpStatus, HttpCode, Patch } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, HttpStatus, HttpCode, Patch, ConflictException, NotFoundException } from '@nestjs/common';
 import { ParticipantService } from '../services/participant.service';
 import { JoinRetroDto } from '../dto/join-retro.dto';
 import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -24,8 +24,12 @@ export class ParticipantController {
     @Param('retro_id') retro_id: string,
     @Param('user_id') user_id: string,
     @Body() joinRetroDto: JoinRetroDto) {
-    return this.participantService.join(retro_id, user_id, joinRetroDto);
-  }
+      const participant = await this.participantService.join(retro_id, user_id, joinRetroDto);
+      if (!participant) {
+        throw new ConflictException('Failed to join retro');
+      }
+      return participant;
+    }
 
   // Mengubah peran partisipan menjadi fasilitator pada suatu retro
   @Patch('v1/retros/:retro_id/participant/:participant_id/update-role')

@@ -117,16 +117,16 @@ export default function RetroFooter({
         {/* Avatar bar */}
         {participants.length > 0 && (
           <div className="w-full flex justify-center pb-1 mb-1">
-            <div className="flex flex-row items-end gap-6">
+           <div className="flex flex-row items-end gap-6 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 px-2 md:px-0">
               {participants.map((p: any) => (
-                <div key={p.id} className="flex flex-col items-center relative group">
+                <div key={p.id} className="flex flex-col items-center relative group flex-shrink-0">
                   <div className="relative">
                     <Avatar
                       className={`h-14 w-14 border-2 ${p.role ? 'border-blue-500' : 'border-gray-200'} group-hover:border-indigo-500 transition`}
                       title={`${p.user.name} ${p.role ? '(Facilitator)' : '(Participant)'}`}
                     >
                       <AvatarImage 
-                        src={p.user.imageUrl || p.user.image_url || undefined} 
+                        src={p.user.image_url} 
                         alt={p.user.name} 
                         loading="lazy"
                         onError={(e) => {

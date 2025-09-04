@@ -7,6 +7,7 @@ import { PhaseConfirmModal } from '@/components/ui/dialog';
 import { apiService } from '@/services/api';
 import useEnterToCloseModal from "@/hooks/useEnterToCloseModal";
 import HighContrastToggle from '@/components/HighContrastToggle';
+import { Loader2 } from 'lucide-react';
 
 export default function GroupingPhase({
   retro,
@@ -28,7 +29,6 @@ export default function GroupingPhase({
   broadcastPhaseChange,
   draggingByOthers,
   isCurrentFacilitator,
-  typingParticipants,
   setShowRoleModal,
   setSelectedParticipant,
   setPhase,
@@ -54,16 +54,12 @@ export default function GroupingPhase({
   const reflowTimeoutRef = useRef<number | null>(null);
 
   const handleModalClose = useCallback(() => setShowModal(false), []);
-
+  const [isLoading, setIsLoading] = useState(false);
   useEffect(() => {
     setShowModal(true);
   }, []);
 
   useEnterToCloseModal(showModal, handleModalClose);
-
-  useEffect(() => {
-    // Measurement container is always present below
-  }, [items.length, itemPositions]);
 
   const positionsReady = useMemo(() => {
     const itemsLength = items.length;
@@ -276,12 +272,10 @@ export default function GroupingPhase({
             </Draggable>
           );
         })}
-        {/* Footer modular */}
         <div className="h-40" />
         <RetroFooter
           left={
             <>
-              {/* Mobile: kiri, title & summary */}
               <div className="flex flex-col items-start text-left md:hidden">
                 <div className="text-lg font-semibold">Grouping</div>
                 <div className="text-xs text-gray-500">
@@ -298,7 +292,6 @@ export default function GroupingPhase({
             </>
           }
           center={
-            // Desktop only: title & summary di tengah
             <div className="hidden md:flex flex-col items-center justify-center">
               <div className="text-lg font-semibold">Grouping</div>
               <div className="text-xs text-gray-500">
@@ -317,43 +310,56 @@ export default function GroupingPhase({
                   className="flex items-center px-1 py-1 text-xs md:px-8 md:py-2 md:text-base font-semibold"
                   variant="phasePrimary"
                 >
-                  Next: Labelling <span className="ml-2">&#8594;</span>
+                  Labelling <span className="ml-2">&#8594;</span>
                 </Button>
                 <PhaseConfirmModal
                   open={showConfirm}
                   onOpenChange={setShowConfirm}
                   title="Has your team finished grouping the ideas?"
                   onConfirm={async () => {
-                    // Cek jika belum ada grup, assign setiap item ke grup sendiri
+                    setIsLoading(true);
+                    try {
                     const sigCount: { [sig: string]: number } = {};
-                    (Object.values(itemGroups || {}) as string[]).forEach((sig: string) => { sigCount[sig] = (sigCount[sig] || 0) + 1; });
+                    (Object.values(itemGroups || {}) as string[]).forEach((sig: string) => { 
+                      sigCount[sig] = (sigCount[sig] || 0) + 1; 
+                    });
+
                     const allUnique = Object.values(sigCount).every((count: number) => count === 1);
                     const noGroups = !itemGroups || Object.keys(itemGroups).length === 0 || allUnique;
+
                     if (noGroups && items && items.length > 0) {
                       const newGroups: { [id: string]: string } = {};
-                      // 1. Buat grup di backend untuk setiap item
+
                       for (const item of items) {
-                        // Buat grup baru (label = 'unlabeled')
                         const group = await apiService.createGroup(retro.id);
-                        // Assign item ke grup
                         await apiService.insertItem(group.id.toString(), item.id);
                         newGroups[item.id] = group.id.toString();
                       }
-                      setItemGroups(newGroups); // update state global
-                      if (typeof setPhase === 'function') setPhase('labelling');
-                    } 
-                     if (typeof broadcastPhaseChange === 'function') broadcastPhaseChange('labelling');
-                      else if (typeof setPhase === 'function') setPhase('labelling');
-                  }}
+
+                      setItemGroups(newGroups);
+                      if (typeof setPhase === "function") setPhase("labelling");
+                    }
+
+                    if (typeof broadcastPhaseChange === "function") broadcastPhaseChange("labelling");
+                    else if (typeof setPhase === "function") setPhase("labelling");
+                  } finally {
+                    setIsLoading(false); 
+                  }
+                }}
                   onCancel={() => {}}
-                  confirmLabel="Yes"
+                  confirmLabel='Yes'
                   cancelLabel="No"
                 />
+              {isLoading && (
+                <div className="fixed inset-0 bg-black/40 flex flex-col items-center justify-center z-[9999]">
+                  <Loader2 className="animate-spin w-10 h-10 text-white" />
+                  <span className="mt-2 text-white text-lg">Processing...</span>
+                </div>
+              )}
               </>
             )
           }
-          participants={participants}
-          typingParticipants={typingParticipants}
+          // participants={participants}
           isCurrentFacilitator={isCurrentFacilitator}
           user={user}
           setShowRoleModal={setShowRoleModal}

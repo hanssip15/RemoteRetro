@@ -8,13 +8,14 @@ import {
   ManyToOne,
   JoinColumn,
   OneToMany,
+  PrimaryGeneratedColumn,
 } from 'typeorm';
 import { User } from './user.entity';
 import { Participant } from './participant.entity';
 
 @Entity('retros')
 export class Retro {
-  @PrimaryColumn()
+  @PrimaryGeneratedColumn('uuid')   // ✅ generate otomatis pakai uuid
   id: string;
 
   @Column({ type: 'varchar', length: 255 })
@@ -31,6 +32,9 @@ export class Retro {
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;
+
+  @UpdateDateColumn({ name: 'updated_at', type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  updatedAt: Date;
 
   @Column({ name: 'created_by' })
   createdBy: string;

@@ -55,6 +55,8 @@ export default function DashboardPage() {
     const user = await api.getCurrentUser();
     await fetchDashboardData(false,user.id);
     setUser(user);
+  localStorage.removeItem("redirect");
+
   };
   fetchUser();
 }, []);

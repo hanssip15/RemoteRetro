@@ -10,7 +10,7 @@ interface UseRetroSocketOptions {
   onItemDeleted?: (itemId: string) => void;
   onItemsUpdate?: (items: any[]) => void;
   onParticipantUpdate?: (participants: any[]) => void;
-  onParticipantAdded?: (participant: Participant ) => void;
+  onParticipantAdded?: (participant: Participant) => void;
   onRetroStarted?: () => void;
   onPhaseChange?: (phase: 'prime-directive' | 'ideation' | 'grouping' | 'labelling' | 'voting' | 'final' | 'ActionItems') => void;
   onItemPositionUpdate?: (data: { itemId: string; position: { x: number; y: number }; userId: string }) => void;
@@ -66,13 +66,12 @@ export const useRetroSocket = ({
       if (socketRef.current?.connected || isConnectingRef.current) {
         return;
       }
-  
       isConnectingRef.current = true;
-  
       // Connect to WebSocket server
       socketRef.current = io(import.meta.env.VITE_API_URL, {
         transports: ['websocket', 'polling'],
         timeout: 10000,
+        secure: true,
         reconnection: true,
         reconnectionAttempts: 5,
         reconnectionDelay: 1000,

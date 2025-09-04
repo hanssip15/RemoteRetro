@@ -4,8 +4,6 @@ import { Injectable } from '@nestjs/common';
 import { GroupEntity } from '../entities/group.entity';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
-import { CreateGroupDto } from '../dto/create-group.dto';
-
 @Injectable()
 export class GroupService {
   constructor(

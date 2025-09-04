@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import RetroFooter from './RetroFooter';
 import { Button } from '@/components/ui/button';
 import RetroHeader from '../RetroHeader';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Check, Pencil, Trash2, X } from 'lucide-react';
 import { PhaseConfirmModal } from '@/components/ui/dialog';
 import { api, apiService } from '@/services/api';
 import { getCategoryEmoji } from '@/lib/utils';
@@ -181,20 +181,12 @@ export default function ActionItemsPhase({
                         />
                       </div>
                       <div className="flex gap-2 mt-1">
-                        <button
-                          className="px-2 py-1 bg-gray-400 text-white rounded text-xs hover:bg-gray-500"
-                          onClick={() => handleSaveEditActionItem(idx)}
-                          type="button"
-                        >
-                          Save
-                        </button>
-                        <button
-                          className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs border hover:bg-gray-200"
-                          onClick={() => setEditingActionIdx(null)}
-                          type="button"
-                        >
-                          Cancel
-                        </button>
+                        <Button size="sm" variant="outline" onClick={() => handleSaveEditActionItem(idx)}>
+                          <Check className="h-3 w-3" />
+                        </Button>
+                        <Button size="sm" onClick={() => setEditingActionIdx(null)}>
+                          <X className="h-3 w-3" />
+                        </Button>
                       </div>
                     </div>
                   ) : (
@@ -310,7 +302,7 @@ export default function ActionItemsPhase({
                   variant="phasePrimary"
                   disabled={actionItems.length === 0}
                 >
-                  Next: Final <span className="ml-2">&#8594;</span>
+                  Final <span className="ml-2">&#8594;</span>
                 </Button>
                 <PhaseConfirmModal
                   open={showConfirm}

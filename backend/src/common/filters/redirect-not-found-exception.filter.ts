@@ -9,7 +9,7 @@ export class RedirectNotFoundFilter implements ExceptionFilter {
 
     res.status(404).json({
       success: false,
-      message: exception.message || 'Resource not found',
+      message: exception.message,
       redirectUrl: '/halaman-tujuan', // ini akan dibaca FE
     });
   }

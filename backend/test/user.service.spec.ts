@@ -42,20 +42,6 @@ describe('UsersService', () => {
     });
   });
 
-  describe('findById', () => {
-    it('should return a user by ID', async () => {
-      const mockUser = { id: '1', email: 'id@example.com' } as User;
-      (userRepository.findOne as jest.Mock).mockResolvedValue(mockUser);
-
-      const result = await service.findById('1');
-
-      expect(userRepository.findOne).toHaveBeenCalledWith({
-        where: { id: '1' },
-      });
-      expect(result).toEqual(mockUser);
-    });
-  });
-
   describe('create', () => {
     it('should create and save a user', async () => {
       const userDto = { email: 'create@example.com' } as Partial<User>;

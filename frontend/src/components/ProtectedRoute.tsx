@@ -1,6 +1,6 @@
 // ProtectedRoute.tsx
 import { useEffect, useState } from "react";
-import { api } from "@/services/api";
+import { api, apiService } from "@/services/api";
 
 export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
@@ -10,8 +10,9 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
     const checkAuth = async () => {
       const currentPath = window.location.pathname + window.location.search;
       try {
-        const userData = await api.getCurrentUser();
-        if (!userData) {
+        const currentUser = await api.getCurrentUser();
+        const userData = await apiService.getUserByUserId(currentUser.id);
+        if (!currentUser && !userData) {
           await api.removeAuthToken();
           localStorage.setItem("redirect", currentPath);
           // 🚨 langsung redirect, jangan setLoading(false)

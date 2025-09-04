@@ -169,9 +169,9 @@ class ApiService {
     }
   }
   // ================== USER ================== //
-  // async getUserByUserId(userId: string): Promise<User> {
-  //   return this.request<User>(`/user/v1/users/${userId}`);
-  // }
+  async getUserByUserId(userId: string): Promise<User> {
+    return this.request<User>(`/auth/user/${userId}`);
+  }
 
   // ================== RETRO ================== //
   // Mengambil data Retro berdasarkan Id

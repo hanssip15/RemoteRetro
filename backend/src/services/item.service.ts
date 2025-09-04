@@ -2,11 +2,11 @@ import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/commo
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { RetroItem, RetroFormatTypes } from '../entities/retro-item.entity';
-import { CreateRetroItemDto, UpdateItemDto } from '../dto/create-item.dto';
+import { CreateRetroItemDto, UpdateItemDto } from '../dto/item.dto';
 import { Retro } from '../entities/retro.entity';
 import { Participant } from '../entities/participant.entity';
 import { ParticipantGateway } from '../gateways/participant.gateways';
-import { GroupItem } from 'src/entities/group-item.entity';
+import { GroupItem } from '../entities/group-item.entity';
 
 @Injectable()
 export class RetroItemsService {
@@ -38,7 +38,7 @@ export class RetroItemsService {
       retroId: savedItem.retro_id,
       category: savedItem.format_type,
       content: savedItem.content,
-      author: savedItem.creator?.name || savedItem.creator?.email,
+      author: savedItem.creator?.name,
       createdBy: savedItem.created_by,
       isEdited: savedItem.is_edited,
     };
@@ -64,7 +64,7 @@ export class RetroItemsService {
     const items = await this.retroItemRepository.find({
       where: { retro_id: retroId },
       relations: ['creator'],
-      order: { id: 'ASC' },
+      order: { updated_at: 'ASC' },
     });
 
     // Transform to match frontend interface
@@ -82,41 +82,53 @@ export class RetroItemsService {
   }
 
   async update(id: string, dto: UpdateItemDto): Promise<any> {
-    const { content, format_type } = dto;
-    const item = await this.retroItemRepository.findOne({ 
-      where: { id },
-      relations: ['creator']
-    });
-    
-    if (!item) {
-      throw new NotFoundException('Item not found');
-    }
+  const { content, format_type } = dto;
 
-    // Update the item
-    await this.retroItemRepository.update(id, { content, format_type, is_edited: true });
- const updatedItem = await this.retroItemRepository.findOne({
+  const item = await this.retroItemRepository.findOne({
     where: { id },
     relations: ['creator'],
   });
-    if (!updatedItem) {
-      throw new NotFoundException('Item not found after update');
-    }
 
-    // Transform to match frontend interface
-    const transformedItem = {
-      id: updatedItem.id,
-      category: updatedItem.format_type,
-      content: updatedItem.content,
-      author: updatedItem.creator?.name || updatedItem.creator?.email,
-      createdBy: updatedItem.created_by,
-      isEdited: updatedItem.is_edited,
-    };
-
-    // Broadcast the updated item
-    this.participantGateway.broadcastItemUpdated(updatedItem.retro_id, transformedItem);
-
-    return transformedItem;
+  if (!item) {
+    throw new NotFoundException('Item not found');
   }
+
+  // Tentukan updated_at
+  const updated_at = item.format_type !== format_type ? new Date() : item.updated_at;
+
+  // Update item
+  await this.retroItemRepository.update(id, {
+    content,
+    format_type,
+    is_edited: true,
+    updated_at,
+  });
+
+  const updatedItem = await this.retroItemRepository.findOne({
+    where: { id },
+    relations: ['creator'],
+  });
+
+  if (!updatedItem) {
+    throw new NotFoundException('Item not found after update');
+  }
+
+  // Transform to match frontend interface
+  const transformedItem = {
+    id: updatedItem.id,
+    category: updatedItem.format_type,
+    content: updatedItem.content,
+    author: updatedItem.creator?.name,
+    createdBy: updatedItem.created_by,
+    isEdited: updatedItem.is_edited,
+    updatedAt: updatedItem.updated_at, // tambahkan kalau frontend butuh
+  };
+
+  // Broadcast the updated item
+  this.participantGateway.broadcastItemUpdated(updatedItem.retro_id, transformedItem);
+
+  return transformedItem;
+}
 
   async remove(id: string): Promise<void> {
     const item = await this.retroItemRepository.findOne({ 

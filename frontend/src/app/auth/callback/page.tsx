@@ -15,8 +15,9 @@ const AuthCallbackPage = () => {
           // simpan user ke cache (api.ts) / context
           api.setUser(user);
           const redirect = localStorage.getItem("redirect") || "/dashboard";
-          // localStorage.removeItem("redirect");
           navigate(redirect);
+          // localStorage.removeItem("redirect");
+
         } 
       } catch (err) {
         console.error("Failed to fetch user:", err);
