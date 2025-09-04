@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import RetroFooter from './RetroFooter';
 import { Button } from '@/components/ui/button';
 import RetroHeader from '../RetroHeader';
@@ -33,7 +33,9 @@ export default function GroupingPhase({
   setSelectedParticipant,
   setPhase,
   getCategoryDisplayName,
-  setItemGroups
+  setItemGroups,
+  socket,
+  isConnected
 }: {
   items?: any[];
   itemGroups?: { [id: string]: string };
@@ -46,6 +48,7 @@ export default function GroupingPhase({
   const [showModal, setShowModal] = useState(true);
   const [showConfirm, setShowConfirm] = useState(false);
   const [forceRender, setForceRender] = useState(false);
+  const boardRef = useRef<HTMLDivElement | null>(null);
 
   const handleModalClose = useCallback(() => setShowModal(false), []);
 
@@ -95,8 +98,48 @@ export default function GroupingPhase({
     return itemGroups;
   }, [itemGroups, items]);
 
-
-
+  // After initial render (via forceRender) or when items change and no positions exist,
+  // compute positions based on actual measured card sizes, with 15px gaps and wrapping.
+  useEffect(() => {
+    const shouldCompute = items.length > 0 && (!itemPositions || Object.keys(itemPositions || {}).length === 0) && (forceRender || true);
+    if (!shouldCompute) return;
+    const container = boardRef.current;
+    const containerWidth = container?.clientWidth || (typeof window !== 'undefined' ? window.innerWidth - 40 : 1000);
+    const baseX = 10;
+    const baseY = 10;
+    const gap = 15;
+    // Ensure DOM is painted before measuring
+    const rAF = requestAnimationFrame(() => {
+      const positions: { [key: string]: { x: number; y: number } } = {};
+      let currentX = baseX;
+      let currentY = baseY;
+      let rowHeight = 0;
+      for (const item of items) {
+        const el = document.getElementById('group-item-' + item.id);
+        if (!el) continue;
+        const rect = el.getBoundingClientRect();
+        const width = Math.ceil(rect.width);
+        const height = Math.ceil(rect.height);
+        // Wrap if exceeding container width (keeping at least one item per row)
+        if (currentX !== baseX && currentX + width > containerWidth) {
+          currentX = baseX;
+          currentY += rowHeight + gap;
+          rowHeight = 0;
+        }
+        positions[item.id] = { x: currentX, y: currentY };
+        currentX += width + gap;
+        if (height > rowHeight) rowHeight = height;
+      }
+      if (socket && isConnected && user) {
+        socket.emit('item-position-update', {
+          retroId: retro.id,
+          itemPositions: positions,
+          userId: user.id,
+        });
+      }
+    });
+    return () => cancelAnimationFrame(rAF);
+  }, [items, forceRender, socket, isConnected, retro?.id, user?.id]);
 
   if (!positionsReady) {
     return (
@@ -146,7 +189,7 @@ export default function GroupingPhase({
         setShowShareModal={setShowShareModal}
         handleLogout={handleLogout}
       />
-      <div className="flex-1 relative bg-white overflow-auto pb-40" style={{ minHeight: 'calc(100vh - 120px)' }}>
+      <div ref={boardRef} className="flex-1 relative bg-white overflow-auto pb-40" style={{ minHeight: 'calc(100vh - 120px)' }}>
         {items.map((item: any, idx: number) => {
           const signature = processedItemGroups[item.id];
           const groupSize = signature ? Object.values(itemGroups).filter((sig: any) => sig === signature).length : 0;

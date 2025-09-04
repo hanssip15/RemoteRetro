@@ -1392,6 +1392,8 @@ const handleItemAdded = useCallback((newItem: RetroItem) => {
         setSelectedParticipant={setSelectedParticipant}
         setPhase={setPhase}
         getCategoryDisplayName={getCategoryDisplayName}
+        socket={socket}
+        isConnected={isConnected}
       />
     </>
   );
