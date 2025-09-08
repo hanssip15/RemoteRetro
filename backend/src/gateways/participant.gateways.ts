@@ -213,11 +213,24 @@ async handleDisconnect(client: Socket) {
 
       // === Handle multiple item positions (for initialization) ===
       if (data.itemPositions) {
+        const isInit = data.source === 'init-layout';
+        const hasExisting = Object.keys(currentPositions).length > 0;
+
+        // Only accept bulk init if the server doesn't have positions yet.
+        if (isInit && hasExisting) {
+          return;
+        }
+
         const updatedPositions: { [itemId: string]: { x: number; y: number } } = {};
 
         for (const itemId in data.itemPositions) {
           const newPos = data.itemPositions[itemId];
           const existingPos = currentPositions[itemId];
+
+          // If server has some positions already, only fill the missing ones.
+          if (hasExisting && existingPos) {
+            continue;
+          }
 
           if (
             !existingPos || 
@@ -247,6 +260,7 @@ async handleDisconnect(client: Socket) {
           itemId: data.itemId,
           position: data.position,
           userId: data.userId,
+          source: data.source,
           timestamp: new Date().toISOString()
         });
       }

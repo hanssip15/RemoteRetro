@@ -61,6 +61,7 @@ export default function RetroPage() {
   const [allUserVotes, setAllUserVotes] = useState<{ [userId: string]: { [groupIdx: number]: number } }>({});
   const [userId, setUserId] = useState<string>();
   const [isUserJoined, setIsUserJoined] = useState(false);
+  // Track if retro state was received (not currently used outside of local scope)
   
   // Data structure untuk menyimpan grup yang bisa dimasukkan ke database
   // const [setGroupData] = useState<GroupData>({
@@ -142,7 +143,6 @@ export default function RetroPage() {
     setUser(user);
     setUserId(user.id);
   };
-  localStorage.removeItem("redirect");
   fetchUser();
 }, []);
 
@@ -409,9 +409,35 @@ function computeGroupsAndColors(
   // Throttle untuk broadcast position updates
   const [lastBroadcastTime, setLastBroadcastTime] = useState<{ [itemId: string]: number }>({});
 
+  // Ensure initial grouping is computed and broadcast when server has no grouping yet
+  useEffect(() => {
+    // This effect runs after socket is initialized further below; guard with optional checks
+    if (!items || items.length === 0) return;
+    const haveAllPositions = Object.keys(itemPositions || {}).length === items.length;
+    const haveNoGroups = !itemGroups || Object.keys(itemGroups || {}).length === 0;
+    if (haveAllPositions && haveNoGroups) {
+      const { itemToGroup, newSignatureColors, newUsedColors } = computeGroupsAndColors(
+        items,
+        itemPositions,
+        signatureColors,
+        usedColors,
+      );
+      debouncedGroupingUpdate(itemToGroup, newSignatureColors, newUsedColors);
+    }
+  }, [items, itemPositions, itemGroups, signatureColors, usedColors]);
+
   // Handler drag - update posisi dan group/color
   // @ts-ignore
   const handleDrag = (id: string, e: any, data: any) => {
+    if (socket && isConnected && user) {
+      socket.emit('item-position-update', {
+        retroId: retroId,
+        itemId: id,
+        position: { x: data.x, y: data.y },
+        userId: user.id,
+        source: 'drag'
+      });
+    }
     setItemPositions(pos => {
       const newPos = { ...pos, [id]: { x: data.x, y: data.y } };
       
@@ -425,7 +451,8 @@ function computeGroupsAndColors(
             retroId: retroId,
             itemId: id,
             position: { x: data.x, y: data.y },
-            userId: user.id
+            userId: user.id,
+            source: 'drag'
           });
           setLastBroadcastTime(prev => ({ ...prev, [id]: now }));
         }
@@ -449,14 +476,8 @@ function computeGroupsAndColors(
   // @ts-ignore
   const handleStop = (id: string, e: any, data: any) => {
     setItemPositions(pos => ({ ...pos, [id]: { x: data.x, y: data.y } }));
-    if (socket && isConnected && user) {
-      socket.emit('item-position-update', {
-        retroId,
-        itemId: id,
-        position: { x: data.x, y: data.y },
-        userId: user.id
-      });
-    }
+  
+    // Final grouping computation after drag stops
     setTimeout(() => {
       const { itemToGroup, newSignatureColors, newUsedColors } = computeGroupsAndColors(
         items,
@@ -468,6 +489,24 @@ function computeGroupsAndColors(
       // Use debounced grouping update to prevent race conditions
       debouncedGroupingUpdate(itemToGroup, newSignatureColors, newUsedColors);
     }, 100);
+
+    // Ensure final position is persisted to backend via WebSocket
+    if (socket && isConnected && user) {
+      socket.emit('item-position-update', {
+        retroId: retroId,
+        itemId: id,
+        position: { x: data.x, y: data.y },
+        userId: user.id,
+        source: 'drag-stop'
+      });
+    }
+
+    // Lepas status dragging pada client sendiri
+    setDraggingByOthers(prev => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
   };
 
   // Handler untuk menerima posisi item dari partisipan lain
@@ -486,17 +525,18 @@ function computeGroupsAndColors(
       // Handle single item position (for dragging)
       else if (data.itemId && data.position) {
         setItemPositions(pos => ({ ...pos, [data.itemId!]: data.position! }));
-        // Set item sebagai sedang di-drag oleh user lain
-        setDraggingByOthers(prev => ({ ...prev, [data.itemId!]: data.userId }));
-        
-        // Clear dragging state setelah 2 detik
-        setTimeout(() => {
+        // Lock/unlock drag state based on source
+        // @ts-ignore
+        const source = (data as any).source;
+        if (source === 'drag') {
+          setDraggingByOthers(prev => ({ ...prev, [data.itemId!]: data.userId }));
+        } else if (source === 'drag-stop') {
           setDraggingByOthers(prev => {
-            const newState = { ...prev };
-            delete newState[data.itemId!];
-            return newState;
+            const next = { ...prev };
+            delete next[data.itemId!];
+            return next;
           });
-        }, 2000);
+        }
       }
     }
   }, [user?.id]);
@@ -674,29 +714,11 @@ const handleAdd = useCallback(async () => {
     setOptimisticUpdates(prev => ({ ...prev, [itemId]: { content, category } }))
     
     // Optimistic update - immediately update the item in state
- setItems(prev => {
-  const itemToUpdate = prev.find(item => item.id === itemId);
-  if (!itemToUpdate) return prev;
-
-  const isCategoryChanged = itemToUpdate.category !== category;
-
-  if (isCategoryChanged) {
-    // hapus item lama + taruh versi baru di belakang
-    const filtered = prev.filter(item => item.id !== itemId);
-    return [
-      ...filtered,
-      { ...itemToUpdate, content, category, isEdited: true }
-    ];
-  } else {
-    // update biasa tanpa pindah posisi
-    return prev.map(item =>
-      item.id === itemId
+    setItems(prev => prev.map(item => 
+      item.id === itemId 
         ? { ...item, content, category, isEdited: true }
         : item
-    );
-  }
-});
-
+    ));
 
     try {
       await apiService.updateItem(itemId, { 
@@ -777,32 +799,22 @@ const handleItemAdded = useCallback((newItem: RetroItem) => {
   
  // Handler Item Updated
  // TODO: Handle Item Updated kok ada 2 ? 
- const handleItemUpdated = useCallback(
-  (updatedItem: RetroItem) => {
-    setItems(prev => {
-      const existingItem = prev.find(item => item.id === updatedItem.id);
-      if (!existingItem) {
-        // Kalau item belum ada → taruh di belakang
-        return [...prev, updatedItem];
+  const handleItemUpdated = useCallback((updatedItem: RetroItem) => {
+    setItems(prev => prev.map(item => {
+      if (item.id === updatedItem.id) {
+        // Check if we have an optimistic update for this item
+        const optimisticUpdate = optimisticUpdates[updatedItem.id];
+        if (optimisticUpdate) {
+          // We have an optimistic update, ignore WebSocket update
+          return item;
+        } else {
+          // No optimistic update, use WebSocket data
+          return updatedItem;
+        }
       }
-
-      const isCategoryChanged = existingItem.category !== updatedItem.category;
-
-      if (isCategoryChanged) {
-        // Hapus item lama, tambahkan versi baru di belakang
-        const filtered = prev.filter(item => item.id !== updatedItem.id);
-        return [...filtered, updatedItem];
-      } else {
-        // Update biasa, posisi tetap
-        return prev.map(item =>
-          item.id === updatedItem.id ? updatedItem : item
-        );
-      }
-    });
-  },
-  [optimisticUpdates]
-);
-
+      return item;
+    }));
+  }, [optimisticUpdates]);
     const handleItemsUpdate = useCallback((newItems: RetroItem[]) => {
       setItems(newItems);
     }, []);
@@ -1042,17 +1054,14 @@ const handleItemAdded = useCallback((newItem: RetroItem) => {
         }) => {
           const fromBackend = state.itemPositions || {};
   
-          // Buat posisi berdasarkan urutan itemsData
+          // Gunakan posisi dari backend saja; jika kosong biarkan GroupingPhase yang mengukur dan broadcast
           const mergedPositions: { [key: string]: { x: number; y: number } } = {};
-          itemsData.forEach((item, index) => {
-            mergedPositions[item.id] = fromBackend[item.id] || {
-              x: 20 + (index % 3) * 150,
-              y: 20 + Math.floor(index / 3) * 70
-            };
+          Object.keys(fromBackend).forEach((id) => {
+            mergedPositions[id] = fromBackend[id];
           });
-  
-          // Set posisi yang sudah tersinkron dengan urutan itemsData
-          setItemPositions(mergedPositions);
+          if (Object.keys(mergedPositions).length > 0) {
+            setItemPositions(mergedPositions);
+          }
   
           if (state.itemGroups) {
             setItemGroups(state.itemGroups);
@@ -1062,14 +1071,7 @@ const handleItemAdded = useCallback((newItem: RetroItem) => {
             setSignatureColors(state.signatureColors);
           }
   
-          // Broadcast posisi jika backend belum kirim
-          if (Object.keys(fromBackend).length === 0) {
-            socket.emit('item-position-update', {
-              retroId,
-              itemPositions: mergedPositions,
-              userId: user.id
-            });
-          }
+          // Retro-state diterima; no-op marker removed
         };
   
         socket.on(`retro-state:${retroId}`, handleRetroState);
@@ -1078,15 +1080,7 @@ const handleItemAdded = useCallback((newItem: RetroItem) => {
           socket.off(`retro-state:${retroId}`, handleRetroState);
         };
       } else {
-        // Fallback: jika socket belum ready, set default posisi
-        const fallbackPositions: { [key: string]: { x: number; y: number } } = {};
-        itemsData.forEach((item, index) => {
-          fallbackPositions[item.id] = {
-            x: 20 + (index % 3) * 150,
-            y: 20 + Math.floor(index / 3) * 70
-          };
-        });
-        setItemPositions(fallbackPositions);
+        // Fallback: biarkan GroupingPhase mengukur dan menerapkan layout 15px gap
       }
     } catch (error) {
       console.error("Error fetching items and state:", error);
@@ -1396,11 +1390,13 @@ const handleItemAdded = useCallback((newItem: RetroItem) => {
         draggingByOthers={draggingByOthers}
         isCurrentFacilitator={isCurrentFacilitator}
         currentUserParticipant={currentUserParticipant}
+        typingParticipants={typingParticipants}
         setShowRoleModal={setShowRoleModal}
         setSelectedParticipant={setSelectedParticipant}
         setPhase={setPhase}
         getCategoryDisplayName={getCategoryDisplayName}
-        setItemPositions={setItemPositions}
+        socket={socket}
+        isConnected={isConnected}
       />
     </>
   );
