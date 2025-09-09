@@ -641,7 +641,10 @@ function computeGroupsAndColors(
     }
 
     try {
-      // Persist handled elsewhere. Avoid duplicate grouping inserts.
+      // Jika phase berubah ke labelling, simpan data grouping terlebih dahulu
+      if (newPhase === 'labelling') {
+        await saveGroupData(); 
+      }
       await apiService.updateRetroPhase(retroId, newPhase);
       
       // Phase change will be broadcasted via WebSocket from the server
@@ -650,7 +653,7 @@ function computeGroupsAndColors(
       console.error('❌ Failed to update phase:', error);
       setError('Failed to change phase. Please try again.');
     }
-  }, [retroId, user?.id]);
+  }, [retroId, user?.id, saveGroupData]);
 
   // ! ------------------------ Idea Generation ------------------------ //
 
