@@ -118,7 +118,7 @@ export default function LabellingPhase(props: any) {
         handleLogout={handleLogout}
       />
       <div className="flex-1 overflow-hidden min-h-0">
-          <div className="bg-white p-8 flex-1 overflow-y-auto max-h-[calc(100vh-240px)] flex flex-row flex-wrap gap-8 w-full justify-center pb-40">
+          <div className="bg-white p-8 flex-1 overflow-y-auto max-h-[calc(100vh-240px)] flex flex-row flex-wrap gap-8 w-full justify-center">
             {labellingItems.map((group: any, idx: number) => (
               <div key={group.id} className="bg-white border rounded-lg shadow-sm w-full sm:max-w-[400px] p-4">
                 <div className="mb-2">
@@ -159,7 +159,6 @@ export default function LabellingPhase(props: any) {
             ))}
           </div>
       </div>
-      <div className="h-40" />
       <RetroFooter
         left={<div className="flex flex-col items-start text-left"><div className="text-2xl font-semibold mb-1">Labelling</div><div className="text-gray-500">Arrive at sensible group labels</div></div>}
         title={null}
