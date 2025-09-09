@@ -61,11 +61,11 @@ export default function FinalPhase({
         setShowShareModal={setShowShareModal}
         handleLogout={handleLogout}
       />
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] w-full h-full bg-gray-50">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] w-full flex-1 overflow-hidden bg-gray-50">
         {/* Panel kiri: feedback/group */}
-        <div className="flex flex-col bg-white pb-40 overflow-y-auto">
+        <div className="flex flex-col bg-white overflow-hidden">
           {/* Card group kiri (read-only) */}
-          <div className="flex flex-row flex-wrap gap-8 p-8 w-full justify-center">
+          <div className="flex-1 overflow-y-auto flex flex-row flex-wrap gap-8 p-8 pb-40 w-full justify-center">
           {labellingItems && labellingItems.length > 0 ? (
             labellingItems.sort((a: any, b: any) => b.votes - a.votes).map((group: any) => {
               return (            <div key={group.id} className="bg-white border rounded-lg shadow-sm w-full sm:max-w-[350px] px-4 py-3">
@@ -92,7 +92,7 @@ export default function FinalPhase({
           </div>
         </div>
         {/* Panel kanan: Action Items (atau summary) */}
-        <div className="w-full border-t bg-white flex flex-col p-6 pb-40 h-full min-h-screen lg:w-[400px] lg:border-l lg:border-t-0">
+        <div className="w-full border-t bg-white flex flex-col p-6 h-full overflow-hidden lg:w-[400px] lg:border-l lg:border-t-0">
           {/* Header sticky */}
           <div className="flex items-center gap-2 mb-2 sticky top-0 z-10 bg-white">
             <span className="text-2xl">🚀</span>
@@ -100,7 +100,7 @@ export default function FinalPhase({
           </div>
           <hr className="mb-4" />
           {/* Isi panel scrollable */}
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto pb-40">
             {/* List action items (read-only) */}
             <div className="flex flex-col gap-2">
               {actionItems.length === 0 && <span className="text-gray-400 text-sm">No action items yet.</span>}
