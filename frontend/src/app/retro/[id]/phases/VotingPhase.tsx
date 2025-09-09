@@ -289,13 +289,13 @@ export default function VotingPhase(props: any) {
       <div className="flex-1 flex flex-col items-center justify-start w-full overflow-auto pb-40">
         <div className="flex flex-row flex-wrap gap-8 mt-8 w-full justify-center">
         {labellingItems.map((group: any) => (
-            <div key={group.id} className="bg-white border rounded-lg shadow-sm min-w-[350px] max-w-[400px] w-full p-4">
+            <div key={group.id} className="bg-white border rounded-lg shadow-sm w-full sm:max-w-[400px] p-4">
               <div className="mb-2 flex items-center justify-between">
                 <div className="flex flex-col">
                   <span className="text-lg font-semibold text-gray-400">{group.label}</span>
                   {/* <span className="text-sm text-gray-500">Total Votes: {group.votes || 0}</span> */}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
                   <div className="relative flex items-center">
                     <div className="bg-teal-400 text-white font-bold pl-4 pr-2 py-1 rounded-lg relative select-none text-left" style={{fontSize: '1rem', minWidth: '90px'}}>
                       <span className="relative z-10">Vote! &gt; &gt; </span>

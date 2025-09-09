@@ -120,7 +120,7 @@ export default function IdeationPhase(props: any) {
            </div>
          </div>
          {/* Desktop: 3 kolom */}
-         <div className="hidden sm:grid lg:grid-cols-3 gap-6">
+         <div className="hidden sm:grid sm:grid-cols-2 md:grid-cols-3 gap-6">
            {[0,1,2].map(idx => (
              <Card className="max-h-[calc(100vh-300px)] flex flex-col" key={idx}>
                <CardHeader className="flex-shrink-0">

@@ -68,7 +68,7 @@ export default function FinalPhase({
           <div className="flex flex-row flex-wrap gap-8 p-8 w-full justify-center">
           {labellingItems && labellingItems.length > 0 ? (
             labellingItems.sort((a: any, b: any) => b.votes - a.votes).map((group: any) => {
-              return (            <div key={group.id} className="bg-white border rounded-lg shadow-sm w-auto min-w-[220px] max-w-[350px] px-4 py-3">
+              return (            <div key={group.id} className="bg-white border rounded-lg shadow-sm w-full sm:max-w-[350px] px-4 py-3">
                 <div className="mb-2 flex items-center justify-between">
                   <span className="text-lg font-semibold text-gray-400">{group.label || 'Unlabeled'}</span>
                   <div className="flex items-center gap-2">

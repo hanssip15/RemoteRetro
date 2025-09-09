@@ -120,7 +120,7 @@ export default function ActionItemsPhase({
           <div className="flex flex-row flex-wrap gap-8 p-8 w-full justify-center">
             {labellingItems && labellingItems.length > 0 ? (
               labellingItems.sort((a: any, b: any) => b.votes - a.votes).map((group: any) => (
-                <div key={group.id} className="bg-white border rounded-lg shadow-sm min-w-[350px] max-w-[400px] w-full p-4">
+                <div key={group.id} className="bg-white border rounded-lg shadow-sm w-full sm:max-w-[400px] p-4">
                   <div className="mb-2 flex items-center justify-between">
                     <span className="text-lg font-semibold text-gray-400">{group.label || 'Unlabeled'}</span>
                     <div className="bg-gray-100 text-gray-700 font-bold px-3 py-1 rounded text-center">
