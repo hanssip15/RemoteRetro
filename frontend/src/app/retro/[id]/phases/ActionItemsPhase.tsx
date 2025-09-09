@@ -145,7 +145,7 @@ export default function ActionItemsPhase({
         </div>
 
         {/* Panel kanan */}
-        <div className="w-[400px] border-l bg-white flex flex-col p-6 h-full min-h-screen">
+        <div className="w-full border-t bg-white flex flex-col p-6 h-full min-h-screen lg:w-[400px] lg:border-l lg:border-t-0">
           <div className="flex items-center gap-2 mb-2 sticky top-0 z-10 bg-white">
             <span className="text-2xl">🚀</span>
             <span className="text-xl font-semibold">Action Items</span>
