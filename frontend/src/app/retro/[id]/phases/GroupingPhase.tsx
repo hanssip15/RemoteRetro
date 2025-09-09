@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import RetroHeader from '../RetroHeader';
 import Draggable from 'react-draggable';
 import { PhaseConfirmModal } from '@/components/ui/dialog';
-import { apiService } from '@/services/api';
 import useEnterToCloseModal from "@/hooks/useEnterToCloseModal";
 import HighContrastToggle from '@/components/HighContrastToggle';
 import { Loader2 } from 'lucide-react';
@@ -33,7 +32,6 @@ export default function GroupingPhase({
   setSelectedParticipant,
   setPhase,
   getCategoryDisplayName,
-  setItemGroups,
   socket,
   isConnected
 }: {
@@ -319,33 +317,16 @@ export default function GroupingPhase({
                   onConfirm={async () => {
                     setIsLoading(true);
                     try {
-                    const sigCount: { [sig: string]: number } = {};
-                    (Object.values(itemGroups || {}) as string[]).forEach((sig: string) => { 
-                      sigCount[sig] = (sigCount[sig] || 0) + 1; 
-                    });
-
-                    const allUnique = Object.values(sigCount).every((count: number) => count === 1);
-                    const noGroups = !itemGroups || Object.keys(itemGroups).length === 0 || allUnique;
-
-                    if (noGroups && items && items.length > 0) {
-                      const newGroups: { [id: string]: string } = {};
-
-                      for (const item of items) {
-                        const group = await apiService.createGroup(retro.id);
-                        await apiService.insertItem(group.id.toString(), item.id);
-                        newGroups[item.id] = group.id.toString();
+                      // Persist grouping via broadcastPhaseChange -> saveGroupData on parent
+                      if (typeof broadcastPhaseChange === "function") {
+                        await broadcastPhaseChange("labelling");
+                      } else if (typeof setPhase === "function") {
+                        setPhase("labelling");
                       }
-
-                      setItemGroups(newGroups);
-                      if (typeof setPhase === "function") setPhase("labelling");
+                    } finally {
+                      setIsLoading(false); 
                     }
-
-                    if (typeof broadcastPhaseChange === "function") broadcastPhaseChange("labelling");
-                    else if (typeof setPhase === "function") setPhase("labelling");
-                  } finally {
-                    setIsLoading(false); 
-                  }
-                }}
+                  }}
                   onCancel={() => {}}
                   confirmLabel='Yes'
                   cancelLabel="No"
