@@ -116,7 +116,7 @@ export default function ActionItemsPhase({
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] w-full h-full bg-gray-50">
         {/* Panel kiri */}
-        <div className="flex flex-col bg-white">
+        <div className="flex flex-col bg-white pb-40">
           <div className="flex flex-row flex-wrap gap-8 p-8 w-full justify-center">
             {labellingItems && labellingItems.length > 0 ? (
               labellingItems.sort((a: any, b: any) => b.votes - a.votes).map((group: any) => (
@@ -145,7 +145,7 @@ export default function ActionItemsPhase({
         </div>
 
         {/* Panel kanan */}
-        <div className="w-full border-t bg-white flex flex-col p-6 h-full min-h-screen lg:w-[400px] lg:border-l lg:border-t-0">
+        <div className="w-full border-t bg-white flex flex-col p-6 pb-40 h-full min-h-screen lg:w-[400px] lg:border-l lg:border-t-0">
           <div className="flex items-center gap-2 mb-2 sticky top-0 z-10 bg-white">
             <span className="text-2xl">🚀</span>
             <span className="text-xl font-semibold">Action Items</span>
@@ -232,7 +232,6 @@ export default function ActionItemsPhase({
         </div>
       </div>
 
-      <div className="h-40" />
 
       <RetroFooter
         title={null}
