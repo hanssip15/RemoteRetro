@@ -117,7 +117,7 @@ export default function ActionItemsPhase({
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] w-full flex-1 overflow-hidden min-h-0 bg-gray-50">
         {/* Panel kiri */}
         <div className="flex flex-col bg-white overflow-hidden min-h-0">
-          <div className="flex-1 overflow-y-auto flex flex-row flex-wrap gap-8 p-8 pb-40 w-full justify-center">
+          <div className="flex-1 overflow-y-auto max-h-[calc(100vh-240px)] flex flex-row flex-wrap gap-8 p-8 pb-40 w-full justify-center">
             {labellingItems && labellingItems.length > 0 ? (
               labellingItems.sort((a: any, b: any) => b.votes - a.votes).map((group: any) => (
                 <div key={group.id} className="bg-white border rounded-lg shadow-sm w-full sm:max-w-[400px] p-4">
@@ -152,7 +152,7 @@ export default function ActionItemsPhase({
           </div>
           <hr className="mb-4" />
 
-          <div className="flex-1 overflow-y-auto pb-40">
+          <div className="flex-1 overflow-y-auto max-h-[calc(100vh-260px)] pb-40">
             <div className="flex flex-col gap-2">
               {actionItems.length === 0 && <span className="text-gray-400 text-sm">No action items yet.</span>}
               {actionItems.map((item: any, idx: number) => (

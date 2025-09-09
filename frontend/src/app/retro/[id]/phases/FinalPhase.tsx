@@ -65,7 +65,7 @@ export default function FinalPhase({
         {/* Panel kiri: feedback/group */}
         <div className="flex flex-col bg-white overflow-hidden min-h-0">
           {/* Card group kiri (read-only) */}
-          <div className="flex-1 overflow-y-auto flex flex-row flex-wrap gap-8 p-8 pb-40 w-full justify-center">
+          <div className="flex-1 overflow-y-auto max-h-[calc(100vh-240px)] flex flex-row flex-wrap gap-8 p-8 pb-40 w-full justify-center">
           {labellingItems && labellingItems.length > 0 ? (
             labellingItems.sort((a: any, b: any) => b.votes - a.votes).map((group: any) => {
               return (            <div key={group.id} className="bg-white border rounded-lg shadow-sm w-full sm:max-w-[350px] px-4 py-3">
@@ -100,7 +100,7 @@ export default function FinalPhase({
           </div>
           <hr className="mb-4" />
           {/* Isi panel scrollable */}
-          <div className="flex-1 overflow-y-auto pb-40">
+          <div className="flex-1 overflow-y-auto max-h-[calc(100vh-260px)] pb-40">
             {/* List action items (read-only) */}
             <div className="flex flex-col gap-2">
               {actionItems.length === 0 && <span className="text-gray-400 text-sm">No action items yet.</span>}
