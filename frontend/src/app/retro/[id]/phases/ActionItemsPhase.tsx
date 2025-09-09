@@ -114,9 +114,9 @@ export default function ActionItemsPhase({
         handleLogout={handleLogout}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] w-full flex-1 overflow-hidden bg-gray-50">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] w-full flex-1 overflow-hidden min-h-0 bg-gray-50">
         {/* Panel kiri */}
-        <div className="flex flex-col bg-white overflow-hidden">
+        <div className="flex flex-col bg-white overflow-hidden min-h-0">
           <div className="flex-1 overflow-y-auto flex flex-row flex-wrap gap-8 p-8 pb-40 w-full justify-center">
             {labellingItems && labellingItems.length > 0 ? (
               labellingItems.sort((a: any, b: any) => b.votes - a.votes).map((group: any) => (
@@ -145,7 +145,7 @@ export default function ActionItemsPhase({
         </div>
 
         {/* Panel kanan */}
-        <div className="w-full border-t bg-white flex flex-col p-6 h-full overflow-hidden lg:w-[400px] lg:border-l lg:border-t-0">
+        <div className="w-full border-t bg-white flex flex-col p-6 h-full overflow-hidden min-h-0 lg:w-[400px] lg:border-l lg:border-t-0">
           <div className="flex items-center gap-2 mb-2 sticky top-0 z-10 bg-white">
             <span className="text-2xl">🚀</span>
             <span className="text-xl font-semibold">Action Items</span>
