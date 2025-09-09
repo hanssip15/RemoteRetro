@@ -117,10 +117,10 @@ export default function LabellingPhase(props: any) {
         setShowShareModal={setShowShareModal}
         handleLogout={handleLogout}
       />
-      <div className="flex-1 flex flex-col items-center justify-start w-full overflow-auto pb-40">
-          <div className="flex flex-row flex-wrap gap-8 mt-8 w-full justify-center">
+      <div className="flex-1 overflow-hidden min-h-0 bg-white">
+          <div className="bg-white p-8 flex-1 overflow-y-auto max-h-[calc(92vh-240px)] flex flex-row flex-wrap gap-8 w-full justify-center">
             {labellingItems.map((group: any, idx: number) => (
-              <div key={group.id} className="bg-white border rounded-lg shadow-sm min-w-[350px] max-w-[400px] w-full p-4">
+              <div key={group.id} className="bg-white border rounded-lg shadow-sm w-full sm:max-w-[400px] p-4">
                 <div className="mb-2">
                   <input
                     className="w-full max-w-[200px] text-center text-gray-500 font-semibold bg-gray-100 rounded px-2 py-1 mb-2 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-200"
@@ -159,7 +159,6 @@ export default function LabellingPhase(props: any) {
             ))}
           </div>
       </div>
-      <div className="h-40" />
       <RetroFooter
         left={<div className="flex flex-col items-start text-left"><div className="text-2xl font-semibold mb-1">Labelling</div><div className="text-gray-500">Arrive at sensible group labels</div></div>}
         title={null}

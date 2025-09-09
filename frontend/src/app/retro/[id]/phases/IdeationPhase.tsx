@@ -95,7 +95,7 @@ export default function IdeationPhase(props: any) {
                </button>
              ))}
            </div>
-           <div className="bg-white rounded-b-lg shadow max-h-[calc(100vh-400px)] overflow-y-auto p-2">
+           <div className="bg-white rounded-b-lg shadow max-h-[calc(92vh-400px)] overflow-y-auto p-2">
              <div className="space-y-4">
                {items
                 .filter((item: any) => item.category === activeMobileCategory)
@@ -120,9 +120,9 @@ export default function IdeationPhase(props: any) {
            </div>
          </div>
          {/* Desktop: 3 kolom */}
-         <div className="hidden sm:grid lg:grid-cols-3 gap-6">
+         <div className="hidden sm:grid sm:grid-cols-2 md:grid-cols-3 gap-6">
            {[0,1,2].map(idx => (
-             <Card className="max-h-[calc(100vh-300px)] flex flex-col" key={idx}>
+             <Card className="max-h-[calc(92vh-300px)] flex flex-col" key={idx}>
                <CardHeader className="flex-shrink-0">
                  <CardTitle className="flex items-center gap-2">
                    {/* Emoji sesuai kategori */}

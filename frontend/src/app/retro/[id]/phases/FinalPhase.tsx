@@ -61,14 +61,14 @@ export default function FinalPhase({
         setShowShareModal={setShowShareModal}
         handleLogout={handleLogout}
       />
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] w-full h-full bg-gray-50">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] w-full flex-1 overflow-hidden min-h-0 bg-gray-50">
         {/* Panel kiri: feedback/group */}
-        <div className="flex flex-col bg-white">
+        <div className="flex flex-col bg-white overflow-hidden min-h-0">
           {/* Card group kiri (read-only) */}
-          <div className="flex flex-row flex-wrap gap-8 p-8 w-full justify-center">
+          <div className="flex-1 overflow-y-auto max-h-[calc(100vh-240px)] flex flex-row flex-wrap gap-8 p-8 pb-40 w-full justify-center">
           {labellingItems && labellingItems.length > 0 ? (
             labellingItems.sort((a: any, b: any) => b.votes - a.votes).map((group: any) => {
-              return (            <div key={group.id} className="bg-white border rounded-lg shadow-sm w-auto min-w-[220px] max-w-[350px] px-4 py-3">
+              return (            <div key={group.id} className="bg-white border rounded-lg shadow-sm w-full sm:max-w-[350px] px-4 py-3">
                 <div className="mb-2 flex items-center justify-between">
                   <span className="text-lg font-semibold text-gray-400">{group.label || 'Unlabeled'}</span>
                   <div className="flex items-center gap-2">
@@ -92,7 +92,7 @@ export default function FinalPhase({
           </div>
         </div>
         {/* Panel kanan: Action Items (atau summary) */}
-        <div className="w-[400px] border-l bg-white flex flex-col p-6 h-full min-h-screen">
+        <div className="w-full border-t bg-white flex flex-col p-6 h-full overflow-hidden min-h-0 lg:w-[400px] lg:border-l lg:border-t-0">
           {/* Header sticky */}
           <div className="flex items-center gap-2 mb-2 sticky top-0 z-10 bg-white">
             <span className="text-2xl">🚀</span>
@@ -100,7 +100,7 @@ export default function FinalPhase({
           </div>
           <hr className="mb-4" />
           {/* Isi panel scrollable */}
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto max-h-[calc(100vh-260px)] pb-40">
             {/* List action items (read-only) */}
             <div className="flex flex-col gap-2">
               {actionItems.length === 0 && <span className="text-gray-400 text-sm">No action items yet.</span>}
@@ -117,7 +117,6 @@ export default function FinalPhase({
           </div>
         </div>
       </div>
-      <div className="h-40" />
       <RetroFooter
         left={<div className="text-xl font-semibold text-left">This retro is all wrapped up!</div>}
         title={null}
