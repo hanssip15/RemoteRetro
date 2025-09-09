@@ -286,8 +286,8 @@ export default function VotingPhase(props: any) {
         setShowShareModal={setShowShareModal}
         handleLogout={handleLogout}
       />
-      <div className="flex-1 flex flex-col items-center justify-start w-full overflow-auto pb-40">
-        <div className="flex flex-row flex-wrap gap-8 mt-8 w-full justify-center">
+      <div className="flex-1 bg-white p-8 overflow-y-auto">
+        <div className="flex flex-row flex-wrap gap-8 w-full justify-center">
         {labellingItems.map((group: any) => (
             <div key={group.id} className="bg-white border rounded-lg shadow-sm w-full sm:max-w-[400px] p-4">
               <div className="mb-2 flex items-center justify-between">

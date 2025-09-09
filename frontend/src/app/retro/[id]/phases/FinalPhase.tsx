@@ -63,7 +63,7 @@ export default function FinalPhase({
       />
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] w-full h-full bg-gray-50">
         {/* Panel kiri: feedback/group */}
-        <div className="flex flex-col bg-white pb-40">
+        <div className="flex flex-col bg-white pb-40 overflow-y-auto">
           {/* Card group kiri (read-only) */}
           <div className="flex flex-row flex-wrap gap-8 p-8 w-full justify-center">
           {labellingItems && labellingItems.length > 0 ? (
