@@ -12,6 +12,7 @@ const AuthCallbackPage = () => {
         if (user) {
           api.setUser(user);
           const redirect = localStorage.getItem("redirect") || "/dashboard";
+          // localStorage.removeItem("redirect");
           navigate(redirect);
         } 
       } catch (err) {
