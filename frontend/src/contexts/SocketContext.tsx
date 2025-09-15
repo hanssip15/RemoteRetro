@@ -6,8 +6,6 @@ interface SocketContextType {
   isConnected: boolean;
   connect: (retroId: string) => void;
   disconnect: () => void;
-  // joinRoom: (retroId: string) => void;
-  // leaveRoom: (retroId: string) => void;
 }
 
 const SocketContext = createContext<SocketContextType | null>(null);
@@ -83,8 +81,6 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     isConnected,
     connect,
     disconnect,
-    // joinRoom,
-    // leaveRoom,
   };
 
   return (
