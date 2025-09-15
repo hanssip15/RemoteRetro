@@ -1,7 +1,5 @@
 "use client"
 
-import React from "react"
-
 type Category = "format_1" | "format_2" | "format_3"
 type RetroFormat = "happy_sad_confused" | "start_stop_continue" | string
 
