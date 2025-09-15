@@ -29,6 +29,14 @@ export default function RetroFooter({
   const [showFacilitatorGrantedModal, setShowFacilitatorGrantedModal] = useState(false);
   const prevFacilitatorId = useRef<string | null>(null);
 
+  const formatDisplayName = (fullName?: string) => {
+    if (!fullName) return '';
+    const parts = fullName.trim().split(/\s+/).filter(Boolean);
+    if (parts.length <= 1) return parts[0] || '';
+    if (parts.length === 2) return parts[0];
+    return parts.slice(0, 2).join(' ');
+  };
+
   useEffect(() => {
     const facilitator = participants.find((p: any) => p.role)?.user.id;
     if (
@@ -119,7 +127,7 @@ export default function RetroFooter({
           <div className="w-full flex justify-center pb-1 mb-1">
             <div className="flex flex-row items-end gap-6 overflow-x-auto md:overflow-x-visible scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 px-2 md:px-0">
               {participants.map((p: any) => (
-                <div key={p.id} className="flex flex-col items-center relative group flex-shrink-0">                  
+                <div key={p.id} className="flex flex-col items-center relative group flex-shrink-0 w-20">                  
                   <div className="relative">
                     <Avatar
                       className={`h-14 w-14 border-2 ${p.role ? 'border-blue-500' : 'border-gray-200'} group-hover:border-indigo-500 transition`}
@@ -152,7 +160,7 @@ export default function RetroFooter({
                       </button>
                     )}
                   </div>
-                  <span className="text-xs text-gray-900 mt-1 font-medium">{p.user.name}{p.role ? ' (Facilitator)' : ''}</span>
+                  <span className="text-xs text-gray-900 mt-1 font-medium inline-flex items-center justify-center w-full whitespace-nowrap text-center">{formatDisplayName(p.user.name)}{p.role ? ' (Facilitator)' : ''}</span>
                   
                   {/* === PERUBAHAN DIMULAI DI SINI === */}
                   {/* Indikator Status Gabungan (Mengetik atau Semua Vote Masuk) */}

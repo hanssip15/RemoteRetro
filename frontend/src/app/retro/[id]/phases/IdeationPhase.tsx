@@ -152,7 +152,7 @@ export default function IdeationPhase(props: any) {
                  </CardTitle>
                </CardHeader>
                <CardContent className="p-4 flex-1 overflow-y-auto">
-                 <div className="space-y-4">
+                 <div className="space-y-1">
                    {items.filter((item:any) => item.category === `format_${idx+1}`).map((item:any, iIdx: number, arr: any[]) => (
                      <FeedbackCard
                        key={`${item.id}-${item.category}`}
