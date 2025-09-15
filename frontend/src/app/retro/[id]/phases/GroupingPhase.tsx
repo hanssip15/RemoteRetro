@@ -7,6 +7,7 @@ import { PhaseConfirmModal } from '@/components/ui/dialog';
 import useEnterToCloseModal from "@/hooks/useEnterToCloseModal";
 import HighContrastToggle from '@/components/HighContrastToggle';
 import { Loader2 } from 'lucide-react';
+import { CategoryIcon } from '@/components/CategoryIcon';
 
 export default function GroupingPhase({
   retro,
@@ -31,7 +32,6 @@ export default function GroupingPhase({
   setShowRoleModal,
   setSelectedParticipant,
   setPhase,
-  getCategoryDisplayName,
   socket,
   isConnected
 }: {
@@ -221,7 +221,7 @@ export default function GroupingPhase({
                   boxSizing: 'border-box',
                 }}
               >
-                {item.content} <span className="text-xs text-gray-500">({getCategoryDisplayName(item.category)})</span>
+                {item.content} <span className="text-xs text-gray-500 inline-flex items-center gap-1">(<CategoryIcon category={item.category as any} retroFormat={retro?.format} />)</span>
               </div>
             );
           })}
@@ -260,7 +260,7 @@ export default function GroupingPhase({
                   boxSizing: 'border-box',
                 }}
               >
-                {item.content} <span className="text-xs text-gray-500">({getCategoryDisplayName(item.category)})</span>
+                {item.content} <span className="text-xs text-gray-500 inline-flex items-center gap-1">(<CategoryIcon category={item.category as any} retroFormat={retro?.format} />)</span>
                 {isBeingDraggedByOthers && draggingUser && (
                   <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 bg-blue-500 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
                     {draggingUser.user.name} is dragging

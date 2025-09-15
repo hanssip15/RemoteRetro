@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FeedbackCard } from '@/components/feedback-card';
 import RetroHeader from '../RetroHeader';
 import { PhaseConfirmModal } from '@/components/ui/dialog';
+import { CategoryIcon } from '@/components/CategoryIcon';
 import useEnterToCloseModal from "@/hooks/useEnterToCloseModal";
 
 export default function IdeationPhase(props: any) {
@@ -20,6 +21,8 @@ export default function IdeationPhase(props: any) {
   const [showConfirm, setShowConfirm] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const [activeMobileCategory, setActiveMobileCategory] = useState('format_1');
+  const prevCountsRef = useRef<{ format_1: number; format_2: number; format_3: number }>({ format_1: 0, format_2: 0, format_3: 0 });
+  const lastAddedCatRef = useRef<string | null>(null)
 
   useEffect(() => {
     setShowModal(true);
@@ -32,6 +35,24 @@ export default function IdeationPhase(props: any) {
   }, [isAddingItem]);
 
   useEnterToCloseModal(showModal, () => setShowModal(false));
+
+  // Detect category where item added; the card will auto-scroll itself via prop
+  useEffect(() => {
+    const getCounts = (arr: any[]) => ({
+      format_1: arr.filter((i: any) => i.category === 'format_1').length,
+      format_2: arr.filter((i: any) => i.category === 'format_2').length,
+      format_3: arr.filter((i: any) => i.category === 'format_3').length,
+    });
+    const counts = getCounts(items || []);
+    let addedCategory: string | null = null;
+    (['format_1', 'format_2', 'format_3'] as const).forEach((cat) => {
+      if (counts[cat] > prevCountsRef.current[cat]) {
+        addedCategory = cat;
+      }
+    });
+    prevCountsRef.current = counts;
+    lastAddedCatRef.current = addedCategory;
+  }, [items]);
 
   // Handler submit yang sudah ada
   const handleAddAndFocus = (...args: any[]) => {
@@ -100,7 +121,7 @@ export default function IdeationPhase(props: any) {
                {items
                 .filter((item: any) => item.category === activeMobileCategory)
                 .sort((a: any, b: any) => new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime()) // urut desc by updated_at
-                .map((item: any) => (
+                .map((item: any, idx: number, arr: any[]) => (
                   <FeedbackCard
                     key={`${item.id}-${item.category}`}
                     item={{ ...item, author: item.author || "Anonymous" }}
@@ -110,6 +131,7 @@ export default function IdeationPhase(props: any) {
                     onDelete={handleDeleteItem}
                     getCategoryDisplayName={getCategoryDisplayName}
                     isUpdating={updatingItemId === item.id}
+                    autoScroll={idx === arr.length - 1 && lastAddedCatRef.current === activeMobileCategory}
                   />
                 ))}
 
@@ -125,17 +147,13 @@ export default function IdeationPhase(props: any) {
              <Card className="max-h-[calc(92vh-300px)] flex flex-col" key={idx}>
                <CardHeader className="flex-shrink-0">
                  <CardTitle className="flex items-center gap-2">
-                   {/* Emoji sesuai kategori */}
-                   <span role="img" aria-label="cat">
-                     {retro?.format === "happy_sad_confused"
-                       ? (idx === 0 ? '😀' : idx === 1 ? '😢' : '🤔')
-                       : (idx === 0 ? '🟢' : idx === 1 ? '🛑' : '🔄')}
-                   </span> {getCategoryDisplayName(`format_${idx+1}`)}
+                   <CategoryIcon category={`format_${idx+1}` as any} retroFormat={retro?.format} />
+                   {getCategoryDisplayName(`format_${idx+1}`)}
                  </CardTitle>
                </CardHeader>
                <CardContent className="p-4 flex-1 overflow-y-auto">
-                 <div className="space-y-4">
-                   {items.filter((item:any) => item.category === `format_${idx+1}`).map((item:any) => (
+                 <div className="space-y-1">
+                   {items.filter((item:any) => item.category === `format_${idx+1}`).map((item:any, iIdx: number, arr: any[]) => (
                      <FeedbackCard
                        key={`${item.id}-${item.category}`}
                        item={{ ...item, author: item.author || "Anonymous" }}
@@ -145,6 +163,7 @@ export default function IdeationPhase(props: any) {
                        onDelete={handleDeleteItem}
                        getCategoryDisplayName={getCategoryDisplayName}
                        isUpdating={updatingItemId === item.id}
+                       autoScroll={iIdx === arr.length - 1 && lastAddedCatRef.current === `format_${idx+1}`}
                      />
                    ))}
                    {items.filter((item:any) => item.category === `format_${idx+1}`).length === 0 && (
