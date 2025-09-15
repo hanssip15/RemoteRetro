@@ -37,12 +37,14 @@ export default function HomePage() {
           {!authStatus && (
             <Button
               onClick={() => {
+                localStorage.removeItem('redirect');
                 window.location.href = `${import.meta.env.VITE_API_URL}/auth/google`;
               }}
             >
               Login
             </Button>
           )}
+
         </nav>
 
         </div>
