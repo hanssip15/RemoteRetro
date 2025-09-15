@@ -489,6 +489,26 @@ handleRequestUserVotes(
     }
 
     // Handle action item added
+// helper method (letakkan di dalam class gateway Anda)
+private async emitActionItemsUpdate(retroId: string, items: any[]) {
+  const room = this.server.to(`retro:${retroId}`) as any;
+
+  if (typeof (this as any).broadcastActionItemsUpdate === 'function') {
+    try {
+      // coba gunakan broadcastActionItemsUpdate jika tersedia
+      await (this as any).broadcastActionItemsUpdate(retroId, items);
+      return;
+    } catch (err) {
+      // fallback ke safeEmit jika gagal
+      console.warn('broadcastActionItemsUpdate failed, falling back to safeEmit', err);
+    }
+  }
+
+  // default fallback
+  this.safeEmit(room, 'action-items:update', items);
+}
+
+// Handle action item added
 @SubscribeMessage('action-item-added')
 async handleActionItemAdded(client: Socket, data: {
   retroId: string;
@@ -530,19 +550,10 @@ async handleActionItemAdded(client: Socket, data: {
 
     retroState[data.retroId].actionItems.push(newActionItem);
 
-    if (typeof (this as any).broadcastActionItemsUpdate === 'function') {
-      try {
-        await (this as any).broadcastActionItemsUpdate(data.retroId, retroState[data.retroId].actionItems);
-      } catch (err) {
-        console.warn('broadcastActionItemsUpdate failed, falling back to safeEmit', err);
-        this.safeEmit(this.server.to(`retro:${data.retroId}`) as any, 'action-items:update', retroState[data.retroId].actionItems);
-      }
-    } else {
-      this.safeEmit(this.server.to(`retro:${data.retroId}`) as any, 'action-items:update', retroState[data.retroId].actionItems);
-    }
+    // use centralized emitter
+    await this.emitActionItemsUpdate(data.retroId, retroState[data.retroId].actionItems);
   });
 }
-
 
 // Handle action item updated
 @SubscribeMessage('action-item-updated')
@@ -573,19 +584,11 @@ async handleActionItemUpdated(client: Socket, data: {
         edited: true
       };
 
-if (typeof (this as any).broadcastActionItemsUpdate === 'function') {
-      try {
-        await (this as any).broadcastActionItemsUpdate(data.retroId, retroState[data.retroId].actionItems);
-      } catch (err) {
-        console.warn('broadcastActionItemsUpdate failed, falling back to safeEmit', err);
-        this.safeEmit(this.server.to(`retro:${data.retroId}`) as any, 'action-items:update', retroState[data.retroId].actionItems);
-      }
-    } else {
-      this.safeEmit(this.server.to(`retro:${data.retroId}`) as any, 'action-items:update', retroState[data.retroId].actionItems);
-    }    }
+      // use centralized emitter
+      await this.emitActionItemsUpdate(data.retroId, retroState[data.retroId].actionItems);
+    }
   });
 }
-
 
 // Handle action item deleted
 @SubscribeMessage('action-item-deleted')
@@ -603,16 +606,9 @@ async handleActionItemDeleted(client: Socket, data: {
       item => item.id !== data.actionItemId
     );
 
-    if (typeof (this as any).broadcastActionItemsUpdate === 'function') {
-      try {
-        await (this as any).broadcastActionItemsUpdate(data.retroId, retroState[data.retroId].actionItems);
-      } catch (err) {
-        console.warn('broadcastActionItemsUpdate failed, falling back to safeEmit', err);
-        this.safeEmit(this.server.to(`retro:${data.retroId}`) as any, 'action-items:update', retroState[data.retroId].actionItems);
-      }
-    } else {
-      this.safeEmit(this.server.to(`retro:${data.retroId}`) as any, 'action-items:update', retroState[data.retroId].actionItems);
-    }
+    const items = retroState[data.retroId]?.actionItems ?? [];
+    // use centralized emitter
+    await this.emitActionItemsUpdate(data.retroId, items);
   });
 }
 
