@@ -79,8 +79,11 @@ export default function FinalPhase({
                 </div>
                 <div className="flex flex-col gap-2">
                     {group.group_items.map((item: any, idx: number) => (
-                      <div key={idx} className="bg-gray-50 border rounded px-3 py-2 text-sm flex items-center justify-between gap-2">
-                        <span className="flex items-center gap-2">{item.item ? getCategoryEmoji(item.item.format_type, retro.format) : null}{item.item ? item.item.content : 'No item'}</span>
+                      <div key={idx} className="bg-gray-50 border rounded px-3 py-2 text-sm">
+                        <div className="flex items-start gap-3">
+                          <span className="mt-0.5 flex-shrink-0">{item.item ? getCategoryEmoji(item.item.format_type, retro.format) : null}</span>
+                          <span className="break-words flex-1">{item.item ? item.item.content : 'No item'}</span>
+                        </div>
                       </div>
                     ))}
                   </div>

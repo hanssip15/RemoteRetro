@@ -53,13 +53,18 @@ export default function DashboardPage() {
   useEffect(() => {
   const fetchUser = async () => {
     const user = await api.getCurrentUser();
-    await fetchDashboardData(false,user.id);
     setUser(user);
   localStorage.removeItem("redirect");
+    await fetchDashboardData(false, user.id);
 
   };
   fetchUser();
 }, []);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    fetchDashboardData(true, user.id);
+  }, [currentPage, user?.id]);
 
   const fetchDashboardData = async (silent = false, userId: string) => {
     if (!silent) {
@@ -97,7 +102,48 @@ export default function DashboardPage() {
 
 
   const handlePageChange = (newPage: number) => {
-    setCurrentPage(newPage)
+    setCurrentPage((prev) => {
+      const totalPages = pagination?.totalPages ?? 1
+      const clamped = Math.max(1, Math.min(newPage, totalPages))
+      return clamped === prev ? prev : clamped
+    })
+  }
+
+  const getPageItems = (current: number, total: number) => {
+    if (total <= 7) {
+      return Array.from({ length: total }, (_, i) => i + 1) as Array<number | 'ellipsis'>
+    }
+    const pages = new Set<number>()
+    pages.add(1)
+    pages.add(total)
+    // window around current
+    for (let i = current - 1; i <= current + 1; i++) {
+      if (i > 1 && i < total) pages.add(i)
+    }
+    // ensure early pages
+    if (current <= 3) {
+      pages.add(2)
+      pages.add(3)
+    }
+    // ensure late pages
+    if (current >= total - 2) {
+      pages.add(total - 1)
+      pages.add(total - 2)
+    }
+    const sorted = Array.from(pages).sort((a, b) => a - b)
+    const items: Array<number | 'ellipsis'> = []
+    for (let i = 0; i < sorted.length; i++) {
+      if (i === 0) {
+        items.push(sorted[i])
+        continue
+      }
+      if (sorted[i] - sorted[i - 1] === 1) {
+        items.push(sorted[i])
+      } else {
+        items.push('ellipsis', sorted[i])
+      }
+    }
+    return items
   }
 
   const formatDate = (dateString: string) => {
@@ -401,43 +447,21 @@ export default function DashboardPage() {
 
                   {/* Page Numbers */}
                   <div className="flex items-center space-x-1">
-                    {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((pageNum) => {
-                      // Show first page, last page, current page, and pages around current
-                      const showPage =
-                        pageNum === 1 || pageNum === pagination.totalPages || Math.abs(pageNum - pagination.page) <= 1
-
-                      if (!showPage) {
-                        // Show ellipsis
-                        if (pageNum === 2 && pagination.page > 4) {
-                          return (
-                            <span key={pageNum} className="px-2 text-gray-400">
-                              ...
-                            </span>
-                          )
-                        }
-                        if (pageNum === pagination.totalPages - 1 && pagination.page < pagination.totalPages - 3) {
-                          return (
-                            <span key={pageNum} className="px-2 text-gray-400">
-                              ...
-                            </span>
-                          )
-                        }
-                        return null
-                      }
-
-                      return (
+                    {getPageItems(pagination.page, pagination.totalPages).map((item, idx) =>
+                      item === 'ellipsis' ? (
+                        <span key={`e-${idx}`} className="px-2 text-gray-400">...</span>
+                      ) : (
                         <Button
-                          key={pageNum}
-                          variant={pageNum === pagination.page ? "default" : "outline"}
+                          key={item}
+                          variant={item === pagination.page ? "default" : "outline"}
                           size="sm"
-                          onClick={() => handlePageChange(pageNum)}
+                          onClick={() => handlePageChange(item as number)}
                           className="w-8 h-8 p-0 text-xs md:text-base"
-
                         >
-                          {pageNum}
+                          {item}
                         </Button>
                       )
-                    })}
+                    )}
                   </div>
 
                   <Button

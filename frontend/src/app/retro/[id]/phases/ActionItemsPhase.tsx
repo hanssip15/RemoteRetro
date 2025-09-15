@@ -129,8 +129,11 @@ export default function ActionItemsPhase({
                   </div>
                   <div className="flex flex-col gap-2">
                     {group.group_items.map((item: any, idx: number) => (
-                      <div key={idx} className="bg-gray-50 border rounded px-3 py-2 text-sm flex items-center justify-between gap-2">
-                        <span>{getCategoryEmoji(item.item.format_type, retro.format)}{item.item.content}</span>
+                      <div key={idx} className="bg-gray-50 border rounded px-3 py-2 text-sm">
+                        <div className="flex items-start gap-3">
+                          <span className="mt-0.5 flex-shrink-0">{getCategoryEmoji(item.item.format_type, retro.format)}</span>
+                          <span className="break-words flex-1">{item.item.content}</span>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -175,16 +178,29 @@ export default function ActionItemsPhase({
                           value={editActionInput}
                           onChange={e => setEditActionInput(e.target.value)}
                           onKeyDown={(e) => {
-                            if (e.key === "Enter") handleSaveEditActionItem(idx)
+                            if (e.key === "Enter") {
+                              const originalTask = (item.task || '').trim()
+                              const newTask = editActionInput.trim()
+                              const originalAssignee = item.assigneeId || item.assignee || ''
+                              const hasChanges = (newTask !== originalTask) || (editActionAssignee !== originalAssignee)
+                              if (hasChanges) {
+                                handleSaveEditActionItem(idx)
+                              } else {
+                                e.preventDefault()
+                              }
+                            }
                             if (e.key === "Escape") setEditingActionIdx(null)
                           }}
                         />
                       </div>
                       <div className="flex gap-2 mt-1">
-                        <Button size="sm" variant="outline" onClick={() => handleSaveEditActionItem(idx)}>
+                        <Button size="sm" className="bg-black text-white hover:bg-black/90" onClick={() => handleSaveEditActionItem(idx)} disabled={
+                          editActionInput.trim() === (item.task || '').trim() &&
+                          (editActionAssignee === (item.assigneeId || item.assignee || ''))
+                        }>
                           <Check className="h-3 w-3" />
                         </Button>
-                        <Button size="sm" onClick={() => setEditingActionIdx(null)}>
+                        <Button size="sm" variant="outline" className="bg-white text-gray-900 hover:bg-gray-100" onClick={() => setEditingActionIdx(null)}>
                           <X className="h-3 w-3" />
                         </Button>
                       </div>
