@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -25,6 +25,7 @@ interface FeedbackCardProps {
   onDelete: (id: string) => void
   getCategoryDisplayName: (category: string) => string
   isUpdating?: boolean
+  autoScroll?: boolean
 }
 
 export function FeedbackCard({ 
@@ -35,10 +36,21 @@ export function FeedbackCard({
   onDelete,
   getCategoryDisplayName,
   isUpdating = false,
+  autoScroll = false,
 }: FeedbackCardProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editContent, setEditContent] = useState(item.content)
   const [editCategory, setEditCategory] = useState(item.category)
+  const rootRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (autoScroll && rootRef.current) {
+      try {
+        rootRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      } catch {}
+      return () => {}
+    }
+  }, [autoScroll])
 
   // Check if user can edit this item
   const canEdit = userRole || (currentUser && item.createdBy === currentUser.id)
@@ -60,7 +72,7 @@ export function FeedbackCard({
   }
 
   return (
-    <Card className={`mb-3 hover:shadow-md transition-all duration-300 ease-in-out ${
+    <Card ref={rootRef} className={`mb-3 hover:shadow-md transition-all duration-300 ease-in-out ${
       isUpdating ? 'opacity-75 bg-blue-50 border-blue-200' : ''
     }`}>
       <CardContent className="p-4">
