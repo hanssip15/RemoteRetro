@@ -39,8 +39,7 @@ export class Retro {
   @Column({ name: 'created_by' })
   createdBy: string;
 
-  @Column({ name: 'facilitator' })
-  facilitator: string;
+
 
   @ManyToOne(() => User, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
   @JoinColumn({ name: 'created_by' })

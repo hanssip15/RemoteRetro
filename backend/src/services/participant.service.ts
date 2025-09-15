@@ -4,13 +4,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Participant } from '../entities/participant.entity';
 import { Retro } from '../entities/retro.entity';
-import { JoinRetroDto } from '../dto/join-retro.dto';
 import { ParticipantGateway } from '../gateways/participant.gateways';
-
+import { DataSource } from 'typeorm';
 
 @Injectable()
 export class ParticipantService {
-  
   constructor(
     @InjectRepository(Participant)
     private participantRepository: Repository<Participant>,
@@ -18,6 +16,8 @@ export class ParticipantService {
     private retroRepository: Repository<Retro>,
     @Inject(forwardRef(() => ParticipantGateway))
     private readonly participantGateway: ParticipantGateway,
+    private readonly dataSource: DataSource
+    
   ) {}
 
   async findByRetroId(retroId: string): Promise<Participant[]> {
@@ -29,36 +29,23 @@ export class ParticipantService {
   }
 
   async isFacilitator(retroId: string, userId: string): Promise<boolean> {
-    const participant = await this.retroRepository.findOne({
-      where: { id: retroId},
+    const participant = await this.participantRepository.findOne({
+      where: { retroId, userId },
     });
-    const isFacilitator = participant?.facilitator === userId;
-    return isFacilitator
+    if (!participant) {
+      throw new NotFoundException('Participant not found in this retro');
+    }
+    return participant.role;
   }
 
-  async join(retroId: string, userId:string, joinRetroDto: JoinRetroDto): Promise<void | Participant> {
-    const { role } = joinRetroDto;
-
+  async join(retroId: string, userId:string): Promise<void | Participant> {
     try {
       const retro = await this.retroRepository.findOne({ where: { id: retroId } });
         if (!retro) {
           return;
         }
-      const existingParticipant = await this.participantRepository.findOne({
-        where: { retroId, userId },
-      });
-      if (existingParticipant) return existingParticipant;
-      const participant = this.participantRepository.create({ retroId, userId, role, isActive:true });
+      const participant = this.participantRepository.create({ retroId, userId, role: false, isActive:true });
       const savedParticipant = await this.participantRepository.save(participant);
-
-      const participantWithUser = await this.participantRepository.findOne({
-      where: { id: savedParticipant.id },
-      relations: ['user'],  // pastikan relasi didefinisikan di entity
-    });
-
-      if (participantWithUser) {
-        this.participantGateway.broadcastParticipantAdded(retroId, participantWithUser);
-      } 
       return savedParticipant;
 
     } catch (error: any) {
@@ -70,30 +57,20 @@ export class ParticipantService {
     } 
   }
 
+    async deactivate(retroId: string, userId: string): Promise<void> {
+    const participant = await this.participantRepository.findOne({
+      where: { 
+        retroId: retroId, 
+        userId: userId
+      },
+    });
 
-    async leave(retroId: string, userId: string): Promise<void> {
-  // Check if retro exists
-  const retro = await this.retroRepository.findOne({ where: { id: retroId } });
-  if (!retro) {
-    // jangan throw, cukup log
-    console.warn(`Retro ${retroId} not found while leaving`);
-    return;
+    if (participant) {
+      participant.isActive = false;
+      await this.participantRepository.save(participant);
+    }
   }
 
-
-  const participant = await this.participantRepository.findOne({
-    where: { 
-      retroId: retroId, 
-      userId: userId
-     },
-  });
-
-  if (participant) {
-    participant.isActive = false;
-    await this.participantRepository.save(participant);
-    this.participantGateway.broadcastParticipantUpdate(retroId);
-  }
-}
 async activated(retroId: string, userId: string): Promise<void> {
   const participant = await this.participantRepository.findOne({ where: { retroId, userId } });
   if (!participant) {
@@ -105,30 +82,37 @@ async activated(retroId: string, userId: string): Promise<void> {
 }
 
 
-  async updateRoleFacilitator(retroId: string, participantId: string): Promise<Participant> {
-    const retro = await this.retroRepository.findOne({ where: { id: retroId } });
+async updateRoleFacilitator(retroId: string, participantId: number): Promise<Participant> {
+  return await this.dataSource.transaction(async (manager) => {
+    const retro = await manager.getRepository(Retro).findOne({ where: { id: retroId } });
     if (!retro) {
       throw new NotFoundException('Retro not found');
     }
-
-    const participant = await this.participantRepository.findOne({ where: { id: parseInt(participantId)} });
+    const participant = await manager.getRepository(Participant).findOne({
+      where: { id: participantId },
+    });
     if (!participant || participant.retroId !== retroId) {
       throw new NotFoundException('Participant not found in this retro');
     }
-    
-    const oldfacilitator = await this.participantRepository.findOne({ where: { role: true, retroId: retroId } });
+    const oldfacilitator = await manager.getRepository(Participant).findOne({
+      where: { role: true, retroId: retroId },
+    });
+
     if (oldfacilitator) {
       oldfacilitator.role = false;
-      await this.participantRepository.save(oldfacilitator);
+      await manager.getRepository(Participant).save(oldfacilitator);
     }
-    retro.facilitator = participant.userId;
+
     participant.role = true;
-    await this.retroRepository.save(retro);
-    await this.participantRepository.save(participant);
+    const updatedParticipant = await manager.getRepository(Participant).save(participant);
+    return updatedParticipant;
+  }).then((updatedParticipant) => {
     this.participantGateway.broadcastParticipantUpdate(retroId);
-    
-    return participant;
-  }
+    return updatedParticipant;
+  });
+}
+
+
   async findParticipantByUserIdAndRetroId(userId: string, retroId: string): Promise<Participant | null> {
     return this.participantRepository.findOne({
       where: { userId, retroId },

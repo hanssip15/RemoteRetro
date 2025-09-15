@@ -44,23 +44,18 @@ import { Participant } from 'src/entities/participant.entity';
     @WebSocketServer()
     server: Server;
     private socketUserMap: Map<string, { userId: string; retroId: string }> = new Map();
-
     constructor(private readonly participantService: ParticipantService) {}
-
     async handleConnection(client: Socket) {
-       const { userId, retroId } = client.handshake.query;
-
+    const { userId, retroId } = client.handshake.query;
     if (typeof userId === 'string' && typeof retroId === 'string') {
       client.join(`retro:${retroId}`);
       this.socketUserMap.set(client.id, { userId, retroId });
       const participant = await this.participantService.findParticipantByUserIdAndRetroId(userId, retroId);
       if (!participant) {
-        const isFacilitator = await this.participantService.isFacilitator(retroId, userId);
-        await this.participantService.join(retroId,userId,{ role: isFacilitator, isActive: true  });    
+        await this.participantService.join(retroId,userId);    
       } else {
         await this.participantService.activated(retroId, userId);
       }
-      
       this.broadcastParticipantUpdate(retroId);
     }
   }
@@ -70,10 +65,9 @@ async handleDisconnect(client: Socket) {
   if (info) {
     const { userId, retroId } = info;
     try {
-      await this.participantService.leave(retroId, userId);
+      await this.participantService.deactivate(retroId, userId);
     } catch (error) {
-      // Jangan biarkan server crash hanya karena retro tidak ketemu
-      console.warn(`Failed to leave retro ${retroId} for user ${userId}:`, error.message);
+      console.warn(`Failed to deactivate retro ${retroId} for user ${userId}:`, error.message);
     } finally {
       this.socketUserMap.delete(client.id);
       this.broadcastParticipantUpdate(retroId);
@@ -82,26 +76,7 @@ async handleDisconnect(client: Socket) {
 }
 
 
-    @SubscribeMessage('join-retro-room')
-    handleJoinRetroRoom(client: Socket, retroId: string) {
-      client.join(`retro:${retroId}`);
-      
-      // Initialize retro state if it doesn't exist
-      if (!retroState[retroId]) {
-        retroState[retroId] = {
-          itemPositions: {},
-          itemGroups: {},
-          signatureColors: {},
-          actionItems: [],
-          allUserVotes: {},
-          lastGroupingUpdate: 0
-        };
-      }
-      
-      // Send current retro state to the joining client
-      const state = retroState[retroId];
-      client.emit(`retro-state:${retroId}`, state);
-    }
+
   
     @SubscribeMessage('leave-retro-room')
     handleLeaveRetroRoom(client: Socket, retroId: string) {
@@ -153,7 +128,7 @@ async handleDisconnect(client: Socket) {
         status: 'completed',
         timestamp: new Date().toISOString()
       });
-    }
+    } 
 
     broadcastPhaseChange(retroId: string, phase: string) {
       this.server.to(`retro:${retroId}`).emit(`phase-change:${retroId}`, {
@@ -459,25 +434,6 @@ handleRequestUserVotes(
       this.broadcastActionItemsUpdate(data.retroId, retroState[data.retroId].actionItems);
     }
     // retro.gateway.ts
-   @SubscribeMessage('leave-room')
-async handleLeaveRoom(
-  @MessageBody() data: { retroId: string; userId: string },
-  @ConnectedSocket() client: Socket,
-): Promise<void> {
-  const { retroId, userId } = data;
-
-  try {
-
-
-    // Hapus partisipan
-      await this.participantService.leave(retroId, userId);
-
-    // Emit event ke semua partisipan tentang keluar
-    this.server.to(retroId).emit('participant-left', { userId });
-  } catch (err) {
-    console.error('Error removing participant:', err);
-  }
-}
 
     // Handle action item updated
     @SubscribeMessage('action-item-updated')

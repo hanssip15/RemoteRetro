@@ -102,7 +102,6 @@ export default function NewRetroPage() {
         title: finalTitle,
         format: selectedFormat,
         createdBy: user.id,
-        facilitator: user.id 
       })
 
       if (!retro || !retro.id) {
@@ -110,17 +109,11 @@ export default function NewRetroPage() {
       }
       
 
-      // await apiService.addParticipant(retro.id,user.id, { 
-      //   role: true,
-      //   isActive: true
-      // });
-
       navigate(`/retro/${retro.id}`)
     } catch (error) {
 
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
       alert(`Error creating retro: ${errorMessage}`)
-      // Don't redirect on error, let user stay on the form
     } finally {
 
       setIsSubmitting(false)

@@ -37,7 +37,7 @@ export class AuthController {
       imageUrl: user!.imageUrl 
     };
     const token = this.jwtService.sign(payload);
-    const frontendUrl = process.env.FRONTEND_URL; // Use environment variable or default to localhost
+    const frontendUrl = process.env.FRONTEND_URL;
     res.cookie('token', token, {
       httpOnly: false,
       secure: true,
@@ -50,14 +50,10 @@ export class AuthController {
 @UseGuards(AuthGuard('jwt'))
 async getCurrentUser(@Req() req: Request) {
   const userPayload = req.user as any;
-
-  // Ambil user dari database
   const user = await this.usersService.findByEmail(userPayload.email);
-
   if (!user) {
     throw new NotFoundException('User tidak ditemukan di database');
   }
-  
   return {
     id: user.id,
     email: user.email,

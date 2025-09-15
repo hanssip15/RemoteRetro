@@ -18,6 +18,7 @@ async function bootstrap() {
   // Cookie parser
   app.use(cookieParser());
 
+
   // Enable CORS
   const corsOrigins = process.env.CORS_ORIGIN?.split(',') || [];
   app.enableCors({

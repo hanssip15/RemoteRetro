@@ -64,7 +64,6 @@ export interface CreateRetroData {
   title: string;
   format: string;
   createdBy: string;
-  facilitator: string;
 }
 
 export interface CreateItemData {

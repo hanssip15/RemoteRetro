@@ -6,7 +6,7 @@ import { Request } from 'express';
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor() {
-    const secret = process.env.JWT_SECRET || 'your_fallback_secret_key_here';
+    const secret = process.env.JWT_SECRET as string;
 
     super({
       jwtFromRequest: (req: Request) => {

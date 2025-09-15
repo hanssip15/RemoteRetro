@@ -80,7 +80,6 @@ export class RetroService {
       title: dto.title,
       format: dto.format,
       createdBy: dto.createdBy,
-      facilitator: dto.facilitator,
       status: 'draft',
       currentPhase: 'lobby',
     });

@@ -99,21 +99,13 @@ afterAll(() => {
 
       await gateway.handleDisconnect(client);
 
-      expect(mockParticipantService.leave).toHaveBeenCalledWith('r3', 'u3');
+      expect(mockParticipantService.deactivate).toHaveBeenCalledWith('r3', 'u3');
       expect(gateway.server.to).toHaveBeenCalledWith('retro:r3');
       expect(gateway.server.emit).toHaveBeenCalledWith(expect.stringContaining('participants-update:r3'));
     });
   });
 
-  describe('handleJoinRetroRoom', () => {
-    it('should emit retro state when joining', () => {
-      const client = { join: jest.fn(), emit: jest.fn() } as any as Socket;
-      gateway.handleJoinRetroRoom(client, 'retroX');
 
-      expect(client.join).toHaveBeenCalledWith('retro:retroX');
-      expect(client.emit).toHaveBeenCalledWith('retro-state:retroX', expect.any(Object));
-    });
-  });
 
   describe('broadcastParticipantAdded', () => {
     it('should emit participants-added event', () => {
@@ -683,10 +675,9 @@ it('should remove participant and emit event', async () => {
     const data = { retroId: 'retro-1', userId: 'user-1' };
     const mockClient = {} as Socket;
 
-    await gateway.handleLeaveRoom(data, mockClient);
 
     // memastikan leave() terpanggil dengan benar
-    expect(mockParticipantService.leave).toHaveBeenCalledWith('retro-1', 'user-1');
+    expect(mockParticipantService.deactivate).toHaveBeenCalledWith('retro-1', 'user-1');
 
     // memastikan event dikirim ke room
     expect(gateway.server.to).toHaveBeenCalledWith('retro-1');

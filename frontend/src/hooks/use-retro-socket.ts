@@ -9,7 +9,7 @@ interface UseRetroSocketOptions {
   onItemUpdated?: (item: any) => void;
   onItemDeleted?: (itemId: string) => void;
   onItemsUpdate?: (items: any[]) => void;
-  onParticipantUpdate?: (participants: any[]) => void;
+  onParticipantUpdate?: (participants: Participant) => void;
   onParticipantAdded?: (participant: Participant) => void;
   onRetroStarted?: () => void;
   onPhaseChange?: (phase: 'prime-directive' | 'ideation' | 'grouping' | 'labelling' | 'voting' | 'final' | 'ActionItems') => void;
@@ -160,8 +160,8 @@ export const useRetroSocket = ({
       callbacks.onParticipantAdded?.(participant);
     };
 
-     const handleParticipantUpdate = (participants: any[]) => {
-      callbacks.onParticipantUpdate?.(participants);
+     const handleParticipantUpdate = (participant: Participant) => {
+      callbacks.onParticipantUpdate?.(participant);
     };
 
     const handleRetroStarted = () => {
