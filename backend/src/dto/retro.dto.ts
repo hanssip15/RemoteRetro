@@ -14,10 +14,6 @@ export class CreateRetroDto {
   @ApiProperty({ example: 'user123', description: 'ID pembuat retro' })
   @IsString()
   createdBy: string;
-
-  @ApiProperty({ example: 'facilitator123', description: 'ID fasilitator retro' })
-  @IsString()
-  facilitator: string;
 }
 
 export class UpdateStatusDto {

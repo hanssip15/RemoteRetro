@@ -22,9 +22,8 @@ export class ParticipantController {
   @HttpCode(HttpStatus.CREATED)
   async joinRetro(
     @Param('retro_id') retro_id: string,
-    @Param('user_id') user_id: string,
-    @Body() joinRetroDto: JoinRetroDto) {
-      const participant = await this.participantService.join(retro_id, user_id, joinRetroDto);
+    @Param('user_id') user_id: string) {
+      const participant = await this.participantService.join(retro_id, user_id);
       if (!participant) {
         throw new ConflictException('Failed to join retro');
       }
@@ -34,7 +33,7 @@ export class ParticipantController {
   // Mengubah peran partisipan menjadi fasilitator pada suatu retro
   @Patch('v1/retros/:retro_id/participant/:participant_id/update-role')
   @ApiOperation({ summary: "Update participant role to facilitator" })
-  async updateFacilitator(@Param('retro_id') retro_id: string, @Param('participant_id') participant_id: string) {
+  async updateFacilitator(@Param('retro_id') retro_id: string, @Param('participant_id') participant_id: number) {
     return this.participantService.updateRoleFacilitator(retro_id, participant_id);
   }
   

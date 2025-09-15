@@ -61,12 +61,6 @@ export default function RetroPage() {
   const [allUserVotes, setAllUserVotes] = useState<{ [userId: string]: { [groupIdx: number]: number } }>({});
   const [userId, setUserId] = useState<string>();
   const [isUserJoined, setIsUserJoined] = useState(false);
-  // Track if retro state was received (not currently used outside of local scope)
-  
-  // Data structure untuk menyimpan grup yang bisa dimasukkan ke database
-  // const [setGroupData] = useState<GroupData>({
-  //   groups: [],
-  // });
 
   loading
   error
@@ -181,6 +175,16 @@ useEffect(() => {
     return () => clearTimeout(timeout);
   }
 }, [user, isUserJoined]);
+
+const handleParticipantUpdated = useCallback(async () => {
+  try {
+    const data = await apiService.getRetro(retroId);
+    const activeParticipants = data.participants.filter((p: any) => p.isActive === true);
+    setParticipants(activeParticipants);
+  } catch (e) {
+    console.error('❌ Error updating participants:', e);
+  }
+}, [retroId]); // tergantung retroId
   
 // Mendapatkan peran user 
 const currentUserRole = participants.find(p => p.user.id === user?.id)?.role || false;
@@ -927,12 +931,7 @@ const handleItemAdded = useCallback((newItem: RetroItem) => {
   }, [phase, isLoadingFromDatabase]);
 
 
-    const handleParticipantAdded = useCallback((participant: Participant) => {
-    console.log ( "yang masuk :", participant)
-    setParticipants(prev => 
-      [...prev, participant]
-    );
-  }, []);
+
 
   // ! ------------------------ Socket Initialization ------------------------ //
   // Initialize WebSocket connection using the stable hook
@@ -943,17 +942,7 @@ const handleItemAdded = useCallback((newItem: RetroItem) => {
     onItemUpdated: handleItemUpdated,
     onItemDeleted: handleItemDeleted,
     onItemsUpdate: handleItemsUpdate,
-    onParticipantUpdate: async () => {
-      // Fetch ulang data partisipan dari backend dan update state di RetroPage
-      try {
-        const data = await apiService.getRetro(retroId);
-        const activeParticipants = data.participants.filter((p: any) => p.isActive === true);
-        setParticipants(activeParticipants);
-      } catch (e) {
-        console.error('❌ Error updating participants:', e);
-      }
-    },
-    onParticipantAdded: handleParticipantAdded,
+    onParticipantUpdate: handleParticipantUpdated,
     onPhaseChange: handlePhaseChange,
     onItemPositionUpdate: handleItemPositionUpdate,
     onGroupingUpdate: handleGroupingUpdate,
