@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FeedbackCard } from '@/components/feedback-card';
 import RetroHeader from '../RetroHeader';
 import { PhaseConfirmModal } from '@/components/ui/dialog';
+import { CategoryIcon } from '@/components/CategoryIcon';
 import useEnterToCloseModal from "@/hooks/useEnterToCloseModal";
 
 export default function IdeationPhase(props: any) {
@@ -125,12 +126,8 @@ export default function IdeationPhase(props: any) {
              <Card className="max-h-[calc(92vh-300px)] flex flex-col" key={idx}>
                <CardHeader className="flex-shrink-0">
                  <CardTitle className="flex items-center gap-2">
-                   {/* Emoji sesuai kategori */}
-                   <span role="img" aria-label="cat">
-                     {retro?.format === "happy_sad_confused"
-                       ? (idx === 0 ? '😀' : idx === 1 ? '😢' : '🤔')
-                       : (idx === 0 ? '🟢' : idx === 1 ? '🛑' : '🔄')}
-                   </span> {getCategoryDisplayName(`format_${idx+1}`)}
+                   <CategoryIcon category={`format_${idx+1}` as any} retroFormat={retro?.format} />
+                   {getCategoryDisplayName(`format_${idx+1}`)}
                  </CardTitle>
                </CardHeader>
                <CardContent className="p-4 flex-1 overflow-y-auto">
