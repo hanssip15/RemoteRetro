@@ -93,7 +93,7 @@ function ensureRetroState(retroId: string) {
 
 @WebSocketGateway({
   cors: {
-    origin: '*',
+    origin: process.env.CORS_ORIGIN?.split(',').map(o => o.trim()) || [],
   },
   pingInterval: 10000,
   pingTimeout: 5000,
