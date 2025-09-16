@@ -7,7 +7,6 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { ParticipantService } from '../services/participant.service';
-import { Participant } from 'src/entities/participant.entity';
 
 // Shared in-memory state (still exported if digunakan di luar)
 export const retroState: {
