@@ -338,22 +338,32 @@ function computeGroupsAndColors(
   // Fungsi untuk menyimpan data grup ke database (kirim satu per satu)
   const saveGroupData = useCallback(async () => {
     const dataToSave = convertGroupsToDatabaseFormat();
+    
+    // Jika tidak ada grup yang perlu disimpan, return early
+    if (!dataToSave.groups || dataToSave.groups.length === 0) {
+      return;
+    }
+
+    
     // 1. Buat semua group dulu di backend
-    // const createdGroups = [];
+    const createdGroups = [];
     for (const group of dataToSave.groups) {
       try {
         const createdGroup = await apiService.createGroup(retroId) as any;
+        
+        // Insert semua item ke group
         for (const itemId of group.itemIds) {
-        // @ts-ignore
-          const createdGroupItem = await apiService.insertItem(createdGroup.id, itemId) as any;
+          await apiService.insertItem(createdGroup.id, itemId);
         }
-        // createdGroups.push({ ...createdGroup, items: group.itemIds });
+        
+        createdGroups.push({ ...createdGroup, items: group.itemIds });
       } catch (error) {
-        console.error('❌ Gagal membuat group:', group, error);
+        console.error('❌ Failed to create group:', group, error);
+        throw error; // Re-throw error to stop the process
       }
     }
 
- 
+    return createdGroups;
   }, [convertGroupsToDatabaseFormat, retroId]);
 
   // Fungsi untuk mendapatkan data grup yang sudah dikelompokkan
@@ -641,7 +651,7 @@ function computeGroupsAndColors(
     const broadcastPhaseChange = useCallback(async (newPhase: 'prime-directive' | 'ideation' | 'grouping' | 'labelling' | 'voting' | 'final' | 'ActionItems') => {
     if (!user?.id) {
       console.error('❌ No user ID available for phase change');
-      return;
+      throw new Error('No user ID available for phase change');
     }
 
     try {
@@ -650,12 +660,10 @@ function computeGroupsAndColors(
         await saveGroupData(); 
       }      
       await apiService.updateRetroPhase(retroId, newPhase);
-      
-      // Phase change will be broadcasted via WebSocket from the server
-      
     } catch (error) {
       console.error('❌ Failed to update phase:', error);
       setError('Failed to change phase. Please try again.');
+      throw error; // Re-throw to let calling component handle it
     }
   }, [retroId, user?.id, saveGroupData]);
 
@@ -1208,7 +1216,6 @@ const handleItemAdded = useCallback((newItem: RetroItem) => {
         createdBy: user.id
       });
     } else {
-      console.log('❌ Socket not available or not connected');
     }
     setActionInput('');
   };
@@ -1216,7 +1223,6 @@ const handleItemAdded = useCallback((newItem: RetroItem) => {
 
   const handleEditActionItem = (idx: number) => {
     const item = actionItems[idx];
-    console.log("Editing action item:", item);
     setEditingActionIdx(idx);
     setEditActionInput(item.task);
     setEditActionAssignee(item.assigneeId || '');
@@ -1228,8 +1234,6 @@ const handleItemAdded = useCallback((newItem: RetroItem) => {
   const handleSaveEditActionItem = (idx: number) => {
     if (!editActionInput.trim() || !editActionAssignee || !user?.id) return;
     const item = actionItems[idx];
-    // console.log("semua parts", allParticipants);
-    // console.log("Saving action item:", editActionAssignee)
     const assignee = allParticipants.find(p => p.user.id === editActionAssignee);
     const assigneeName = assignee?.user.name || '';
     
