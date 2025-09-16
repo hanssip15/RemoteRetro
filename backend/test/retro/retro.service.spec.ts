@@ -118,7 +118,6 @@ it('should create and save a retro', async () => {
   const dto = {
     title: 'Sprint 1',
     createdBy: 'user1',
-    facilitator: 'user1',
     format: 'happy_sad_confused',
   };
 
@@ -141,7 +140,6 @@ it('should create and save a retro', async () => {
     title: dto.title,
     format: dto.format,
     createdBy: dto.createdBy,
-    facilitator: dto.facilitator,
     status: 'draft',
     currentPhase: 'lobby',
   });

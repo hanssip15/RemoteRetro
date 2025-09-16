@@ -262,7 +262,6 @@ function ensureRetroState(retroId: string) {
     }
 
 
-// --- gunakan fungsi getRetroMutex/ensureRetroState/safeEmit dari file sebelumnya ---
 
 // Handle item position updates during dragging
 @SubscribeMessage('item-position-update')
