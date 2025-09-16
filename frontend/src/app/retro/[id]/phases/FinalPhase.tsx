@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import RetroHeader from '../RetroHeader';
 import { getCategoryEmoji } from '@/lib/utils';
 import useEnterToCloseModal from "@/hooks/useEnterToCloseModal";
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 
 export default function FinalPhase({
@@ -23,6 +24,7 @@ export default function FinalPhase({
 }: any) {
   // Tambahkan state modal
   const [showModal, setShowModal] = useState(true);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   useEffect(() => {
     setShowModal(true);
@@ -61,64 +63,155 @@ export default function FinalPhase({
         setShowShareModal={setShowShareModal}
         handleLogout={handleLogout}
       />
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] w-full flex-1 overflow-hidden min-h-0 bg-gray-50">
-        {/* Panel kiri: feedback/group */}
-        <div className="flex flex-col bg-white overflow-hidden min-h-0">
-          {/* Card group kiri (read-only) */}
-          <div className="flex-1 overflow-y-auto max-h-[calc(100vh-240px)] flex flex-row flex-wrap gap-8 p-8 pb-40 w-full justify-center">
-          {labellingItems && labellingItems.length > 0 ? (
-            labellingItems.sort((a: any, b: any) => b.votes - a.votes).map((group: any) => {
-              return (            <div key={group.id} className="bg-white border rounded-lg shadow-sm w-full sm:max-w-[350px] px-4 py-3">
-                <div className="mb-2 flex items-center justify-between">
-                  <span className="text-lg font-semibold text-gray-400">{group.label || 'Unlabeled'}</span>
-                  <div className="flex items-center gap-2">
-                    <div className="bg-gray-100 text-gray-700 font-bold px-3 py-1 rounded select-none text-center" style={{fontSize: '1rem', minWidth: '60px'}}>
-                      Votes {group.votes || 0}
+      <div className={`flex w-full flex-1 overflow-hidden min-h-0 bg-white transition-all duration-300 ${
+        isSidebarCollapsed ? 'flex-col md:grid md:grid-cols-[1fr_400px]' : 'flex-row md:grid md:grid-cols-[1fr_400px]'
+      }`}>
+        {/* Panel kiri - Mobile: Action Items (Main), Desktop: Labelling Items */}
+        <div className={`flex flex-col bg-white overflow-hidden min-h-0 ${
+          isSidebarCollapsed ? 'w-full md:w-auto' : 'w-1/2 md:w-auto'
+        }`}>
+          {/* Mobile: Action Items (Main Content) */}
+          <div className="md:hidden">
+            <div className="flex items-center justify-between mb-2 p-4 border-b">
+              <div className="flex items-center gap-2 min-w-0 flex-1">
+                <span className="text-xl">🚀</span>
+                <span className="text-lg font-semibold truncate">Action Items</span>
+              </div>
+              <button
+                onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                className="p-1 hover:bg-gray-200 rounded transition-colors"
+                title={isSidebarCollapsed ? "Show items sidebar" : "Hide items sidebar"}
+              >
+                {isSidebarCollapsed ? (
+                  <ChevronRight className="h-5 w-5 text-gray-600" />
+                ) : (
+                  <ChevronLeft className="h-5 w-5 text-gray-600" />
+                )}
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto max-h-[calc(85vh-280px)] p-4">
+              <div className="flex flex-col gap-2">
+                {actionItems.length === 0 && <span className="text-gray-400 text-sm">No action items yet.</span>}
+                {actionItems.map((item: any, idx: number) => (
+                  <div key={idx} className="bg-gray-50 border rounded px-3 py-2 text-sm flex items-center justify-between gap-2">
+                    <div className="flex-1 flex flex-col">
+                      <span>
+                        {item.task} <span className="text-gray-700">({item.assigneeName})</span>
+                      </span>
                     </div>
                   </div>
-                </div>
-                <div className="flex flex-col gap-2">
-                    {group.group_items.map((item: any, idx: number) => (
-                      <div key={idx} className="bg-gray-50 border rounded px-3 py-2 text-sm">
-                        <div className="flex items-start gap-3">
-                          <span className="mt-0.5 flex-shrink-0">{item.item ? getCategoryEmoji(item.item.format_type, retro.format) : null}</span>
-                          <span className="break-words flex-1">{item.item ? item.item.content : 'No item'}</span>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Desktop: Labelling Items */}
+          <div className="hidden md:block">
+            <div className="flex-1 overflow-y-auto max-h-[calc(100vh-240px)] flex flex-row flex-wrap gap-8 p-8 w-full justify-center">
+              {labellingItems && labellingItems.length > 0 ? (
+                labellingItems.sort((a: any, b: any) => b.votes - a.votes).map((group: any) => (
+                  <div key={group.id} className="bg-white border rounded-lg shadow-sm w-full sm:max-w-[350px] px-4 py-3">
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="text-lg font-semibold text-gray-400">{group.label || 'Unlabeled'}</span>
+                      <div className="flex items-center gap-2">
+                        <div className="bg-gray-100 text-gray-700 font-bold px-3 py-1 rounded select-none text-center" style={{fontSize: '1rem', minWidth: '60px'}}>
+                          Votes {group.votes || 0}
                         </div>
                       </div>
-                    ))}
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      {group.group_items.map((item: any, idx: number) => (
+                        <div key={idx} className="bg-gray-50 border rounded px-3 py-2 text-sm">
+                          <div className="flex items-start gap-3">
+                            <span className="mt-0.5 flex-shrink-0">{item.item ? getCategoryEmoji(item.item.format_type, retro.format) : null}</span>
+                            <span className="break-words flex-1">{item.item ? item.item.content : 'No item'}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-              </div>
-            )})
-          ) : (
-            <div className="text-gray-400 text-sm">No items to display.</div>
-          )}
-          </div>
-        </div>
-        {/* Panel kanan: Action Items (atau summary) */}
-        <div className="w-full border-t bg-white flex flex-col p-6 h-full overflow-hidden min-h-0 lg:w-[400px] lg:border-l lg:border-t-0">
-          {/* Header sticky */}
-          <div className="flex items-center gap-2 mb-2 sticky top-0 z-10 bg-white">
-            <span className="text-2xl">🚀</span>
-            <span className="text-xl font-semibold">Action Items</span>
-          </div>
-          <hr className="mb-4" />
-          {/* Isi panel scrollable */}
-          <div className="flex-1 overflow-y-auto max-h-[calc(100vh-260px)] pb-40">
-            {/* List action items (read-only) */}
-            <div className="flex flex-col gap-2">
-              {actionItems.length === 0 && <span className="text-gray-400 text-sm">No action items yet.</span>}
-              {actionItems.map((item: any, idx: number) => (
-                <div key={idx} className="bg-gray-50 border rounded px-3 py-2 text-sm flex items-center justify-between gap-2">
-                  <div className="flex-1 flex flex-col">
-                    <span>
-                      {item.task} <span className="text-gray-700">({item.assigneeName})</span>
-                    </span>
-                  </div>
-                </div>
-              ))}
+                ))
+              ) : (
+                <div className="text-gray-400 text-sm">No items to display.</div>
+              )}
             </div>
           </div>
         </div>
+
+        {/* Panel kanan - Mobile: Labelling Items (Sidebar), Desktop: Action Items */}
+        {(!isSidebarCollapsed || window.innerWidth >= 768) && (
+          <div className={`bg-white flex flex-col h-full overflow-hidden min-h-0 md:w-[400px] transition-all duration-300 ${
+            isSidebarCollapsed ? 'w-full' : 'w-1/2'
+          }`}>
+            {/* Mobile: Labelling Items (Sidebar) */}
+            <div className="md:hidden">
+              {!isSidebarCollapsed && (
+                <>
+                  <div className="flex items-center justify-between p-4 border-b">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <span className="text-xl">📋</span>
+                      <span className="text-lg font-semibold truncate">Items</span>
+                    </div>
+                    <div className="w-6 h-6 p-1"></div>
+                  </div>
+                  <div className="flex-1 overflow-y-auto max-h-[calc(85vh-280px)] p-4">
+                    <div className="flex flex-col gap-2">
+                      {labellingItems && labellingItems.length > 0 ? (
+                        labellingItems.sort((a: any, b: any) => b.votes - a.votes).map((group: any) => (
+                          <div key={group.id} className="bg-white border rounded-lg shadow-sm p-3">
+                            <div className="mb-2 flex items-center justify-between">
+                              <span className="text-sm font-semibold text-gray-400">{group.label || 'Unlabeled'}</span>
+                              <div className="bg-gray-100 text-gray-700 font-bold px-2 py-1 rounded text-xs">
+                                {group.votes || 0}
+                              </div>
+                            </div>
+                            <div className="flex flex-col gap-1">
+                              {group.group_items.map((item: any, idx: number) => (
+                                <div key={idx} className="bg-gray-50 border rounded px-2 py-1 text-xs">
+                                  <div className="flex items-start gap-2">
+                                    <span className="mt-0.5 flex-shrink-0 text-xs">{getCategoryEmoji(item.item.format_type, retro.format)}</span>
+                                    <span className="break-words flex-1">{item.item.content}</span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-gray-400 text-sm text-center py-4">
+                          <p>No labelling items available</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Desktop: Action Items */}
+            <div className="hidden md:block">
+              <div className="flex items-center gap-2 mb-2 sticky top-0 z-10 bg-white">
+                <span className="text-2xl">🚀</span>
+                <span className="text-xl font-semibold">Action Items</span>
+              </div>
+              <hr className="mb-4" />
+              <div className="flex-1 overflow-y-auto max-h-[calc(95vh-260px)]">
+                <div className="flex flex-col gap-2">
+                  {actionItems.length === 0 && <span className="text-gray-400 text-sm">No action items yet.</span>}
+                  {actionItems.map((item: any, idx: number) => (
+                    <div key={idx} className="bg-gray-50 border rounded px-3 py-2 text-sm flex items-center justify-between gap-2">
+                      <div className="flex-1 flex flex-col">
+                        <span>
+                          {item.task} <span className="text-gray-700">({item.assigneeName})</span>
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
       <RetroFooter
         left={<div className="text-xl font-semibold text-left">This retro is all wrapped up!</div>}

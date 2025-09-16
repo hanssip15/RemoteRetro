@@ -297,8 +297,11 @@ export default function VotingPhase(props: any) {
                 </div>
                 <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
                   <div className="relative flex items-center">
-                    <div className="bg-teal-400 text-white font-bold pl-4 pr-2 py-1 rounded-lg relative select-none text-left" style={{fontSize: '1rem', minWidth: '90px'}}>
-                      <span className="relative z-10">Vote! &gt; &gt; </span>
+                    <div className="bg-teal-400 text-white font-bold pl-2 pr-2 py-1 rounded-lg relative select-none text-left" style={{fontSize: '0.875rem', minWidth: '60px'}}>
+                      <span className="relative z-10">
+                        <span className="md:hidden text-sm">Vote</span>
+                        <span className="hidden md:inline">Vote! &gt; &gt; </span>
+                      </span>
                     </div>
                   </div>
                   <Button

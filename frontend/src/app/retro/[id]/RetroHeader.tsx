@@ -30,20 +30,20 @@ export default function RetroHeader({
 }) {
   return (
     <div className="bg-white border-b sticky top-0 z-50">
-      <div className="container mx-auto px-2 sm:px-4 py-2 sm:py-4">
+      <div className="container mx-auto px-2 sm:px-4 py-1 sm:py-2 md:py-4">
         <div className="flex items-center justify-between">
           {/* Mobile header */}
           <div className="flex items-center w-full md:hidden">
-            <Button variant="outline" size="icon" className="mr-2" onClick={() => setShowShareModal(true)}>
-              <Share2 className="h-5 w-5" />
+            <Button variant="outline" size="icon" className="mr-1 md:mr-2 h-7 w-7 md:h-9 md:w-9" onClick={() => setShowShareModal(true)}>
+              <Share2 className="h-3 w-3 md:h-5 md:w-5" />
             </Button>
-            <h1 className="text-lg font-bold text-gray-900 truncate flex-1">{retro?.title ?? ''}</h1>
+            <h1 className="text-sm md:text-lg font-bold text-gray-900 truncate flex-1">{retro?.title ?? ''}</h1>
             {user && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0 ml-2">
+                  <Button variant="ghost" className="relative h-7 w-7 md:h-9 md:w-9 rounded-full p-0 ml-1 md:ml-2">
                     <Avatar
-                      className={`h-9 w-9 border-2 ${currentUserRole ? 'border-blue-500' : 'border-gray-200'} transition`}
+                      className={`h-7 w-7 md:h-9 md:w-9 border-2 ${currentUserRole ? 'border-blue-500' : 'border-gray-200'} transition`}
                       title={user.name + (currentUserRole ? ' (Facilitator)' : '')}
                     >
                       <AvatarImage 
@@ -54,8 +54,8 @@ export default function RetroHeader({
                           (e.target as HTMLImageElement).style.display = 'none';
                         }}
                       />
-                      <AvatarFallback>
-                        {user.name?.charAt(0)?.toUpperCase() || <User className="h-4 w-4" />}
+                      <AvatarFallback className="text-xs">
+                        {user.name?.charAt(0)?.toUpperCase() || <User className="h-3 w-3" />}
                       </AvatarFallback>
                     </Avatar>
                   </Button>
