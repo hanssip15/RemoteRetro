@@ -284,7 +284,7 @@ export default function GroupingPhase({
                 id={'measure-item-' + item.id}
                 className={`px-1 md:px-3 py-1 md:py-2 bg-white border rounded shadow text-xs md:text-sm cursor-move select-none relative`}
                 style={{
-                  minWidth: isMobileLandscape ? 80 : 80,
+                  minWidth: isMobileLandscape ? 60 : 80,
                   textAlign: 'center',
                   border: `4px solid ${borderColor}`,
                   position: 'absolute',
@@ -323,7 +323,7 @@ export default function GroupingPhase({
                 id={'group-item-' + item.id}
                 className={`px-1 md:px-3 py-1 md:py-2 bg-white border rounded shadow text-xs md:text-sm cursor-move select-none relative ${isBeingDraggedByOthers ? 'ring-2 ring-blue-500 ring-opacity-50' : ''}`}
                 style={{
-                  minWidth: isMobileLandscape ? 80 : 80,
+                  minWidth: isMobileLandscape ? 60 : 80,
                   textAlign: 'center',
                   zIndex: isBeingDraggedByOthers ? 10 : 2,
                   border: `4px solid ${borderColor}`,
