@@ -142,8 +142,6 @@ function ensureRetroState(retroId: string) {
           try {
             await this.participantService.join(retroId, userId);
           } catch (err) {
-            // handle duplicate/race gracefully
-            // log but continue to broadcast participants
             console.warn('Error on join (might be duplicate):', err?.message ?? err);
           }
         } else {
@@ -210,24 +208,11 @@ function ensureRetroState(retroId: string) {
     }
 
 
-    broadcastParticipantAdded(retroId: string, participant: Participant) {
-      this.server.to(`retro:${retroId}`).emit(`participants-added:${retroId}`, participant);
-    }
 
     broadcastParticipantUpdate(retroId: string) {
       this.server.to(`retro:${retroId}`).emit(`participants-update:${retroId}`);
     }
 
-    broadcastRetroStarted(retroId: string) {
-      this.server.to(`retro:${retroId}`).emit(`retro-started:${retroId}`);
-    }
-
-    broadcastRetroCompleted(retroId: string) {
-      this.server.to(`retro:${retroId}`).emit(`retro-completed:${retroId}`, {
-        status: 'completed',
-        timestamp: new Date().toISOString()
-      });
-    } 
 
     broadcastPhaseChange(retroId: string, phase: string) {
       this.server.to(`retro:${retroId}`).emit(`phase-change:${retroId}`, {
@@ -252,9 +237,6 @@ function ensureRetroState(retroId: string) {
       this.server.to(`retro:${retroId}`).emit(`item-deleted:${retroId}`,itemId);
     }
 
-    broadcastItemsUpdate(retroId: string, items: any[]) {
-      this.server.to(`retro:${retroId}`).emit(`items-update:${retroId}`, items);
-    }
 
     // Broadcast action items for a retro
     broadcastActionItemsUpdate(retroId: string, actionItems: any[]) {
@@ -522,9 +504,6 @@ async handleActionItemAdded(client: Socket, data: {
   await mutex.runExclusive(async () => {
     // Ensure state exists
     ensureRetroState(data.retroId);
-
-    // Check for duplicate action items (same task and assignee within last 500ms)
-    // NOTE: threshold is 500ms as in original code. If you meant 5 seconds, change 500 -> 5000.
     const now = Date.now();
     const recentDuplicate = retroState[data.retroId].actionItems.find(item =>
       item.task === data.task &&

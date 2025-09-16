@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Suspense, lazy } from 'react';
-import { SocketProvider } from './contexts/SocketContext';
+// import { SocketProvider } from './contexts/SocketContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary';
 
@@ -37,7 +37,6 @@ const LoadingSpinner = () => (
 
 function App() {
   return (
-    <SocketProvider>
       <Router>
         <ErrorBoundary>
           <Suspense fallback={<LoadingSpinner />}>
@@ -76,7 +75,6 @@ function App() {
           </Suspense>
         </ErrorBoundary>
       </Router>
-    </SocketProvider>
   );
 }
 

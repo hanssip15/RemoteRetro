@@ -59,9 +59,6 @@ export default function RetroLobbyPage({ socket, retroId, participants, retro, u
   
   const handleStartRetro = useCallback(async () => {
     try {
-      if (socket) {
-        socket.emit('retro-started', { retroId });
-      }
       setIsOngoing(true)
       await apiService.updateRetroStatus(retroId, "ongoing" )
       await apiService.updateRetroPhase(retroId, 'prime-directive')

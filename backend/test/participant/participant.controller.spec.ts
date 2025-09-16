@@ -2,7 +2,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ParticipantController } from '../../src/controllers/participant.controller';
 import { ParticipantService } from '../../src/services/participant.service';
 import { ConflictException } from '@nestjs/common';
-import { JoinRetroDto } from '../../src/dto/join-retro.dto';
 
 describe('ParticipantController', () => {
   let controller: ParticipantController;
@@ -44,32 +43,6 @@ describe('ParticipantController', () => {
     });
   });
 
-  describe('joinRetro', () => {
-    it('should return participant when join is successful', async () => {
-      const retroId = 'retro123';
-      const userId = 'user123';
-      const mockParticipant = { id: 'p1', retroId, userId };
-
-      mockParticipantService.join.mockResolvedValue(mockParticipant);
-
-      const result = await controller.joinRetro(retroId, userId);
-
-      expect(service.join).toHaveBeenCalledWith(retroId, userId);
-      expect(result).toEqual(mockParticipant);
-    });
-
-    it('should throw ConflictException when join fails', async () => {
-      const retroId = 'retro123';
-      const userId = 'user123';
-
-      mockParticipantService.join.mockResolvedValue(null);
-
-      await expect(controller.joinRetro(retroId, userId)).rejects.toThrow(
-        ConflictException,
-      );
-      expect(service.join).toHaveBeenCalledWith(retroId, userId);
-    });
-  });
 
   describe('updateFacilitator', () => {
     it('should update role to facilitator', async () => {

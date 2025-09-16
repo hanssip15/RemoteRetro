@@ -27,7 +27,6 @@ describe('ParticipantService', () => {
       save: jest.fn(),
     };
     gateway = {
-      broadcastParticipantAdded: jest.fn(),
       broadcastParticipantUpdate: jest.fn(),
     };
 
