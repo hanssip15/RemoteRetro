@@ -8,7 +8,7 @@ dist/
 .env
 .env.*.local
 participant.gateway-backup.txt
-
+socket-backup.txt
 # Logs
 *.log
 logs/

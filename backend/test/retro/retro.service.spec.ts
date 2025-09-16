@@ -228,25 +228,16 @@ it('✅ should remove participant and broadcast when retro & participant exist',
     expect(gateway.broadcastParticipantUpdate).not.toHaveBeenCalled();
   });
 
-  it('should update status and broadcast event', async () => {
+  it('should update status', async () => {
     const retro = { id: '1', status: 'draft' };
     (retroRepository.findOne as jest.Mock).mockResolvedValue(retro);
     (retroRepository.save as jest.Mock).mockResolvedValue({ ...retro, status: 'ongoing' });
 
     const result = await service.updateRetroStatus('1', 'ongoing');
     expect(result.status).toBe('ongoing');
-    expect(gateway.broadcastRetroStarted).toHaveBeenCalledWith('1');
   });
 
-  it('should update status and broadcast event', async () => {
-    const retro = { id: '1', status: 'draft' };
-    (retroRepository.findOne as jest.Mock).mockResolvedValue(retro);
-    (retroRepository.save as jest.Mock).mockResolvedValue({ ...retro, status: 'completed' });
 
-    const result = await service.updateRetroStatus('1', 'completed');
-    expect(result.status).toBe('completed');
-    expect(gateway.broadcastRetroCompleted).toHaveBeenCalledWith('1');
-  });
 
     it('error update status because retro id not found', async () => {
     (retroRepository.findOne as jest.Mock).mockResolvedValue(null);

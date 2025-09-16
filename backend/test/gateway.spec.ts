@@ -209,15 +209,6 @@ describe('ParticipantGateway', () => {
       });
     });
 
-    it('broadcastParticipantAdded should emit participants-added', () => {
-      const participant = { id: 'p1', name: 'User 1' } as any;
-      gateway.broadcastParticipantAdded('retroA', participant);
-      expect(gateway.server.to).toHaveBeenCalledWith('retro:retroA');
-      expect(gateway.server.to('retro:retroA').emit).toHaveBeenCalledWith(
-        'participants-added:retroA',
-        participant,
-      );
-    });
 
     it('broadcastParticipantUpdate should emit participants-update', () => {
       gateway.broadcastParticipantUpdate('retroB');
@@ -226,24 +217,7 @@ describe('ParticipantGateway', () => {
       );
     });
 
-    it('broadcastRetroStarted should emit retro-started', () => {
-      gateway.broadcastRetroStarted('retroC');
-      expect(gateway.server.to('retro:retroC').emit).toHaveBeenCalledWith(
-        'retro-started:retroC',
-      );
-    });
 
-    it('broadcastRetroCompleted should emit retro-completed with payload', () => {
-      const before = Date.now();
-      gateway.broadcastRetroCompleted('retroD');
-      const after = Date.now();
-
-      const call = (gateway.server.to('retro:retroD').emit as jest.Mock).mock.calls[0];
-      expect(call[0]).toBe('retro-completed:retroD');
-      expect(call[1].status).toBe('completed');
-      expect(new Date(call[1].timestamp).getTime()).toBeGreaterThanOrEqual(before);
-      expect(new Date(call[1].timestamp).getTime()).toBeLessThanOrEqual(after);
-    });
 
     it('broadcastPhaseChange should emit phase-change with phase and timestamp', () => {
       gateway.broadcastPhaseChange('retroE', 'grouping');
@@ -285,14 +259,7 @@ describe('ParticipantGateway', () => {
       );
     });
 
-    it('broadcastItemsUpdate should emit items-update', () => {
-      const items = [{ id: 'i3' }];
-      gateway.broadcastItemsUpdate('retroI', items);
-      expect(gateway.server.to('retro:retroI').emit).toHaveBeenCalledWith(
-        'items-update:retroI',
-        items,
-      );
-    });
+
 
     it('broadcastActionItemsUpdate should emit action-items-update', () => {
       const actions = [{ id: 'a1' }];

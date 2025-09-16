@@ -81,35 +81,6 @@ export const useRetroSocket = ({
         },
       });
   
-      // Connection events
-      socketRef.current.on('connect', () => {
-        isConnectingRef.current = false;
-        // Join the retro room
-        socketRef.current?.emit('join-retro-room', retroId);
-      });
-  
-      socketRef.current.on('connect_error', (error) => {
-        console.error('❌ Socket connection error:', error);
-        isConnectingRef.current = false;
-      });
-  
-      socketRef.current.on('disconnect', () => {
-        isConnectingRef.current = false;
-      });
-  
-      socketRef.current.on('reconnect', () => {
-        // Re-join the retro room after reconnection
-        socketRef.current?.emit('join-retro-room', retroId);
-      });
-      
-      socketRef.current.on(`participants-added:${retroId}`, (participant: Participant ) => {
-        callbacks.onParticipantAdded?.(participant);
-      });
-
-
-      socketRef.current.on(`retro-started:${retroId}`, () => {
-        callbacks.onRetroStarted?.();
-      });
     }, [retroId, callbacks]);
   
     const disconnect = useCallback(() => {
@@ -121,7 +92,6 @@ export const useRetroSocket = ({
     }, [retroId]);
 
 
-  // Join room when component mounts or retroId changes
     useEffect(() => {
     if (!retroId || !userId) {
       console.warn('Retro ID or User ID is not provided, skipping socket connection.');
@@ -132,7 +102,7 @@ export const useRetroSocket = ({
     return () => {
       disconnect();
     };
-  }, [retroId, userId]); // Remove callbacks from dependency array
+  }, [retroId, userId]); 
 
   useEffect(() => {
     if (!socketRef || !retroId) {
@@ -151,10 +121,6 @@ export const useRetroSocket = ({
       callbacks.onItemDeleted?.(itemId);
     };
 
-    const handleItemsUpdate = (items: any[]) => {
-      callbacks.onItemsUpdate?.(items);
-    };
-
     const handleParticipantAdded = (participant: Participant) => {
       callbacks.onParticipantAdded?.(participant);
     };
@@ -163,9 +129,6 @@ export const useRetroSocket = ({
       callbacks.onParticipantUpdate?.(participant);
     };
 
-    const handleRetroStarted = () => {
-      callbacks.onRetroStarted?.();
-    };
 
     const handlePhaseChange = (data: { phase: 'prime-directive' | 'ideation' | 'grouping' | 'labelling' | 'voting' | 'final' | 'ActionItems'}) => {
       callbacks.onPhaseChange?.(data.phase);
@@ -204,10 +167,8 @@ export const useRetroSocket = ({
       socketRef.current.on(`item-added:${retroId}`, handleItemAdded);
       socketRef.current.on(`item-updated:${retroId}`, handleItemUpdated);
       socketRef.current.on(`item-deleted:${retroId}`, handleItemDeleted);
-      socketRef.current.on(`items-update:${retroId}`, handleItemsUpdate);
       socketRef.current.on(`participants-update:${retroId}`, handleParticipantUpdate);
       socketRef.current.on(`participants-added:${retroId}`, handleParticipantAdded);
-      socketRef.current.on(`retro-started:${retroId}`, handleRetroStarted);
       socketRef.current.on(`phase-change:${retroId}`, handlePhaseChange);
       socketRef.current.on(`item-position-update:${retroId}`, handleItemPositionUpdate);
       socketRef.current.on(`grouping-update:${retroId}`, handleGroupingUpdate);
@@ -224,10 +185,8 @@ export const useRetroSocket = ({
         socketRef.current.off(`item-added:${retroId}`, handleItemAdded);
         socketRef.current.off(`item-updated:${retroId}`, handleItemUpdated);
         socketRef.current.off(`item-deleted:${retroId}`, handleItemDeleted);
-        socketRef.current.off(`items-update:${retroId}`, handleItemsUpdate);
         socketRef.current.off(`participants-update:${retroId}`, handleParticipantUpdate);
         socketRef.current.off(`participants-added:${retroId}`, handleParticipantAdded);
-        socketRef.current.off(`retro-started:${retroId}`, handleRetroStarted);
         socketRef.current.off(`phase-change:${retroId}`, handlePhaseChange);
         socketRef.current.off(`item-position-update:${retroId}`, handleItemPositionUpdate);
         socketRef.current.off(`grouping-update:${retroId}`, handleGroupingUpdate);

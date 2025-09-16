@@ -819,9 +819,6 @@ const handleItemAdded = useCallback((newItem: RetroItem) => {
       return item;
     }));
   }, [optimisticUpdates]);
-    const handleItemsUpdate = useCallback((newItems: RetroItem[]) => {
-      setItems(newItems);
-    }, []);
 
   // Handle Item Deleted
   const handleItemDeleted = useCallback((itemId: string) => {
@@ -941,7 +938,6 @@ const handleItemAdded = useCallback((newItem: RetroItem) => {
     onItemAdded: handleItemAdded,
     onItemUpdated: handleItemUpdated,
     onItemDeleted: handleItemDeleted,
-    onItemsUpdate: handleItemsUpdate,
     onParticipantUpdate: handleParticipantUpdated,
     onPhaseChange: handlePhaseChange,
     onItemPositionUpdate: handleItemPositionUpdate,

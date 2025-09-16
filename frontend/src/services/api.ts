@@ -209,13 +209,6 @@ class ApiService {
     return this.request<Participant[]>(`/participant/v1/retros/${retro_id}`);
   }
 
-  // Menambahkan participant pada suatu retro
-  async addParticipant(retro_id: string, user_id:string, data: addParticipantData): Promise<Participant> {
-    return this.request<Participant>(`/participant/v1/retros/${retro_id}/users/${user_id}/join`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  }
 
   // Mengubah peran partisipan
   async updateParticipantRole(retro_id: string, participant_id: number): Promise<Participant> {
