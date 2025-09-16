@@ -749,6 +749,130 @@ expect(fakeRoom.emit).toHaveBeenCalledWith('action-items:update', [{ id: 'a1' }]
     expect(fakeRoom.emit).toHaveBeenCalledWith('action-items-update:retro1', [{ id: 'a1' }]);
   });
 });
+describe('Action Item Handlers', () => {
+  let client: any;
+  let fakeRoom: any;
+
+  beforeEach(() => {
+    client = { emit: jest.fn() };
+    fakeRoom = { emit: jest.fn() };
+    gateway.server.to = jest.fn().mockReturnValue(fakeRoom);
+
+    // reset state
+    retroState['retro1'] = { itemPositions: {}, itemGroups: {}, signatureColors: {}, actionItems: [], allUserVotes: {} };
+  });
+
+  describe('handleActionItemAdded', () => {
+    it('should add a new action item and emit update', async () => {
+      const data = {
+        retroId: 'retro1',
+        task: 'Do something',
+        assigneeId: 'u1',
+        assigneeName: 'User 1',
+        createdBy: 'facilitator'
+      };
+
+      await gateway.handleActionItemAdded(client, data);
+
+      expect(retroState['retro1'].actionItems.length).toBe(1);
+      expect(fakeRoom.emit).toHaveBeenCalledWith('action-items-update:retro1', retroState['retro1'].actionItems);
+    });
+
+    it('should not add duplicate action item within 500ms', async () => {
+      const now = new Date().toISOString();
+      retroState['retro1'].actionItems.push({
+        id: 'a1',
+        task: 'Duplicate Task',
+        assigneeId: 'u1',
+        assigneeName: 'User 1',
+        createdBy: 'f1',
+        createdAt: now,
+        edited: false
+      });
+
+      const data = {
+        retroId: 'retro1',
+        task: 'Duplicate Task',
+        assigneeId: 'u1',
+        assigneeName: 'User 1',
+        createdBy: 'f1'
+      };
+
+      await gateway.handleActionItemAdded(client, data);
+
+      // tetap 1 item karena dianggap duplikat
+      expect(retroState['retro1'].actionItems.length).toBe(1);
+      expect(fakeRoom.emit).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('handleActionItemUpdated', () => {
+    it('should update existing action item and emit update', async () => {
+      retroState['retro1'].actionItems.push({
+        id: 'a1',
+        task: 'Old Task',
+        assigneeId: 'u1',
+        assigneeName: 'User 1',
+        createdBy: 'f1',
+        createdAt: new Date().toISOString(),
+        edited: false
+      });
+
+      const data = {
+        retroId: 'retro1',
+        actionItemId: 'a1',
+        task: 'Updated Task',
+        assigneeId: 'u2',
+        assigneeName: 'User 2',
+        updatedBy: 'f2'
+      };
+
+      await gateway.handleActionItemUpdated(client, data);
+
+      expect(retroState['retro1'].actionItems[0].task).toBe('Updated Task');
+      expect(retroState['retro1'].actionItems[0].edited).toBe(true);
+      expect(fakeRoom.emit).toHaveBeenCalledWith('action-items-update:retro1', retroState['retro1'].actionItems);
+    });
+
+    it('should do nothing if action item does not exist', async () => {
+      const data = {
+        retroId: 'retro1',
+        actionItemId: 'not-exist',
+        task: 'Updated Task',
+        assigneeId: 'u2',
+        assigneeName: 'User 2',
+        updatedBy: 'f2'
+      };
+
+      await gateway.handleActionItemUpdated(client, data);
+
+      expect(fakeRoom.emit).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('handleActionItemDeleted', () => {
+    it('should delete action item and emit update', async () => {
+      retroState['retro1'].actionItems.push({ id: 'a1', task: 'T', assigneeId: 'u1', assigneeName: 'U1', createdBy: 'f1', createdAt: new Date().toISOString(), edited: false });
+
+      const data = { retroId: 'retro1', actionItemId: 'a1' };
+
+      await gateway.handleActionItemDeleted(client, data);
+
+      expect(retroState['retro1'].actionItems.length).toBe(0);
+      expect(fakeRoom.emit).toHaveBeenCalledWith('action-items-update:retro1', []);
+    });
+
+    it('should do nothing if retro state not exists', async () => {
+      delete retroState['retroX']; // pastikan tidak ada state
+
+      const data = { retroId: 'retroX', actionItemId: 'a1' };
+
+      await gateway.handleActionItemDeleted(client, data);
+
+      expect(fakeRoom.emit).not.toHaveBeenCalled();
+    });
+  });
+});
 
 
 });
