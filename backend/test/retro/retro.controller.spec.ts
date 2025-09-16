@@ -49,7 +49,6 @@ describe('RetroController', () => {
         title: 'Sprint Retro',
         format: 'happy_sad_confused',
         createdBy: 'user123',
-        facilitator: 'facilitator123',
       };
       const created = { id: '1', ...dto };
       mockRetroService.create.mockResolvedValue(created);

@@ -114,7 +114,6 @@ export const useRetroSocket = ({
   
     const disconnect = useCallback(() => {
       if (socketRef.current) {
-        socketRef.current.emit('leave-retro-room', retroId);
         socketRef.current.disconnect();
         socketRef.current = undefined;
         isConnectingRef.current = false;

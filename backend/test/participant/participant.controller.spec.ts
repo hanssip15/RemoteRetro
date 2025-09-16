@@ -48,35 +48,33 @@ describe('ParticipantController', () => {
     it('should return participant when join is successful', async () => {
       const retroId = 'retro123';
       const userId = 'user123';
-      const dto: JoinRetroDto = { role: true, isActive: true };
-      const mockParticipant = { id: 'p1', retroId, userId, ...dto };
+      const mockParticipant = { id: 'p1', retroId, userId };
 
       mockParticipantService.join.mockResolvedValue(mockParticipant);
 
-      const result = await controller.joinRetro(retroId, userId, dto);
+      const result = await controller.joinRetro(retroId, userId);
 
-      expect(service.join).toHaveBeenCalledWith(retroId, userId, dto);
+      expect(service.join).toHaveBeenCalledWith(retroId, userId);
       expect(result).toEqual(mockParticipant);
     });
 
     it('should throw ConflictException when join fails', async () => {
       const retroId = 'retro123';
       const userId = 'user123';
-      const dto: JoinRetroDto = { role: false, isActive: true };
 
       mockParticipantService.join.mockResolvedValue(null);
 
-      await expect(controller.joinRetro(retroId, userId, dto)).rejects.toThrow(
+      await expect(controller.joinRetro(retroId, userId)).rejects.toThrow(
         ConflictException,
       );
-      expect(service.join).toHaveBeenCalledWith(retroId, userId, dto);
+      expect(service.join).toHaveBeenCalledWith(retroId, userId);
     });
   });
 
   describe('updateFacilitator', () => {
     it('should update role to facilitator', async () => {
       const retroId = 'retro123';
-      const participantId = 'p123';
+      const participantId = 1;
       const updatedParticipant = { id: participantId, retroId, role: 'facilitator' };
 
       mockParticipantService.updateRoleFacilitator.mockResolvedValue(updatedParticipant);

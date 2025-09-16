@@ -6,8 +6,6 @@ interface SocketContextType {
   isConnected: boolean;
   connect: (retroId: string) => void;
   disconnect: () => void;
-  joinRoom: (retroId: string) => void;
-  leaveRoom: (retroId: string) => void;
 }
 
 const SocketContext = createContext<SocketContextType | null>(null);
@@ -41,10 +39,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     socketRef.current.on('connect', () => {
       setIsConnected(true);
       isConnectingRef.current = false;
-      // Join the retro room if we have a retroId
-      if (currentRetroIdRef.current) {
-        socketRef.current?.emit('join-retro-room', currentRetroIdRef.current);
-      }
+  
     });
 
     socketRef.current.on('connect_error', (error) => {
@@ -60,18 +55,11 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
 
     socketRef.current.on('reconnect', () => {
       setIsConnected(true);
-      // Re-join the retro room after reconnection
-      if (currentRetroIdRef.current) {
-        socketRef.current?.emit('join-retro-room', currentRetroIdRef.current);
-      }
     });
   }, []);
 
   const disconnect = useCallback(() => {
     if (socketRef.current) {
-      if (currentRetroIdRef.current) {
-        socketRef.current.emit('leave-retro-room', currentRetroIdRef.current);
-      }
       socketRef.current.disconnect();
       socketRef.current = null;
       currentRetroIdRef.current = null;
@@ -80,22 +68,6 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     }
   }, []);
 
-  const joinRoom = useCallback((retroId: string) => {
-    currentRetroIdRef.current = retroId;
-    if (socketRef.current?.connected) {
-      socketRef.current.emit('join-retro-room', retroId);
-    } else {
-      // Connect first, then join room
-      connect();
-    }
-  }, [connect]);
-
-  const leaveRoom = useCallback((retroId: string) => {
-    if (socketRef.current?.connected) {
-      socketRef.current.emit('leave-retro-room', retroId);
-    }
-    currentRetroIdRef.current = null;
-  }, []);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -109,8 +81,6 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     isConnected,
     connect,
     disconnect,
-    joinRoom,
-    leaveRoom,
   };
 
   return (
