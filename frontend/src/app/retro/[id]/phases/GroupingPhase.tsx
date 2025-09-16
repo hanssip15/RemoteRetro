@@ -6,8 +6,20 @@ import Draggable from 'react-draggable';
 import { PhaseConfirmModal } from '@/components/ui/dialog';
 import useEnterToCloseModal from "@/hooks/useEnterToCloseModal";
 import HighContrastToggle from '@/components/HighContrastToggle';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Share2, User, LogOut } from 'lucide-react';
 import { CategoryIcon } from '@/components/CategoryIcon';
+import { useOrientation } from '@/hooks/useOrientation';
+import LandscapeWarning from '@/components/LandscapeWarning';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { PhaseModal } from '@/components/shared';
 
 export default function GroupingPhase({
   retro,
@@ -53,6 +65,9 @@ export default function GroupingPhase({
 
   const handleModalClose = useCallback(() => setShowModal(false), []);
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Hook untuk mendeteksi orientasi device
+  const { isPortrait } = useOrientation();
   useEffect(() => {
     setShowModal(true);
   }, []);
@@ -155,42 +170,97 @@ export default function GroupingPhase({
 
   // Always render the board; show overlay loader until positions ready
 
+  // Tampilkan warning landscape jika device dalam mode portrait
+  const showLandscapeWarning = isPortrait && window.innerWidth <= 768; // Hanya untuk mobile
+  
+  // Deteksi mobile landscape mode
+  const isMobileLandscape = window.innerWidth <= 768 && !isPortrait;
+  
+  
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Landscape Warning untuk Mobile */}
+      <LandscapeWarning isVisible={showLandscapeWarning} />
       {/* Modal Stage Change Grouping */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg max-w-xl w-full p-8">
-            <h2 className="text-2xl font-bold mb-2 text-center">Stage Change: Grouping!</h2>
-            <div className="mb-4">
-              <b>Guidance:</b>
-              <ul className="list-disc pl-6 mt-2 text-left">
-                <li>Bring related ideas into contact.</li>
-                <li>Leave disparate ideas far apart.</li>
-                <li>If there's a disagreement, attempt to settle it without speaking.</li>
-              </ul>
-            </div>
-            <div className="flex justify-center">
-              <button
-                className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
-                onClick={handleModalClose}
-              >
-                Got it!
-              </button>
-            </div>
-          </div>
+      <PhaseModal
+        isVisible={showModal}
+        onClose={handleModalClose}
+        title="Stage Change: Grouping!"
+      >
+        <b>Guidance:</b>
+        <ul className="list-disc pl-6 mt-2 text-left">
+          <li>Bring related ideas into contact.</li>
+          <li>Leave disparate ideas far apart.</li>
+          <li>If there's a disagreement, attempt to settle it without speaking.</li>
+        </ul>
+      </PhaseModal>
+      {/* Sembunyikan header pada mobile landscape */}
+      {!isMobileLandscape && (
+        <RetroHeader
+          retro={retro}
+          participants={participants}
+          user={user}
+          currentUserRole={currentUserRole}
+          showShareModal={showShareModal}
+          setShowShareModal={setShowShareModal}
+          handleLogout={handleLogout}
+        />
+      )}
+      
+      {/* Minimal controls untuk mobile landscape */}
+      {isMobileLandscape && (
+        <div className="fixed top-1 right-1 z-50 flex gap-1">
+          <Button 
+            variant="outline" 
+            size="icon" 
+            className="h-6 w-6 bg-white/90 backdrop-blur-sm" 
+            onClick={() => setShowShareModal(true)}
+          >
+            <Share2 className="h-3 w-3" />
+          </Button>
+          {user && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-6 w-6 rounded-full p-0 bg-white/90 backdrop-blur-sm">
+                  <Avatar
+                    className={`h-6 w-6 border-2 ${currentUserRole ? 'border-blue-500' : 'border-gray-200'} transition`}
+                    title={user.name + (currentUserRole ? ' (Facilitator)' : '')}
+                  >
+                    <AvatarImage 
+                      src={user.imageUrl || user.image_url || undefined}
+                      alt={user.name}
+                      loading="lazy"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                    <AvatarFallback className="text-[8px]">
+                      {user.name?.charAt(0)?.toUpperCase() || <User className="h-2 w-2" />}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56" align="end" forceMount>
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">{user.name}</p>
+                    <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Log out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       )}
-      <RetroHeader
-        retro={retro}
-        participants={participants}
-        user={user}
-        currentUserRole={currentUserRole}
-        showShareModal={showShareModal}
-        setShowShareModal={setShowShareModal}
-        handleLogout={handleLogout}
-      />
-      <div ref={boardRef} className="flex-1 relative bg-white overflow-auto pb-40" style={{ minHeight: 'calc(100vh - 120px)' }}>
+      <div ref={boardRef} className={`flex-1 relative bg-white overflow-auto pb-40 ${showLandscapeWarning ? 'pointer-events-none opacity-50' : ''}`} style={{ 
+        minHeight: isMobileLandscape ? '100vh' : 'calc(100vh - 120px)'
+      }}>
         {!positionsReady && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div className="text-center">
@@ -212,16 +282,18 @@ export default function GroupingPhase({
               <div
                 key={'m-' + item.id}
                 id={'measure-item-' + item.id}
-                className={`px-3 py-2 bg-white border rounded shadow text-sm cursor-move select-none relative`}
+                className={`px-1 md:px-3 py-1 md:py-2 bg-white border rounded shadow text-xs md:text-sm cursor-move select-none relative`}
                 style={{
-                  minWidth: 80,
+                  minWidth: isMobileLandscape ? 60 : 80,
                   textAlign: 'center',
                   border: `4px solid ${borderColor}`,
                   position: 'absolute',
                   boxSizing: 'border-box',
+                  transform: isMobileLandscape ? 'scale(0.3) !important' : 'scale(1)',
+                  transformOrigin: 'center',
                 }}
               >
-                {item.content} <span className="text-xs text-gray-500 inline-flex items-center gap-1">(<CategoryIcon category={item.category as any} retroFormat={retro?.format} />)</span>
+                {item.content} <span className="text-xs md:text-xs text-gray-500 inline-flex items-center gap-1">(<CategoryIcon category={item.category as any} retroFormat={retro?.format} />)</span>
               </div>
             );
           })}
@@ -249,18 +321,20 @@ export default function GroupingPhase({
             >
               <div
                 id={'group-item-' + item.id}
-                className={`px-3 py-2 bg-white border rounded shadow text-sm cursor-move select-none relative ${isBeingDraggedByOthers ? 'ring-2 ring-blue-500 ring-opacity-50' : ''}`}
+                className={`px-1 md:px-3 py-1 md:py-2 bg-white border rounded shadow text-xs md:text-sm cursor-move select-none relative ${isBeingDraggedByOthers ? 'ring-2 ring-blue-500 ring-opacity-50' : ''}`}
                 style={{
-                  minWidth: 80,
+                  minWidth: isMobileLandscape ? 60 : 80,
                   textAlign: 'center',
                   zIndex: isBeingDraggedByOthers ? 10 : 2,
                   border: `4px solid ${borderColor}`,
                   transition: 'border-color 0.2s',
                   position: 'absolute',
                   boxSizing: 'border-box',
+                  transform: isMobileLandscape ? 'scale(0.3) !important' : 'scale(1)',
+                  transformOrigin: 'center',
                 }}
               >
-                {item.content} <span className="text-xs text-gray-500 inline-flex items-center gap-1">(<CategoryIcon category={item.category as any} retroFormat={retro?.format} />)</span>
+                {item.content} <span className="text-xs md:text-xs text-gray-500 inline-flex items-center gap-1">(<CategoryIcon category={item.category as any} retroFormat={retro?.format} />)</span>
                 {isBeingDraggedByOthers && draggingUser && (
                   <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 bg-blue-500 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
                     {draggingUser.user.name} is dragging
@@ -271,12 +345,16 @@ export default function GroupingPhase({
           );
         })}
         <div className="h-40" />
+      </div>
+      
+      {/* Footer di luar container yang di-scale */}
+      <div className={showLandscapeWarning ? 'pointer-events-none opacity-50' : ''}>
         <RetroFooter
           left={
             <>
               <div className="flex flex-col items-start text-left md:hidden">
-                <div className="text-lg font-semibold">Grouping</div>
-                <div className="text-xs text-gray-500">
+                <div className="text-xs md:text-lg font-semibold">Grouping</div>
+                <div className="text-[10px] text-gray-500">
                   {(() => {
                     const summary = getGroupSummary();
                     return `${summary.totalGroups} groups, ${summary.totalGroupedItems} items grouped`;
@@ -305,10 +383,10 @@ export default function GroupingPhase({
               <>
                 <Button
                   onClick={() => setShowConfirm(true)}
-                  className="flex items-center px-1 py-1 text-xs md:px-8 md:py-2 md:text-base font-semibold"
+                  className="flex items-center px-1 py-0.5 text-[10px] md:px-8 md:py-2 md:text-base font-semibold"
                   variant="phasePrimary"
                 >
-                  Labelling <span className="ml-2">&#8594;</span>
+                  Labelling <span className="ml-0.5 md:ml-2">&#8594;</span>
                 </Button>
                 <PhaseConfirmModal
                   open={showConfirm}

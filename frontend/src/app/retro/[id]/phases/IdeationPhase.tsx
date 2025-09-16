@@ -117,7 +117,7 @@ export default function IdeationPhase(props: any) {
              ))}
            </div>
            <div className="bg-white rounded-b-lg shadow max-h-[calc(92vh-400px)] overflow-y-auto p-2">
-             <div className="space-y-4">
+             <div className="space-y-1">
                {items
                 .filter((item: any) => item.category === activeMobileCategory)
                 .sort((a: any, b: any) => new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime()) // urut desc by updated_at

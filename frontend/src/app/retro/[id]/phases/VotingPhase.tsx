@@ -6,6 +6,7 @@ import { apiService } from '@/services/api';
 import { PhaseConfirmModal } from '@/components/ui/dialog';
 import { getCategoryEmoji } from '@/lib/utils';
 import useEnterToCloseModal from "@/hooks/useEnterToCloseModal";
+import { PhaseModal } from '@/components/shared';
 
 
 export default function VotingPhase(props: any) {
@@ -254,29 +255,18 @@ export default function VotingPhase(props: any) {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Modal Stage Change Voting */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg max-w-xl w-full p-8">
-            <h2 className="text-2xl font-bold mb-2 text-center">Stage Change: Voting!</h2>
-            <div className="mb-4">
-              <b>Guidance:</b>
-              <ul className="list-disc pl-6 mt-2 text-left">
-                <li>Apply votes to the items you feel are <b>most important</b> for the team to discuss.</li>
-                <li>Multiple votes can be supplied to a single item.</li>
-                <li>Voting is blind. Totals will be revealed when the facilitator advances the retro.</li>
-              </ul>
-            </div>
-            <div className="flex justify-center">
-              <button
-                className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
-                onClick={() => setShowModal(false)}
-              >
-                Got it!
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <PhaseModal
+        isVisible={showModal}
+        onClose={() => setShowModal(false)}
+        title="Stage Change: Voting!"
+      >
+        <b>Guidance:</b>
+        <ul className="list-disc pl-6 mt-2 text-left">
+          <li>Apply votes to the items you feel are <b>most important</b> for the team to discuss.</li>
+          <li>Multiple votes can be supplied to a single item.</li>
+          <li>Voting is blind. Totals will be revealed when the facilitator advances the retro.</li>
+        </ul>
+      </PhaseModal>
       <RetroHeader
         retro={retro}
         participants={participants}
@@ -297,8 +287,11 @@ export default function VotingPhase(props: any) {
                 </div>
                 <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
                   <div className="relative flex items-center">
-                    <div className="bg-teal-400 text-white font-bold pl-4 pr-2 py-1 rounded-lg relative select-none text-left" style={{fontSize: '1rem', minWidth: '90px'}}>
-                      <span className="relative z-10">Vote! &gt; &gt; </span>
+                    <div className="bg-teal-400 text-white font-bold pl-2 pr-2 py-1 rounded-lg relative select-none text-left" style={{fontSize: '0.875rem', minWidth: '60px'}}>
+                      <span className="relative z-10">
+                        <span className="md:hidden text-sm">Vote</span>
+                        <span className="hidden md:inline">Vote! &gt; &gt; </span>
+                      </span>
                     </div>
                   </div>
                   <Button

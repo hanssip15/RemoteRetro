@@ -6,6 +6,9 @@ import { apiService } from '@/services/api';
 import { PhaseConfirmModal } from '@/components/ui/dialog';
 import { getCategoryEmoji } from '@/lib/utils';
 import useEnterToCloseModal from "@/hooks/useEnterToCloseModal";
+import { useOrientation } from '@/hooks/useOrientation';
+import LandscapeWarning from '@/components/LandscapeWarning';
+import { PhaseModal } from '@/components/shared';
 
 export default function LabellingPhase(props: any) {
   const {
@@ -18,6 +21,8 @@ export default function LabellingPhase(props: any) {
   const [showModal, setShowModal] = useState(true);
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(true);
+  const { isLandscape } = useOrientation();
+  const showLandscapeWarning = isLandscape && window.innerWidth <= 768;
   useEffect(() => {
     setShowModal(true);
   }, []);
@@ -83,31 +88,30 @@ export default function LabellingPhase(props: any) {
       </div>
     );
   }
+
+  
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Modal Stage Change Labeling */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg max-w-xl w-full p-8">
-            <h2 className="text-2xl font-bold mb-2 text-center">Stage Change: Labeling!</h2>
-            <div className="mb-4">
-              <b>Guidance:</b>
-              <ul className="list-disc pl-6 mt-2 text-left">
-                <li>Work as a team to arrive at sensible labels for each group of ideas.</li>
-                <li>Don't spend too much time labeling any one group. An approximate label is good enough.</li>
-              </ul>
-            </div>
-            <div className="flex justify-center">
-              <button
-                className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
-                onClick={() => setShowModal(false)}
-              >
-                Got it!
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <PhaseModal
+        isVisible={showModal}
+        onClose={() => setShowModal(false)}
+        title="Stage Change: Labeling!"
+      >
+        <b>Guidance:</b>
+        <ul className="list-disc pl-6 mt-2 text-left">
+          <li>Work as a team to arrive at sensible labels for each group of ideas.</li>
+          <li>Don't spend too much time labeling any one group. An approximate label is good enough.</li>
+        </ul>
+      </PhaseModal>
+
+      {/* Landscape Warning for Mobile */}
+      <LandscapeWarning 
+        isVisible={showLandscapeWarning} 
+        message="You're in landscape mode; this stage requires portrait!"
+        subMessage="Please rotate your device to portrait orientation to continue"
+      />
       <RetroHeader
         retro={retro}
         participants={participants}
@@ -117,13 +121,13 @@ export default function LabellingPhase(props: any) {
         setShowShareModal={setShowShareModal}
         handleLogout={handleLogout}
       />
-      <div className="flex-1 overflow-hidden min-h-0 bg-white">
-          <div className="bg-white p-8 flex-1 overflow-y-auto max-h-[calc(92vh-240px)] flex flex-row flex-wrap gap-8 w-full justify-center">
+      <div className={`flex-1 overflow-hidden min-h-0 bg-white ${showLandscapeWarning ? 'pointer-events-none opacity-50' : ''}`}>
+          <div className="bg-white p-4 sm:p-8 flex-1 overflow-y-auto max-h-[calc(92vh-240px)] flex flex-row flex-wrap gap-4 sm:gap-8 w-full justify-center">
             {labellingItems.map((group: any, idx: number) => (
-              <div key={group.id} className="bg-white border rounded-lg shadow-sm w-full sm:max-w-[400px] p-4">
-                <div className="mb-2">
+              <div key={group.id} className="bg-white border rounded-lg shadow-sm w-full sm:max-w-[400px] p-2 sm:p-4">
+                <div className="mb-1 sm:mb-2">
                   <input
-                    className="w-full max-w-[200px] text-center text-gray-500 font-semibold bg-gray-100 rounded px-2 py-1 mb-2 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                    className="w-full max-w-[150px] sm:max-w-[200px] text-center text-gray-500 font-semibold bg-gray-100 rounded px-2 py-1 mb-1 sm:mb-2 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-200 text-sm sm:text-base"
                     placeholder="unlabeled"
                     maxLength={20}
                     value={group.label === 'unlabeled' ? '' : group.label || ''}
@@ -145,12 +149,12 @@ export default function LabellingPhase(props: any) {
                     }}
                   />
                 </div>
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-1 sm:gap-2">
                   {group.group_items.map((item: any) => {
                     return (
-                      <div key={item.id} className="flex items-center gap-2 text-base">
-                        <span>{getCategoryEmoji(item.item.format_type, retro.format)}</span>
-                        <span>{item.item.content}</span>
+                      <div key={item.id} className="flex items-center gap-1 sm:gap-2 text-sm sm:text-base">
+                        <span className="text-sm sm:text-base">{getCategoryEmoji(item.item.format_type, retro.format)}</span>
+                        <span className="text-sm sm:text-base">{item.item.content}</span>
                       </div>
                     );
                   })}
@@ -159,40 +163,42 @@ export default function LabellingPhase(props: any) {
             ))}
           </div>
       </div>
-      <RetroFooter
-        left={<div className="flex flex-col items-start text-left"><div className="text-2xl font-semibold mb-1">Labelling</div><div className="text-gray-500">Arrive at sensible group labels</div></div>}
-        title={null}
-        center={<div></div>}
-        right={isCurrentFacilitator && (
-          <>
-            <Button
-              onClick={() => setShowConfirm(true)}
-              className="flex items-center px-1 py-1 text-sm md:px-8 md:py-2 md:text-base font-semibold"
-              variant="phasePrimary"
-            >
-              Voting <span className="ml-2">&#8594;</span>
-            </Button>
-            <PhaseConfirmModal
-              open={showConfirm}
-              onOpenChange={setShowConfirm}
-              title="Is your team satisfied with the applied labels?"
-              onConfirm={() => {
-                if (broadcastPhaseChange) broadcastPhaseChange('voting');
-                else if (setPhase) setPhase('voting');
-              }}
-              onCancel={() => {}}
-              confirmLabel="Yes"
-              cancelLabel="No"
-            />
-          </>
-        )}
-        participants={participants}
-        typingParticipants={typingParticipants}
-        isCurrentFacilitator={isCurrentFacilitator}
-        user={user}
-        setShowRoleModal={setShowRoleModal}
-        setSelectedParticipant={setSelectedParticipant}
-      />
+        <div className={showLandscapeWarning ? 'pointer-events-none opacity-50' : ''}>
+        <RetroFooter
+          left={<div className="flex flex-col items-start text-left"><div className="text-2xl font-semibold mb-1">Labelling</div><div className="text-gray-500">Arrive at sensible group labels</div></div>}
+          title={null}
+          center={<div></div>}
+          right={isCurrentFacilitator && (
+            <>
+              <Button
+                onClick={() => setShowConfirm(true)}
+                className="flex items-center px-1 py-1 text-sm md:px-8 md:py-2 md:text-base font-semibold"
+                variant="phasePrimary"
+              >
+                Voting <span className="ml-2">&#8594;</span>
+              </Button>
+              <PhaseConfirmModal
+                open={showConfirm}
+                onOpenChange={setShowConfirm}
+                title="Is your team satisfied with the applied labels?"
+                onConfirm={() => {
+                  if (broadcastPhaseChange) broadcastPhaseChange('voting');
+                  else if (setPhase) setPhase('voting');
+                }}
+                onCancel={() => {}}
+                confirmLabel="Yes"
+                cancelLabel="No"
+              />
+            </>
+          )}
+          participants={participants}
+          typingParticipants={typingParticipants}
+          isCurrentFacilitator={isCurrentFacilitator}
+          user={user}
+          setShowRoleModal={setShowRoleModal}
+          setSelectedParticipant={setSelectedParticipant}
+        />
+        </div>
     </div>
   );
 } 
