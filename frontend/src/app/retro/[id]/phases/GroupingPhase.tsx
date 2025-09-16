@@ -57,6 +57,7 @@ export default function GroupingPhase({
 }) {
   const [showModal, setShowModal] = useState(true);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false); // Prevent double clicks
   const boardRef = useRef<HTMLDivElement | null>(null);
   const [measuredPositions, setMeasuredPositions] = useState<{ [key: string]: { x: number; y: number } }>({});
   const measurementRef = useRef<HTMLDivElement | null>(null);
@@ -74,16 +75,16 @@ export default function GroupingPhase({
 
   useEnterToCloseModal(showModal, handleModalClose);
 
-  const positionsReady = useMemo(() => {
-    const itemsLength = items.length;
-    const positionsLength = Object.keys(itemPositions || {}).length;
+const positionsReady = useMemo(() => {
+  const itemsLength = items.length;
+  const positionsLength = Object.keys(itemPositions || {}).length;
     const measuredLength = Object.keys(measuredPositions || {}).length;
     const ready = itemsLength > 0 && (positionsLength === itemsLength || measuredLength === itemsLength);
     return ready;
   }, [items.length, itemPositions, measuredPositions]);
 
-  const processedItemGroups = useMemo(() => {
-    if (!itemGroups || Object.keys(itemGroups).length === 0) {
+const processedItemGroups = useMemo(() => {
+  if (!itemGroups || Object.keys(itemGroups).length === 0) {
       const result: { [id: string]: string } = {};
       (items || []).forEach((item: any) => {
         result[item.id] = item.id; 
@@ -93,15 +94,15 @@ export default function GroupingPhase({
     const sigCount: { [sig: string]: number } = {};
     (Object.values(itemGroups) as string[]).forEach((sig: string) => { sigCount[sig] = (sigCount[sig] || 0) + 1; });
     const allUnique = Object.values(sigCount).every((count: number) => count === 1);
-    if (allUnique) {
+  if (allUnique) {
       const result: { [id: string]: string } = {};
       (items || []).forEach((item: any) => {
         result[item.id] = item.id;
       });
       return result;
     }
-    return itemGroups;
-  }, [itemGroups, items]);
+  return itemGroups;
+}, [itemGroups, items]);
 
   // Compute measured positions with consistent 15px horizontal gaps
   const computeLayout = useCallback(() => {
@@ -176,8 +177,8 @@ export default function GroupingPhase({
   // Deteksi mobile landscape mode
   const isMobileLandscape = window.innerWidth <= 768 && !isPortrait;
   
-  
 
+ 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Landscape Warning untuk Mobile */}
@@ -188,24 +189,24 @@ export default function GroupingPhase({
         onClose={handleModalClose}
         title="Stage Change: Grouping!"
       >
-        <b>Guidance:</b>
-        <ul className="list-disc pl-6 mt-2 text-left">
-          <li>Bring related ideas into contact.</li>
-          <li>Leave disparate ideas far apart.</li>
-          <li>If there's a disagreement, attempt to settle it without speaking.</li>
-        </ul>
+              <b>Guidance:</b>
+              <ul className="list-disc pl-6 mt-2 text-left">
+                <li>Bring related ideas into contact.</li>
+                <li>Leave disparate ideas far apart.</li>
+                <li>If there's a disagreement, attempt to settle it without speaking.</li>
+              </ul>
       </PhaseModal>
       {/* Sembunyikan header pada mobile landscape */}
       {!isMobileLandscape && (
-        <RetroHeader
-          retro={retro}
-          participants={participants}
-          user={user}
-          currentUserRole={currentUserRole}
-          showShareModal={showShareModal}
-          setShowShareModal={setShowShareModal}
-          handleLogout={handleLogout}
-        />
+      <RetroHeader
+        retro={retro}
+        participants={participants}
+        user={user}
+        currentUserRole={currentUserRole}
+        showShareModal={showShareModal}
+        setShowShareModal={setShowShareModal}
+        handleLogout={handleLogout}
+      />
       )}
       
       {/* Minimal controls untuk mobile landscape */}
@@ -382,31 +383,70 @@ export default function GroupingPhase({
             isCurrentFacilitator && (
               <>
                 <Button
-                  onClick={() => setShowConfirm(true)}
-                  className="flex items-center px-1 py-0.5 text-[10px] md:px-8 md:py-2 md:text-base font-semibold"
+                  onClick={() => {
+                    if (!isProcessing && !isLoading) {
+                      setShowConfirm(true);
+                    }
+                  }}
+                  disabled={isProcessing || isLoading}
+                  className="flex items-center px-1 py-0.5 text-[10px] md:px-8 md:py-2 md:text-base font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                   variant="phasePrimary"
                 >
-                  Labelling <span className="ml-0.5 md:ml-2">&#8594;</span>
+                  {isProcessing || isLoading ? (
+                    <>
+                      <Loader2 className="animate-spin w-3 h-3 md:w-4 md:h-4 mr-1" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      Labelling <span className="ml-0.5 md:ml-2">&#8594;</span>
+                    </>
+                  )}
                 </Button>
                 <PhaseConfirmModal
                   open={showConfirm}
                   onOpenChange={setShowConfirm}
                   title="Has your team finished grouping the ideas?"
                   onConfirm={async () => {
-                    setIsLoading(true);
-                    try {
-                    const sigCount: { [sig: string]: number } = {};
-                    (Object.values(itemGroups || {}) as string[]).forEach((sig: string) => { 
-                      sigCount[sig] = (sigCount[sig] || 0) + 1; 
-                    });
+                    // Prevent double processing
+                    if (isProcessing) {
+                      console.log('⚠️ Already processing, ignoring duplicate request');
+                      return;
+                    }
 
-                    if (typeof broadcastPhaseChange === "function") broadcastPhaseChange("labelling");
-                    else if (typeof setPhase === "function") setPhase("labelling");
-                  } finally {
-                    setIsLoading(false); 
-                  }
-                }}
-                  onCancel={() => {}}
+                    setIsProcessing(true);
+                    setIsLoading(true);
+                    setShowConfirm(false); // Close modal immediately
+                    
+                    try {
+                      const sigCount: { [sig: string]: number } = {};
+                      (Object.values(itemGroups || {}) as string[]).forEach((sig: string) => { 
+                        sigCount[sig] = (sigCount[sig] || 0) + 1; 
+                      });
+
+                      console.log('🔄 Starting phase transition to labelling...');
+                      
+                      if (typeof broadcastPhaseChange === "function") {
+                        await broadcastPhaseChange("labelling");
+                      } else if (typeof setPhase === "function") {
+                        setPhase("labelling");
+                      }
+                      
+                      console.log('✅ Phase transition completed');
+                    } catch (error) {
+                      console.error('❌ Failed to proceed to labelling phase:', error);
+                      // Re-open modal on error to allow retry
+                      setShowConfirm(true);
+                    } finally {
+                      setIsProcessing(false);
+                      setIsLoading(false);
+                    }
+                  }}
+                  onCancel={() => {
+                    if (!isProcessing) {
+                      setShowConfirm(false);
+                    }
+                  }}
                   confirmLabel='Yes'
                   cancelLabel="No"
                 />
