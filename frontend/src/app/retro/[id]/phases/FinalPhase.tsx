@@ -2,9 +2,8 @@ import { useEffect, useState } from 'react';
 import RetroFooter from './RetroFooter';
 import { Button } from '@/components/ui/button';
 import RetroHeader from '../RetroHeader';
-import { getCategoryEmoji } from '@/lib/utils';
 import useEnterToCloseModal from "@/hooks/useEnterToCloseModal";
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { PhaseModal, LabellingItemsDisplay, ActionItemsDisplay } from '@/components/shared';
 
 
 export default function FinalPhase({
@@ -35,25 +34,16 @@ export default function FinalPhase({
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Modal Stage Change Final/Closed */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg max-w-xl w-full p-8">
-            <h2 className="text-2xl font-bold mb-2 text-center">The Retrospective Has Been Closed!</h2>
-            <p className="mb-4 text-center">
-              The facilitator has closed the retro and distributed the action items via email. You can stick around and review the board, or revisit this retro and all action items generated via your{' '}
-              <a href="/dashboard" className="text-blue-600 underline">retro dashboard</a>.
-            </p>
-            <div className="flex justify-center">
-              <button
-                className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
-                onClick={() => setShowModal(false)}
-              >
-                Got it!
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <PhaseModal
+        isVisible={showModal}
+        onClose={() => setShowModal(false)}
+        title="The Retrospective Has Been Closed!"
+      >
+        <p className="text-center">
+          The facilitator has closed the retro and distributed the action items via email. You can stick around and review the board, or revisit this retro and all action items generated via your{' '}
+          <a href="/dashboard" className="text-blue-600 underline">retro dashboard</a>.
+        </p>
+      </PhaseModal>
       <RetroHeader
         retro={retro}
         participants={participants}
@@ -83,57 +73,30 @@ export default function FinalPhase({
                 title={isSidebarCollapsed ? "Show items sidebar" : "Hide items sidebar"}
               >
                 {isSidebarCollapsed ? (
-                  <ChevronRight className="h-5 w-5 text-gray-600" />
+                  <span className="text-gray-600">▶</span>
                 ) : (
-                  <ChevronLeft className="h-5 w-5 text-gray-600" />
+                  <span className="text-gray-600">◀</span>
                 )}
               </button>
             </div>
             <div className="flex-1 overflow-y-auto max-h-[calc(85vh-280px)] p-4">
-              <div className="flex flex-col gap-2">
-                {actionItems.length === 0 && <span className="text-gray-400 text-sm">No action items yet.</span>}
-                {actionItems.map((item: any, idx: number) => (
-                  <div key={idx} className="bg-gray-50 border rounded px-3 py-2 text-sm flex items-center justify-between gap-2">
-                    <div className="flex-1 flex flex-col">
-                      <span>
-                        {item.task} <span className="text-gray-700">({item.assigneeName})</span>
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <ActionItemsDisplay
+                actionItems={actionItems}
+                isMobile={true}
+                isEditable={false}
+              />
             </div>
           </div>
 
           {/* Desktop: Labelling Items */}
           <div className="hidden md:block">
             <div className="flex-1 overflow-y-auto max-h-[calc(100vh-240px)] flex flex-row flex-wrap gap-8 p-8 w-full justify-center">
-              {labellingItems && labellingItems.length > 0 ? (
-                labellingItems.sort((a: any, b: any) => b.votes - a.votes).map((group: any) => (
-                  <div key={group.id} className="bg-white border rounded-lg shadow-sm w-full sm:max-w-[350px] px-4 py-3">
-                    <div className="mb-2 flex items-center justify-between">
-                      <span className="text-lg font-semibold text-gray-400">{group.label || 'Unlabeled'}</span>
-                      <div className="flex items-center gap-2">
-                        <div className="bg-gray-100 text-gray-700 font-bold px-3 py-1 rounded select-none text-center" style={{fontSize: '1rem', minWidth: '60px'}}>
-                          Votes {group.votes || 0}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      {group.group_items.map((item: any, idx: number) => (
-                        <div key={idx} className="bg-gray-50 border rounded px-3 py-2 text-sm">
-                          <div className="flex items-start gap-3">
-                            <span className="mt-0.5 flex-shrink-0">{item.item ? getCategoryEmoji(item.item.format_type, retro.format) : null}</span>
-                            <span className="break-words flex-1">{item.item ? item.item.content : 'No item'}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="text-gray-400 text-sm">No items to display.</div>
-              )}
+              <LabellingItemsDisplay
+                labellingItems={labellingItems}
+                retro={retro}
+                isMobile={false}
+                showVotes={true}
+              />
             </div>
           </div>
         </div>
@@ -155,34 +118,12 @@ export default function FinalPhase({
                     <div className="w-6 h-6 p-1"></div>
                   </div>
                   <div className="flex-1 overflow-y-auto max-h-[calc(85vh-280px)] p-4">
-                    <div className="flex flex-col gap-2">
-                      {labellingItems && labellingItems.length > 0 ? (
-                        labellingItems.sort((a: any, b: any) => b.votes - a.votes).map((group: any) => (
-                          <div key={group.id} className="bg-white border rounded-lg shadow-sm p-3">
-                            <div className="mb-2 flex items-center justify-between">
-                              <span className="text-sm font-semibold text-gray-400">{group.label || 'Unlabeled'}</span>
-                              <div className="bg-gray-100 text-gray-700 font-bold px-2 py-1 rounded text-xs">
-                                {group.votes || 0}
-                              </div>
-                            </div>
-                            <div className="flex flex-col gap-1">
-                              {group.group_items.map((item: any, idx: number) => (
-                                <div key={idx} className="bg-gray-50 border rounded px-2 py-1 text-xs">
-                                  <div className="flex items-start gap-2">
-                                    <span className="mt-0.5 flex-shrink-0 text-xs">{getCategoryEmoji(item.item.format_type, retro.format)}</span>
-                                    <span className="break-words flex-1">{item.item.content}</span>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="text-gray-400 text-sm text-center py-4">
-                          <p>No labelling items available</p>
-                        </div>
-                      )}
-                    </div>
+                    <LabellingItemsDisplay
+                      labellingItems={labellingItems}
+                      retro={retro}
+                      isMobile={true}
+                      showVotes={true}
+                    />
                   </div>
                 </>
               )}
@@ -196,18 +137,11 @@ export default function FinalPhase({
               </div>
               <hr className="mb-4" />
               <div className="flex-1 overflow-y-auto max-h-[calc(95vh-260px)]">
-                <div className="flex flex-col gap-2">
-                  {actionItems.length === 0 && <span className="text-gray-400 text-sm">No action items yet.</span>}
-                  {actionItems.map((item: any, idx: number) => (
-                    <div key={idx} className="bg-gray-50 border rounded px-3 py-2 text-sm flex items-center justify-between gap-2">
-                      <div className="flex-1 flex flex-col">
-                        <span>
-                          {item.task} <span className="text-gray-700">({item.assigneeName})</span>
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <ActionItemsDisplay
+                  actionItems={actionItems}
+                  isMobile={false}
+                  isEditable={false}
+                />
               </div>
             </div>
           </div>
