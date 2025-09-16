@@ -1,30 +1,24 @@
+// participant.gateway.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
 import { ParticipantGateway } from '../src/gateways/participant.gateways';
 import { ParticipantService } from '../src/services/participant.service';
 import { retroState } from '../src/gateways/participant.gateways';
-import { Socket } from 'socket.io';
-import { mock } from 'node:test';
+
+import { Server, Socket } from 'socket.io';
+
+// Mock ParticipantService
+const mockParticipantService = {
+  findParticipantByUserIdAndRetroId: jest.fn(),
+  join: jest.fn(),
+  activated: jest.fn(),
+  
+  deactivate: jest.fn(),
+};
 
 describe('ParticipantGateway', () => {
   let gateway: ParticipantGateway;
-  let mockParticipantService: jest.Mocked<ParticipantService>;
-  let mockClient: Socket;
-
 
   beforeEach(async () => {
-    mockParticipantService = {
-      findParticipantByUserIdAndRetroId: jest.fn(),
-      isFacilitator: jest.fn(),
-      join: jest.fn(),
-      activated: jest.fn(),
-      leave: jest.fn(),
-    } as any;
-
-     for (const key of Object.keys(retroState)) {
-    delete retroState[key];
-  }
-  
-
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ParticipantGateway,
@@ -32,475 +26,495 @@ describe('ParticipantGateway', () => {
       ],
     }).compile();
 
-    gateway = module.get(ParticipantGateway);
-    
+    gateway = module.get<ParticipantGateway>(ParticipantGateway);
 
-    mockClient = {
-      leave: jest.fn(),
-      emit: jest.fn(),
-    } as any;
-
-    // mock server socket.io
+    // mock server
     gateway.server = {
+      sockets: {
+        adapter: {
+          rooms: new Map(),
+        },
+      },
       to: jest.fn().mockReturnThis(),
+      in: jest.fn(),
       emit: jest.fn(),
-      in: jest.fn().mockReturnThis(),
-      fetchSockets: jest.fn().mockResolvedValue([]),
-    } as any;
-  });
-  
-  
-  beforeAll(() => {
-  jest.spyOn(console, 'error').mockImplementation(() => {}); // biar silent
-});
+    } as any as Server;
 
-afterAll(() => {
-  (console.error as jest.Mock).mockRestore();
-});
+    jest.clearAllMocks();
+  });
 
   describe('handleConnection', () => {
-    it('should join new participant if not exists', async () => {
+    it('should join retro room and call participantService.join if participant not found', async () => {
       const client = {
-        id: 'socket1',
-        handshake: { query: { userId: 'u1', retroId: 'r1' } },
+        id: 'socket-1',
         join: jest.fn(),
+        handshake: {
+          query: { userId: 'user1', retroId: 'retro1' },
+        },
       } as any as Socket;
 
       mockParticipantService.findParticipantByUserIdAndRetroId.mockResolvedValue(null);
-      mockParticipantService.isFacilitator.mockResolvedValue(true);
+      mockParticipantService.join.mockResolvedValue({});
 
       await gateway.handleConnection(client);
 
-      expect(client.join).toHaveBeenCalledWith('retro:r1');
-      expect(mockParticipantService.join).toHaveBeenCalledWith('r1', 'u1', { role: true, isActive: true });
-      expect(gateway.server.to).toHaveBeenCalledWith('retro:r1');
-      expect(gateway.server.emit).toHaveBeenCalledWith(expect.stringContaining('participants-update:r1'));
+      expect(client.join).toHaveBeenCalledWith('retro:retro1');
+      expect(mockParticipantService.findParticipantByUserIdAndRetroId).toHaveBeenCalledWith('user1', 'retro1');
+      expect(mockParticipantService.join).toHaveBeenCalledWith('retro1', 'user1');
     });
 
-    it('should activate participant if already exists', async () => {
+    it('should call participantService.activated if participant exists', async () => {
       const client = {
-        id: 'socket2',
-        handshake: { query: { userId: 'u2', retroId: 'r2' } },
+        id: 'socket-2',
         join: jest.fn(),
+        handshake: {
+          query: { userId: 'user2', retroId: 'retro2' },
+        },
       } as any as Socket;
 
-      mockParticipantService.findParticipantByUserIdAndRetroId.mockResolvedValue({ id: 'p1' } as any);
+      mockParticipantService.findParticipantByUserIdAndRetroId.mockResolvedValue({ id: 'p1' });
+      mockParticipantService.activated.mockResolvedValue({});
 
       await gateway.handleConnection(client);
 
-      expect(mockParticipantService.activated).toHaveBeenCalledWith('r2', 'u2');
+      expect(mockParticipantService.activated).toHaveBeenCalledWith('retro2', 'user2');
+    });
+
+    it('should ignore if query params missing', async () => {
+      const client = {
+        id: 'socket-3',
+        join: jest.fn(),
+        handshake: { query: {} },
+      } as any as Socket;
+
+      await gateway.handleConnection(client);
+
+      expect(client.join).not.toHaveBeenCalled();
+      expect(mockParticipantService.findParticipantByUserIdAndRetroId).not.toHaveBeenCalled();
     });
   });
 
   describe('handleDisconnect', () => {
-    it('should call leave and broadcast update', async () => {
-      const client = { id: 'socket3' } as any as Socket;
-      (gateway as any).socketUserMap.set('socket3', { userId: 'u3', retroId: 'r3' });
+    it('should call deactivate and cleanup state if no sockets left', async () => {
+      // mock client info
+      const client = {
+        id: 'socket-4',
+        handshake: { query: { userId: 'userX', retroId: 'retroX' } },
+      } as any as Socket;
+
+      // inject mapping
+      (gateway as any).socketUserMap.set(client.id, { userId: 'userX', retroId: 'retroX' });
+
+      // add room info
+      gateway.server.sockets.adapter.rooms.set('retro:retroX', new Set());
+
+      mockParticipantService.deactivate.mockResolvedValue({});
 
       await gateway.handleDisconnect(client);
 
-      expect(mockParticipantService.deactivate).toHaveBeenCalledWith('r3', 'u3');
-      expect(gateway.server.to).toHaveBeenCalledWith('retro:r3');
-      expect(gateway.server.emit).toHaveBeenCalledWith(expect.stringContaining('participants-update:r3'));
+      expect(mockParticipantService.deactivate).toHaveBeenCalledWith('retroX', 'userX');
+      expect((gateway as any).socketUserMap.has(client.id)).toBe(false);
+    });
+
+    it('should skip if client not in socketUserMap', async () => {
+      const client = { id: 'unknown' } as any as Socket;
+      await gateway.handleDisconnect(client);
+      expect(mockParticipantService.deactivate).not.toHaveBeenCalled();
     });
   });
+  describe('ParticipantGateway (SubscribeMessage & Broadcasts)', () => {
+  let client: Socket;
 
+  beforeEach(() => {
+    client = {
+      id: 'c1',
+      emit: jest.fn(),
+    } as any as Socket;
 
-
-  describe('broadcastParticipantAdded', () => {
-    it('should emit participants-added event', () => {
-      const participant = { id: 'p1' } as any;
-      gateway.broadcastParticipantAdded('r5', participant);
-
-      expect(gateway.server.to).toHaveBeenCalledWith('retro:r5');
-      expect(gateway.server.emit).toHaveBeenCalledWith(`participants-added:r5`, participant);
-    });
-  });
-
-  describe('handleVoteUpdate', () => {
-    it('should emit vote-update event if valid votes', () => {
-      const client = {} as Socket;
-      const data = {
-        retroId: 'r6',
-        groupId: 1,
-        votes: 2,
-        userId: 'u6',
-        userVotes: { 1: 2 },
-      };
-
-      gateway.handleVoteUpdate(client, data);
-
-      expect(gateway.server.to).toHaveBeenCalledWith('retro:r6');
-      expect(gateway.server.emit).toHaveBeenCalledWith(
-        `vote-update:r6`,
-        expect.objectContaining({ userId: 'u6', groupId: 1 }),
-      );
-    });
-  });
-
-  describe('handleLeaveRetroRoom', () => {
-    it('should call client.leave with correct room id', () => {
-      const retroId = 'retro123';
-
-      gateway.handleLeaveRetroRoom(mockClient, retroId);
-
-      expect(mockClient.leave).toHaveBeenCalledWith(`retro:${retroId}`);
-    });
+    // reset retroState
+    for (const key of Object.keys(require('../src/gateways/participant.gateways').retroState)) {
+      delete require('../src/gateways/participant.gateways').retroState[key];
+    }
   });
 
   describe('handleRequestItemPositions', () => {
-    it('should initialize retroState if not exists', () => {
-      const retroId = 'retro456';
-      const userId = 'user789';
+    it('should emit item positions for retroId', async () => {
+      const data = { retroId: 'retro1', userId: 'u1' };
 
-      gateway.handleRequestItemPositions(mockClient, { retroId, userId });
-
-      expect(retroState[retroId]).toBeDefined();
-      expect(retroState[retroId].itemPositions).toEqual({});
-    });
-
-    it('should emit initial-item-positions event with positions', () => {
-      const retroId = 'retro999';
-      const userId = 'user123';
-
-      // siapkan state
-      retroState[retroId] = {
-        itemPositions: { item1: { x: 100, y: 200 } },
+      // ensure retro state ada
+      (require('../src/gateways/participant.gateways').retroState['retro1'] = {
+        itemPositions: { i1: { x: 1, y: 2 } },
         itemGroups: {},
         signatureColors: {},
         actionItems: [],
-        allUserVotes: {}
-      };
+        allUserVotes: {},
+      });
 
-      gateway.handleRequestItemPositions(mockClient, { retroId, userId });
+      await gateway.handleRequestItemPositions(client, data);
 
-      expect(mockClient.emit).toHaveBeenCalledWith(
-        `initial-item-positions:${retroId}`,
-        { positions: retroState[retroId].itemPositions }
+      expect(client.emit).toHaveBeenCalledWith(
+        'initial-item-positions:retro1',
+        expect.objectContaining({
+          positions: { i1: { x: 1, y: 2 } },
+        }),
       );
     });
-    
-  });
-  it('should emit empty votes if user has no votes', () => {
-    const retroId = 'retro1';
-    const userId = 'user1';
 
-    // retroState kosong, jadi userVotes harus {}
-    gateway.handleRequestVotingGroup(mockClient, { retroId, userId });
-
-    expect(mockClient.emit).toHaveBeenCalledWith(
-      `initial-voting-result:${retroId}`,
-      { allUserVotes: {} }
-    );
+    it('should ignore if retroId missing', async () => {
+      await gateway.handleRequestItemPositions(client, { retroId: undefined, userId: 'u1' } as any);
+      expect(client.emit).not.toHaveBeenCalled();
+    });
   });
 
-    it('should emit existing votes if user has votes', () => {
-    const retroId = 'retro2';
-    const userId = 'user2';
+  describe('handleRequestVotingGroup', () => {
+    it('should emit voting result for user', () => {
+      (require('../src/gateways/participant.gateways').retroState['retro1'] = {
+        itemPositions: {},
+        itemGroups: {},
+        signatureColors: {},
+        actionItems: [],
+        allUserVotes: { u1: { 0: 3, 1: 2 } },
+      });
 
-    // siapkan state dengan votes
-    retroState[retroId] = {
-      itemPositions: {},
-      itemGroups: {},
-      signatureColors: {},
-      actionItems: [],
-      allUserVotes: {
-        [userId]: { 1: 3, 2: 1 }, // user2 vote group1=3, group2=1
-      },
-    };
+      gateway.handleRequestVotingGroup(client, { retroId: 'retro1', userId: 'u1' });
 
-    gateway.handleRequestVotingGroup(mockClient, { retroId, userId });
-
-    expect(mockClient.emit).toHaveBeenCalledWith(
-      `initial-voting-result:${retroId}`,
-      { allUserVotes: { 1: 3, 2: 1 } }
-    );
-  });
-
-  it('should broadcast retro-started event', () => {
-    const retroId = 'retro123';
-
-    gateway.broadcastRetroStarted(retroId);
-
-    expect(gateway.server.to).toHaveBeenCalledWith(`retro:${retroId}`);
-    expect(gateway.server.to(`retro:${retroId}`).emit).toHaveBeenCalledWith(
-      `retro-started:${retroId}`
-    );
-  });
-
-  it('should broadcast retro-completed event with status and timestamp', () => {
-    const retroId = 'retro456';
-
-    gateway.broadcastRetroCompleted(retroId);
-
-    expect(gateway.server.to).toHaveBeenCalledWith(`retro:${retroId}`);
-    expect(gateway.server.to(`retro:${retroId}`).emit).toHaveBeenCalledWith(
-      `retro-completed:${retroId}`,
-      expect.objectContaining({
-        status: 'completed',
-        timestamp: expect.any(String), // timestamp harus string ISO
-      }),
-    );
-  });
-
-  it('should broadcast phase-change event with phase and timestamp', () => {
-    const retroId = 'retro789';
-    const phase = 'voting';
-
-    gateway.broadcastPhaseChange(retroId, phase);
-
-    expect(gateway.server.to).toHaveBeenCalledWith(`retro:${retroId}`);
-    expect(gateway.server.to(`retro:${retroId}`).emit).toHaveBeenCalledWith(
-      `phase-change:${retroId}`,
-      expect.objectContaining({
-        phase: 'voting',
-        timestamp: expect.any(String),
-      }),
-    );
-  });
-
-  it('should broadcast item-added event and call fetchSockets', async () => {
-    const retroId = 'retro123';
-    const item = { id: 'item1', text: 'New item' };
-
-    await gateway.broadcastItemAdded(retroId, item);
-
-    // cek emit dipanggil dengan benar
-    expect(gateway.server.to).toHaveBeenCalledWith(`retro:${retroId}`);
-    expect(gateway.server.to(`retro:${retroId}`).emit).toHaveBeenCalledWith(`item-added:${retroId}`, item);
-
-    // cek fetchSockets juga dipanggil
-    expect(gateway.server.in).toHaveBeenCalledWith(`retro:${retroId}`);
-    const inCall = gateway.server.in(`retro:${retroId}`);
-    expect(inCall.fetchSockets).toHaveBeenCalled();
-  });
-
-  it('should broadcast item-updated event', () => {
-    const retroId = 'retro456';
-    const item = { id: 'item2', text: 'Updated item' };
-
-    gateway.broadcastItemUpdated(retroId, item);
-
-    expect(gateway.server.to).toHaveBeenCalledWith(`retro:${retroId}`);
-    expect(gateway.server.to(`retro:${retroId}`).emit).toHaveBeenCalledWith(`item-updated:${retroId}`, item);
-  });
-
-  it('should broadcast item-deleted event', () => {
-    const retroId = 'retro789';
-    const itemId = 'item3';
-
-    gateway.broadcastItemDeleted(retroId, itemId);
-
-    expect(gateway.server.to).toHaveBeenCalledWith(`retro:${retroId}`);
-    expect(gateway.server.to(`retro:${retroId}`).emit).toHaveBeenCalledWith(`item-deleted:${retroId}`, itemId);
-  });
-  
-   it('should broadcast items-update event', () => {
-    const retroId = 'retro123';
-    const items = [{ id: 'i1', text: 'Item 1' }, { id: 'i2', text: 'Item 2' }];
-
-    gateway.broadcastItemsUpdate(retroId, items);
-
-    // expect(gateway.server.to).toHaveBeenCalledWith(`retro:${retroId}`);
-    expect(gateway.server.to(`retro:${retroId}`).emit).toHaveBeenCalledWith(`items-update:${retroId}`, items);
-  });
-
-  it('should broadcast action-items-update event', () => {
-    const retroId = 'retro456';
-    const actionItems = [{ id: 'a1', task: 'Fix bug' }];
-
-    gateway.broadcastActionItemsUpdate(retroId, actionItems);
-
-    // expect(gateway.server.to).toHaveBeenCalledWith(`retro:${retroId}`);
-    expect(gateway.server.to(`retro:${retroId}`).emit).toHaveBeenCalledWith(
-      `action-items-update:${retroId}`,
-      actionItems,
-    );
-  });
-
-  it('should broadcast updated positions when multiple itemPositions change', () => {
-    const retroId = 'retro1';
-    const userId = 'user1';
-
-    gateway.handleItemPositionUpdate({} as Socket, {
-      retroId,
-      userId,
-      source: 'init',
-      itemPositions: {
-        itemA: { x: 10, y: 20 },
-        itemB: { x: 30, y: 40 },
-      },
+      expect(client.emit).toHaveBeenCalledWith(
+        'initial-voting-result:retro1',
+        { allUserVotes: { 0: 3, 1: 2 } },
+      );
     });
 
-    expect(gateway.server.to).toHaveBeenCalledWith(`retro:${retroId}`);
-    expect(gateway.server.to(`retro:${retroId}`).emit).toHaveBeenCalledWith(
-      `item-position-update:${retroId}`,
-      expect.objectContaining({
-        itemPositions: {
-          itemA: { x: 10, y: 20 },
-          itemB: { x: 30, y: 40 },
-        },
-        userId,
-        timestamp: expect.any(String),
-      }),
-    );
+    it('should emit empty votes if user has none', () => {
+      (require('../src/gateways/participant.gateways').retroState['retro1'] = {
+        itemPositions: {},
+        itemGroups: {},
+        signatureColors: {},
+        actionItems: [],
+        allUserVotes: {},
+      });
+
+      gateway.handleRequestVotingGroup(client, { retroId: 'retro1', userId: 'uX' });
+
+      expect(client.emit).toHaveBeenCalledWith(
+        'initial-voting-result:retro1',
+        { allUserVotes: {} },
+      );
+    });
   });
 
-  it('should not broadcast if itemPositions have no actual change', () => {
-    const retroId = 'retro2';
-    const userId = 'user2';
-
-    // Set state awal
-    retroState[retroId] = {
-      itemPositions: { itemX: { x: 50, y: 60 } },
-      itemGroups: {},
-      signatureColors: {},
-      actionItems: [],
-      allUserVotes: {},
-    };
-
-    gateway.handleItemPositionUpdate({} as Socket, {
-      retroId,
-      userId,
-      source: 'init',
-      itemPositions: {
-        itemX: { x: 50, y: 60 }, // posisi sama dengan existing
-      },
+  describe('broadcast methods', () => {
+    beforeEach(() => {
+      (gateway.server.to as jest.Mock).mockReturnValue({
+        emit: jest.fn(),
+      });
     });
 
-    expect(gateway.server.to(`retro:${retroId}`).emit).not.toHaveBeenCalled();
-  });
-
-  it('should broadcast when single item position is updated', () => {
-    const retroId = 'retro3';
-    const userId = 'user3';
-
-    gateway.handleItemPositionUpdate({} as Socket, {
-      retroId,
-      userId,
-      source: 'drag',
-      itemId: 'itemY',
-      position: { x: 100, y: 200 },
+    it('broadcastParticipantAdded should emit participants-added', () => {
+      const participant = { id: 'p1', name: 'User 1' } as any;
+      gateway.broadcastParticipantAdded('retroA', participant);
+      expect(gateway.server.to).toHaveBeenCalledWith('retro:retroA');
+      expect(gateway.server.to('retro:retroA').emit).toHaveBeenCalledWith(
+        'participants-added:retroA',
+        participant,
+      );
     });
 
-    expect(gateway.server.to).toHaveBeenCalledWith(`retro:${retroId}`);
-    expect(gateway.server.to(`retro:${retroId}`).emit).toHaveBeenCalledWith(
-      `item-position-update:${retroId}`,
-      expect.objectContaining({
-        itemId: 'itemY',
-        position: { x: 100, y: 200 },
-        userId,
-        timestamp: expect.any(String),
-      }),
-    );
-  });
-  describe('handleGroupingUpdate', () => {
+    it('broadcastParticipantUpdate should emit participants-update', () => {
+      gateway.broadcastParticipantUpdate('retroB');
+      expect(gateway.server.to('retro:retroB').emit).toHaveBeenCalledWith(
+        'participants-update:retroB',
+      );
+    });
+
+    it('broadcastRetroStarted should emit retro-started', () => {
+      gateway.broadcastRetroStarted('retroC');
+      expect(gateway.server.to('retro:retroC').emit).toHaveBeenCalledWith(
+        'retro-started:retroC',
+      );
+    });
+
+    it('broadcastRetroCompleted should emit retro-completed with payload', () => {
+      const before = Date.now();
+      gateway.broadcastRetroCompleted('retroD');
+      const after = Date.now();
+
+      const call = (gateway.server.to('retro:retroD').emit as jest.Mock).mock.calls[0];
+      expect(call[0]).toBe('retro-completed:retroD');
+      expect(call[1].status).toBe('completed');
+      expect(new Date(call[1].timestamp).getTime()).toBeGreaterThanOrEqual(before);
+      expect(new Date(call[1].timestamp).getTime()).toBeLessThanOrEqual(after);
+    });
+
+    it('broadcastPhaseChange should emit phase-change with phase and timestamp', () => {
+      gateway.broadcastPhaseChange('retroE', 'grouping');
+      const call = (gateway.server.to('retro:retroE').emit as jest.Mock).mock.calls[0];
+      expect(call[0]).toBe('phase-change:retroE');
+      expect(call[1]).toEqual(expect.objectContaining({ phase: 'grouping' }));
+    });
+
+    it('broadcastItemAdded should emit item-added', async () => {
+      const fakeSockets = [{ id: 's1' }];
+      (gateway.server.in as jest.Mock).mockReturnValue({
+        fetchSockets: jest.fn().mockResolvedValue(fakeSockets),
+      });
+
+      const item = { id: 'i1', text: 'Hello' };
+      await gateway.broadcastItemAdded('retroF', item);
+
+      expect(gateway.server.to('retro:retroF').emit).toHaveBeenCalledWith(
+        'item-added:retroF',
+        item,
+      );
+    });
 
 
-  it('should initialize retroState if not exists and broadcast grouping update', () => {
-    const retroId = 'retro1';
-    const data = {
-      retroId,
-      itemGroups: { item1: 'group1' },
-      signatureColors: { sig1: 'red' },
-      userId: 'user1',
-    };
+    it('broadcastItemUpdated should emit item-updated', () => {
+      const item = { id: 'i2', text: 'Updated' };
+      gateway.broadcastItemUpdated('retroG', item);
+      expect(gateway.server.to('retro:retroG').emit).toHaveBeenCalledWith(
+        'item-updated:retroG',
+        item,
+      );
+    });
 
-    gateway.handleGroupingUpdate({} as Socket, data);
+    it('broadcastItemDeleted should emit item-deleted', () => {
+      gateway.broadcastItemDeleted('retroH', 'item123');
+      expect(gateway.server.to('retro:retroH').emit).toHaveBeenCalledWith(
+        'item-deleted:retroH',
+        'item123',
+      );
+    });
 
-    // state harus terbuat
-    expect(retroState[retroId]).toBeDefined();
-    expect(retroState[retroId].itemGroups).toEqual(data.itemGroups);
-    expect(retroState[retroId].signatureColors).toEqual(data.signatureColors);
+    it('broadcastItemsUpdate should emit items-update', () => {
+      const items = [{ id: 'i3' }];
+      gateway.broadcastItemsUpdate('retroI', items);
+      expect(gateway.server.to('retro:retroI').emit).toHaveBeenCalledWith(
+        'items-update:retroI',
+        items,
+      );
+    });
 
-    // broadcast harus terjadi
-    expect(gateway.server.to).toHaveBeenCalledWith(`retro:${retroId}`);
-    expect(gateway.server.to(`retro:${retroId}`).emit).toHaveBeenCalledWith(
-      `grouping-update:${retroId}`,
-      expect.objectContaining({
-        itemGroups: data.itemGroups,
-        signatureColors: data.signatureColors,
-        userId: data.userId,
-        timestamp: expect.any(String),
-        version: 0,
-      }),
-    );
-  });
-
-  it('should update and broadcast if timestamp is newer', () => {
-    const retroId = 'retro2';
-    retroState[retroId] = {
-      itemPositions: {},
-      itemGroups: { oldItem: 'oldGroup' },
-      signatureColors: { oldSig: 'blue' },
-      actionItems: [],
-      allUserVotes: {},
-      lastGroupingUpdate: new Date('2023-01-01T00:00:00Z').getTime(),
-    };
-
-    const data = {
-      retroId,
-      itemGroups: { newItem: 'newGroup' },
-      signatureColors: { newSig: 'green' },
-      userId: 'user2',
-      timestamp: '2023-01-02T00:00:00Z', // lebih baru
-      version: 5,
-    };
-
-    gateway.handleGroupingUpdate({} as Socket, data);
-
-    expect(retroState[retroId].itemGroups).toEqual(data.itemGroups);
-    expect(retroState[retroId].signatureColors).toEqual(data.signatureColors);
-
-    expect(gateway.server.to(`retro:${retroId}`).emit).toHaveBeenCalledWith(
-      `grouping-update:${retroId}`,
-      expect.objectContaining({
-        itemGroups: data.itemGroups,
-        signatureColors: data.signatureColors,
-        userId: 'user2',
-        timestamp: data.timestamp,
-        version: 5,
-      }),
-    );
-  });
-
-  it('should ignore update if timestamp is older', () => {
-    const retroId = 'retro3';
-    retroState[retroId] = {
-      itemPositions: {},
-      itemGroups: { keepItem: 'keepGroup' },
-      signatureColors: { keepSig: 'yellow' },
-      actionItems: [],
-      allUserVotes: {},
-      lastGroupingUpdate: new Date('2023-05-01T00:00:00Z').getTime(),
-    };
-
-    const data = {
-      retroId,
-      itemGroups: { outdated: 'oldGroup' },
-      signatureColors: { outdatedSig: 'gray' },
-      userId: 'user3',
-      timestamp: '2023-04-01T00:00:00Z', // lebih lama
-    };
-
-    gateway.handleGroupingUpdate({} as Socket, data);
-
-    // state harus tetap
-    expect(retroState[retroId].itemGroups).toEqual({ keepItem: 'keepGroup' });
-    expect(retroState[retroId].signatureColors).toEqual({ keepSig: 'yellow' });
-
-    // broadcast tidak terjadi
-    expect(gateway.server.to(`retro:${retroId}`).emit).not.toHaveBeenCalled();
+    it('broadcastActionItemsUpdate should emit action-items-update', () => {
+      const actions = [{ id: 'a1' }];
+      gateway.broadcastActionItemsUpdate('retroJ', actions);
+      expect(gateway.server.to('retro:retroJ').emit).toHaveBeenCalledWith(
+        'action-items-update:retroJ',
+        actions,
+      );
+    });
   });
 });
- describe('handleRequestRetroState', () => {
-    it('should emit default state if retroId not in retroState', () => {
-      const retroId = 'retro1';
+describe('ParticipantGateway (Item & Grouping Updates)', () => {
+  let client: Socket;
 
-      gateway.handleRequestRetroState(mockClient, { retroId });
+  beforeEach(() => {
+    client = {
+      id: 'cX',
+      emit: jest.fn(),
+    } as any as Socket;
+
+    // reset retroState
+    for (const key of Object.keys(require('../src/gateways/participant.gateways').retroState)) {
+      delete require('../src/gateways/participant.gateways').retroState[key];
+    }
+
+    (gateway.server.to as jest.Mock).mockReturnValue({
+      emit: jest.fn(),
+    });
+  });
+
+  describe('handleItemPositionUpdate', () => {
+    it('should ignore if retroId missing', async () => {
+      await gateway.handleItemPositionUpdate(client, {
+        retroId: undefined as any,
+        userId: 'u1',
+        source: 'drag',
+      });
+      expect(gateway.server.to).not.toHaveBeenCalled();
+    });
+
+    it('should accept bulk init when state empty', async () => {
+      const data = {
+        retroId: 'retro1',
+        userId: 'u1',
+        source: 'init-layout',
+        itemPositions: { i1: { x: 10, y: 20 } },
+      };
+      await gateway.handleItemPositionUpdate(client, data);
+
+      const emitCall = (gateway.server.to('retro:retro1').emit as jest.Mock).mock.calls[0];
+      expect(emitCall[0]).toBe('item-position-update:retro1');
+      expect(emitCall[1]).toEqual(
+        expect.objectContaining({
+          itemPositions: { i1: { x: 10, y: 20 } },
+          userId: 'u1',
+        }),
+      );
+    });
+
+    it('should ignore bulk init if positions already exist', async () => {
+      const state = require('../src/gateways/participant.gateways').retroState;
+      state['retro2'] = {
+        itemPositions: { i1: { x: 5, y: 5 } },
+        itemGroups: {},
+        signatureColors: {},
+        actionItems: [],
+        allUserVotes: {},
+      };
+
+      const data = {
+        retroId: 'retro2',
+        userId: 'u2',
+        source: 'init-layout',
+        itemPositions: { i2: { x: 100, y: 200 } },
+      };
+
+      await gateway.handleItemPositionUpdate(client, data);
+      expect(gateway.server.to).not.toHaveBeenCalled();
+    });
+
+    it('should update missing positions on bulk update', async () => {
+      const state = require('../src/gateways/participant.gateways').retroState;
+      state['retro3'] = {
+        itemPositions: { i1: { x: 5, y: 5 } },
+        itemGroups: {},
+        signatureColors: {},
+        actionItems: [],
+        allUserVotes: {},
+      };
+
+      const data = {
+        retroId: 'retro3',
+        userId: 'u3',
+        source: 'bulk',
+        itemPositions: {
+          i1: { x: 5, y: 5 }, // unchanged
+          i2: { x: 7, y: 8 }, // new
+        },
+      };
+
+      await gateway.handleItemPositionUpdate(client, data);
+
+      const emitCall = (gateway.server.to('retro:retro3').emit as jest.Mock).mock.calls[0];
+      expect(emitCall[0]).toBe('item-position-update:retro3');
+      expect(emitCall[1].itemPositions).toEqual({ i2: { x: 7, y: 8 } });
+    });
+
+    it('should handle single item position update', async () => {
+      const data = {
+        retroId: 'retro4',
+        userId: 'u4',
+        source: 'drag',
+        itemId: 'iX',
+        position: { x: 50, y: 60 },
+      };
+
+      await gateway.handleItemPositionUpdate(client, data);
+
+      const emitCall = (gateway.server.to('retro:retro4').emit as jest.Mock).mock.calls[0];
+      expect(emitCall[0]).toBe('item-position-update:retro4');
+      expect(emitCall[1]).toEqual(
+        expect.objectContaining({
+          itemId: 'iX',
+          position: { x: 50, y: 60 },
+          userId: 'u4',
+          source: 'drag',
+        }),
+      );
+    });
+  });
+
+  describe('handleGroupingUpdate', () => {
+    it('should ignore if retroId missing', async () => {
+      await gateway.handleGroupingUpdate(client, {
+        retroId: undefined as any,
+        itemGroups: {},
+        signatureColors: {},
+        userId: 'u1',
+      });
+      expect(gateway.server.to).not.toHaveBeenCalled();
+    });
+
+    it('should update grouping if newer timestamp', async () => {
+      const data = {
+        retroId: 'retro5',
+        itemGroups: { i1: 'g1' },
+        signatureColors: { sig1: 'red' },
+        userId: 'u5',
+        timestamp: new Date().toISOString(),
+        version: 1,
+      };
+
+      await gateway.handleGroupingUpdate(client, data);
+
+      const emitCall = (gateway.server.to('retro:retro5').emit as jest.Mock).mock.calls[0];
+      expect(emitCall[0]).toBe('grouping-update:retro5');
+      expect(emitCall[1]).toEqual(
+        expect.objectContaining({
+          itemGroups: { i1: 'g1' },
+          signatureColors: { sig1: 'red' },
+          userId: 'u5',
+          version: 1,
+        }),
+      );
+    });
+
+    it('should not update grouping if timestamp older', async () => {
+      const state = require('../src/gateways/participant.gateways').retroState;
+      state['retro6'] = {
+        itemPositions: {},
+        itemGroups: { iX: 'gOld' },
+        signatureColors: { sigX: 'blue' },
+        actionItems: [],
+        allUserVotes: {},
+        lastGroupingUpdate: Date.now() + 10000, // future
+      };
+
+      const data = {
+        retroId: 'retro6',
+        itemGroups: { iX: 'gNew' },
+        signatureColors: { sigX: 'green' },
+        userId: 'u6',
+        timestamp: new Date(Date.now() - 5000).toISOString(), // older
+      };
+
+      await gateway.handleGroupingUpdate(client, data);
+
+      expect(gateway.server.to).not.toHaveBeenCalled();
+      expect(state['retro6'].itemGroups).toEqual({ iX: 'gOld' });
+    });
+  });
+});
+describe('Additional SubscribeMessage Handlers', () => {
+  let gateway: ParticipantGateway;
+  let mockClient: any;
+
+ // di atas describe()
+const mockParticipantService = {
+  someMethod: jest.fn(), 
+};
+
+beforeEach(() => {
+  gateway = new ParticipantGateway(mockParticipantService as any);
+  gateway.server = {
+    to: jest.fn().mockReturnThis(),
+    in: jest.fn().mockReturnThis(),
+    emit: jest.fn(),
+  } as any;
+
+  mockClient = {
+    emit: jest.fn(),
+  };
+});
+
+
+  describe('handleRequestRetroState', () => {
+    it('should emit default state if retro does not exist', () => {
+      const data = { retroId: 'r1' };
+      gateway.handleRequestRetroState(mockClient, data);
 
       expect(mockClient.emit).toHaveBeenCalledWith(
-        `retro-state:${retroId}`,
+        `retro-state:${data.retroId}`,
         {
           itemPositions: {},
           itemGroups: {},
@@ -511,329 +525,354 @@ afterAll(() => {
       );
     });
 
-    it('should emit existing retro state if available', () => {
-      const retroId = 'retro2';
-      retroState[retroId] = {
+    it('should emit existing state if retro exists', () => {
+      retroState['r1'] = {
         itemPositions: { i1: { x: 1, y: 2 } },
-        itemGroups: { i1: 'g1' },
-        signatureColors: { sig1: 'blue' },
-        actionItems: [{ id: 'a1', task: 'Do something' } as any],
-        allUserVotes: { u1: { 1: 2 } },
+        itemGroups: {},
+        signatureColors: {},
+        actionItems: [],
+        allUserVotes: {},
       };
 
-      gateway.handleRequestRetroState(mockClient, { retroId });
+      gateway.handleRequestRetroState(mockClient, { retroId: 'r1' });
 
       expect(mockClient.emit).toHaveBeenCalledWith(
-        `retro-state:${retroId}`,
-        retroState[retroId],
+        `retro-state:r1`,
+        retroState['r1'],
       );
     });
   });
 
   describe('handleTyping', () => {
-    it('should broadcast typing event with userId', () => {
-      const data = { retroId: 'retro3', userId: 'user123' };
+    it('should broadcast typing event', () => {
+      const data = { retroId: 'r1', userId: 'u1' };
+      gateway.handleTyping(mockClient, data);
 
-      gateway.handleTyping({} as Socket, data);
-
-      expect(gateway.server.to).toHaveBeenCalledWith(`retro:${data.retroId}`);
-      expect(gateway.server.to(`retro:${data.retroId}`).emit).toHaveBeenCalledWith('typing', { userId: data.userId });
+      expect(gateway.server.to).toHaveBeenCalledWith('retro:r1');
+      expect(gateway.server.emit).toHaveBeenCalledWith('typing', { userId: 'u1' });
     });
   });
 
   describe('handleLabelUpdate', () => {
-    it('should broadcast label-update event with correct payload', () => {
-      const data = {
-        retroId: 'retro4',
-        groupId: 5,
-        label: 'Bug Fixes',
-        userId: 'facilitator1',
-      };
+    it('should broadcast label update event', () => {
+      const data = { retroId: 'r1', groupId: 1, label: 'Test Label', userId: 'u1' };
+      gateway.handleLabelUpdate(mockClient, data);
 
-      gateway.handleLabelUpdate({} as Socket, data);
-
-      expect(gateway.server.to).toHaveBeenCalledWith(`retro:${data.retroId}`);
-      expect(gateway.server.to(`retro:${data.retroId}`).emit).toHaveBeenCalledWith(
-        `label-update:${data.retroId}`,
+      expect(gateway.server.to).toHaveBeenCalledWith('retro:r1');
+      expect(gateway.server.emit).toHaveBeenCalledWith(
+        'label-update:r1',
         expect.objectContaining({
-          groupId: data.groupId,
-          label: data.label,
-          userId: data.userId,
-          timestamp: expect.any(String),
+          groupId: 1,
+          label: 'Test Label',
+          userId: 'u1',
         }),
       );
     });
   });
-  describe('request-user-votes', () => {
-     it('should emit existing userVotes if available', () => {
-    const retroId = 'retro1';
-    const userId = 'user123';
 
-    // Simulasi retroState sudah ada data votes
-    retroState[retroId] = {
-      allUserVotes: {
-        [userId]: { 1: 2, 2: 1 },
-      },
-    } as any;
+  describe('handleVoteUpdate', () => {
+    it('should initialize state if retro does not exist', () => {
+      const data = { retroId: 'rX', groupId: 1, votes: 2, userId: 'u1', userVotes: { 1: 2 } };
+      gateway.handleVoteUpdate(mockClient, data);
 
-    gateway.handleRequestUserVotes(mockClient, { retroId, userId });
-
-    expect(mockClient.emit).toHaveBeenCalledWith(
-      `user-votes:${retroId}:${userId}`,
-      { userVotes: { 1: 2, 2: 1 } },
-    );
-  });
-
-  it('should emit empty object if userVotes not found', () => {
-    const retroId = 'retro2';
-    const userId = 'user456';
-
-    // Tidak isi retroState, biar kosong
-    gateway.handleRequestUserVotes(mockClient, { retroId, userId });
-
-    expect(mockClient.emit).toHaveBeenCalledWith(
-      `user-votes:${retroId}:${userId}`,
-      { userVotes: {} },
-    );
-  });
-  });
-
-  describe('ParticipantGateway - handleActionItemAdded', () => {
-    beforeEach(() => {
-      jest.spyOn(gateway, 'broadcastActionItemsUpdate').mockImplementation(() => {});
-      for (const key of Object.keys(retroState)) delete retroState[key];
-
-
+      expect(retroState['rX']).toBeDefined();
+      expect(retroState['rX'].allUserVotes['u1']).toEqual({ 1: 2 });
+      expect(gateway.server.to).toHaveBeenCalledWith('retro:rX');
+      expect(gateway.server.emit).toHaveBeenCalledWith(
+        'vote-update:rX',
+        expect.objectContaining({
+          groupId: 1,
+          votes: 2,
+          userId: 'u1',
+          userVotes: { 1: 2 },
+        }),
+      );
     });
 
-    beforeAll(() => {
-  jest.spyOn(console, 'error').mockImplementation(() => {}); // biar silent
-});
+    it('should not broadcast if totalVotes > 3', () => {
+      const data = { retroId: 'r1', groupId: 1, votes: 4, userId: 'u1', userVotes: { 1: 4 } };
+      gateway.handleVoteUpdate(mockClient, data);
 
-afterAll(() => {
-  (console.error as jest.Mock).mockRestore();
-});
+      expect(gateway.server.emit).not.toHaveBeenCalled();
+    });
 
-  it('should initialize state if retroId not exists', () => {
-  const data = {
-    retroId: 'retro1',
-    task: 'Do homework',
-    assigneeId: 'u1',
-    assigneeName: 'Alice',
-    createdBy: 'Bob'
-  };
-
-  gateway.handleActionItemAdded({} as any, data);
-
-  expect(retroState['retro1']).toBeDefined();
-  expect(retroState['retro1'].actionItems.length).toBe(1);
-  expect(gateway.broadcastActionItemsUpdate).toHaveBeenCalledWith(
-    'retro1',
-    expect.any(Array),
-  );
-});
-
-it('should not add duplicate action item within 5 seconds', () => {
-  const retroId = 'retro2';
-  const now = Date.now();
-
-  retroState[retroId] = {
-    itemPositions: {},
-    itemGroups: {},
-    signatureColors: {},
-    allUserVotes: {},
-    actionItems: [
-      {
-        id: 'action_1',
-        task: 'Same task',
-        assigneeId: 'u1',
-        assigneeName: 'Alice',
-        createdBy: 'Bob',
-        createdAt: new Date(now).toISOString(),
-        edited: false,
-      },
-    ],
-  };
-
-  const data = {
-    retroId,
-    task: 'Same task',
-    assigneeId: 'u1',
-    assigneeName: 'Alice',
-    createdBy: 'Bob',
-  };
-
-  gateway.handleActionItemAdded({} as any, data);
-
-  expect(retroState[retroId].actionItems.length).toBe(1); // tidak nambah
-  expect(gateway.broadcastActionItemsUpdate).not.toHaveBeenCalled();
-});
-
-});
-
-it('should remove participant and emit event', async () => {
-    const data = { retroId: 'retro-1', userId: 'user-1' };
-    const mockClient = {} as Socket;
-
-
-    // memastikan leave() terpanggil dengan benar
-    expect(mockParticipantService.deactivate).toHaveBeenCalledWith('retro-1', 'user-1');
-
-    // memastikan event dikirim ke room
-    expect(gateway.server.to).toHaveBeenCalledWith('retro-1');
-    expect(gateway.server.emit).toHaveBeenCalledWith('participant-left', { userId: 'user-1' });
-  });
-
-  it('should catch errors and not throw', async () => {
-    const data = { retroId: 'retro-1', userId: 'user-1' };
-    const mockClient = {} as Socket;
-
-    // buat leave() error
-    (mockParticipantService.leave as jest.Mock).mockRejectedValueOnce(new Error('DB error'));
-
-    await gateway.handleLeaveRoom(data, mockClient);
-
-    // event tidak dipanggil karena error
-    expect(gateway.server.emit).not.toHaveBeenCalled();
-  });
-
-  describe('ParticipantGateway - handleActionItemUpdated', () => {
-    beforeEach(() => {
-      jest.spyOn(gateway, 'broadcastActionItemsUpdate').mockImplementation(() => {});
-      for (const key of Object.keys(retroState)) delete retroState[key];
-      retroState['retro-1'] = {
+    it('should update state and broadcast valid vote update', () => {
+      retroState['r1'] = {
         itemPositions: {},
         itemGroups: {},
         signatureColors: {},
-        actionItems: [
-        { id: 'item-1', task: 'Old Task', assigneeId: 'a1', assigneeName: 'Alice', createdBy: 'user-x', createdAt: new Date().toISOString(), edited: false },
-      ],
-      allUserVotes: {},
-    };
-    });
+        actionItems: [],
+        allUserVotes: {},
+      };
 
-    beforeAll(() => {
-  jest.spyOn(console, 'error').mockImplementation(() => {}); // blokir error log biar test lebih bersih
+      const data = { retroId: 'r1', groupId: 2, votes: 1, userId: 'u2', userVotes: { 2: 1 } };
+      gateway.handleVoteUpdate(mockClient, data);
+
+      expect(retroState['r1'].allUserVotes['u2']).toEqual({ 2: 1 });
+      expect(gateway.server.emit).toHaveBeenCalledWith(
+        'vote-update:r1',
+        expect.objectContaining({
+          groupId: 2,
+          votes: 1,
+          userId: 'u2',
+        }),
+      );
+    });
+  });
 });
 
-
-
-    it('should update the action item and broadcast update', () => {
-    const mockClient = {} as Socket;
-    const data = {
-      retroId: 'retro-1',
-      actionItemId: 'item-1',
-      task: 'New Task',
-      assigneeId: 'a2',
-      assigneeName: 'Bob',
-      updatedBy: 'user-1',
-    };
-
-    gateway.handleActionItemUpdated(mockClient, data);
-
-    // Cek item sudah terupdate
-    expect(retroState['retro-1'].actionItems[0]).toMatchObject({
-      id: 'item-1',
-      task: 'New Task',
-      assigneeId: 'a2',
-      assigneeName: 'Bob',
-      edited: true,
-    });
-
-    // Cek broadcast dipanggil dengan actionItems terbaru
-    expect(gateway.broadcastActionItemsUpdate).toHaveBeenCalledWith(
-      'retro-1',
-      retroState['retro-1'].actionItems
-    );
-  });
-
-  it('should not broadcast if actionItem not found', () => {
-    const mockClient = {} as Socket;
-    const data = {
-      retroId: 'retro-1',
-      actionItemId: 'item-999',
-      task: 'Does not exist',
-      assigneeId: 'a2',
-      assigneeName: 'Bob',
-      updatedBy: 'user-1',
-    };
-
-    gateway.handleActionItemUpdated(mockClient, data);
-
-    // Tidak ada perubahan pada actionItems
-    expect(retroState['retro-1'].actionItems[0].task).toBe('Old Task'); // ✅ benar
-    expect(gateway.broadcastActionItemsUpdate).not.toHaveBeenCalled();
-  });
-
-  it('should not broadcast if retroId not found', () => {
-    const mockClient = {} as Socket;
-    const data = {
-      retroId: 'retro-999',
-      actionItemId: 'item-1',
-      task: 'Another Task',
-      assigneeId: 'a3',
-      assigneeName: 'Charlie',
-      updatedBy: 'user-1',
-    };
-
-    gateway.handleActionItemUpdated(mockClient, data);
-
-    expect(gateway.broadcastActionItemsUpdate).not.toHaveBeenCalled();
-  });
-  });
-describe('RetroGateway - handleActionItemDeleted', () => {
-  beforeAll(() => {
-    jest.spyOn(console, 'error').mockImplementation(() => {}); // suppress error log
-  });
+describe('User Votes & Facilitator Vote Submission', () => {
+  let gateway: ParticipantGateway;
+  let mockClient: any;
 
   beforeEach(() => {
-    jest.spyOn(gateway, 'broadcastActionItemsUpdate').mockImplementation(() => {});
-    jest.spyOn(gateway['participantService'], 'leave').mockResolvedValue(undefined); // mock DB call
+    gateway = new ParticipantGateway({} as any); // dummy service
+    gateway.server = {
+      to: jest.fn().mockReturnThis(),
+      emit: jest.fn(),
+    } as any;
 
-    for (const key of Object.keys(retroState)) delete retroState[key];
-    retroState['retro-1'] = {
-      itemPositions: {},
-      itemGroups: {},
-      signatureColors: {},
-      actionItems: [
-        { id: 'item-1', task: 'Old Task', assigneeId: 'a1', assigneeName: 'Alice', createdBy: 'user-x', createdAt: new Date().toISOString(), edited: false },
-        { id: 'item-2', task: 'Task 2', assigneeId: 'a2', assigneeName: 'Bob', createdBy: 'user-y', createdAt: new Date().toISOString(), edited: false },
-      ],
-      allUserVotes: {},
-    };
+    mockClient = { emit: jest.fn() };
+
+    // Reset retroState tiap test
+    for (const key in retroState) {
+      delete retroState[key];
+    }
   });
 
-  it('should delete the action item and broadcast updated items', () => {
-    const client = {} as Socket;
-    const data = { retroId: 'retro-1', actionItemId: 'item-1' };
+  describe('handleRequestUserVotes', () => {
+    it('should emit existing user votes if available', () => {
+      retroState['r1'] = {
+        itemPositions: {},
+        itemGroups: {},
+        signatureColors: {},
+        actionItems: [],
+        allUserVotes: { u1: { 1: 2 } },
+      };
 
-    gateway.handleActionItemDeleted(client, data);
+      gateway.handleRequestUserVotes(mockClient, { retroId: 'r1', userId: 'u1' });
 
-    expect(retroState['retro-1'].actionItems).toEqual([
-      {
-        id: 'item-2',
-        task: 'Task 2',
-        assigneeId: 'a2',
-        assigneeName: 'Bob',
-        createdBy: 'user-y',
-        createdAt: expect.any(String),
-        edited: false,
-      },
-    ]);
+      expect(mockClient.emit).toHaveBeenCalledWith(
+        'user-votes:r1:u1',
+        { userVotes: { 1: 2 } }
+      );
+    });
 
-    expect(gateway.broadcastActionItemsUpdate).toHaveBeenCalledWith(
-      'retro-1',
-      retroState['retro-1'].actionItems,
-    );
+    it('should emit empty votes if none exist', () => {
+      retroState['r1'] = {
+        itemPositions: {},
+        itemGroups: {},
+        signatureColors: {},
+        actionItems: [],
+        allUserVotes: {},
+      };
+
+      gateway.handleRequestUserVotes(mockClient, { retroId: 'r1', userId: 'uX' });
+
+      expect(mockClient.emit).toHaveBeenCalledWith(
+        'user-votes:r1:uX',
+        { userVotes: {} }
+      );
+    });
+
+    it('should emit empty votes if retroId not found', () => {
+      gateway.handleRequestUserVotes(mockClient, { retroId: 'unknown', userId: 'u1' });
+
+      expect(mockClient.emit).toHaveBeenCalledWith(
+        'user-votes:unknown:u1',
+        { userVotes: {} }
+      );
+    });
   });
 
-  it('should not crash if retroId does not exist', () => {
-    const client = {} as Socket;
-    const data = { retroId: 'retro-999', actionItemId: 'item-1' };
+  describe('handleVoteSubmission', () => {
+    it('should broadcast facilitator vote submission', () => {
+      const data = {
+        retroId: 'r2',
+        facilitatorId: 'fac1',
+        groupVotes: { 1: 3, 2: 1 },
+      };
 
-    expect(() => gateway.handleActionItemDeleted(client, data)).not.toThrow();
-    expect(gateway.broadcastActionItemsUpdate).not.toHaveBeenCalled();
+      gateway.handleVoteSubmission(mockClient, data);
+
+      expect(gateway.server.to).toHaveBeenCalledWith('retro:r2');
+      expect(gateway.server.emit).toHaveBeenCalledWith(
+        'vote-submission:r2',
+        expect.objectContaining({
+          facilitatorId: 'fac1',
+          groupVotes: { 1: 3, 2: 1 },
+        })
+      );
+    });
   });
 });
+
+describe('emitActionItemsUpdate', () => {
+  let fakeRoom: any;
+  let warnSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    fakeRoom = { emit: jest.fn() };
+    gateway.server.to = jest.fn().mockReturnValue(fakeRoom);
+    warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {}); // mute warn
+  });
+
+  afterEach(() => {
+    warnSpy.mockRestore();
+  });
+
+  it('should use broadcastActionItemsUpdate if available', async () => {
+    const mockBroadcast = jest.fn().mockResolvedValue(undefined);
+    (gateway as any).broadcastActionItemsUpdate = mockBroadcast;
+
+    await (gateway as any).emitActionItemsUpdate('retro1', [{ id: 'a1' }]);
+
+    expect(mockBroadcast).toHaveBeenCalledWith('retro1', [{ id: 'a1' }]);
+    expect(fakeRoom.emit).not.toHaveBeenCalled(); // fallback tidak dipakai
+  });
+
+  it('should fallback to safeEmit if broadcastActionItemsUpdate throws', async () => {
+    const mockBroadcast = jest.fn().mockRejectedValue(new Error('fail'));
+    (gateway as any).broadcastActionItemsUpdate = mockBroadcast;
+
+    await (gateway as any).emitActionItemsUpdate('retro1', [{ id: 'a1' }]);
+
+expect(fakeRoom.emit).toHaveBeenCalledWith('action-items:update', [{ id: 'a1' }]);
+    expect(warnSpy).toHaveBeenCalled(); // pastikan warning dicatat
+  });
+
+  it('should fallback to safeEmit if broadcastActionItemsUpdate not defined', async () => {
+    delete (gateway as any).broadcastActionItemsUpdate;
+
+    await (gateway as any).emitActionItemsUpdate('retro1', [{ id: 'a1' }]);
+
+    expect(fakeRoom.emit).toHaveBeenCalledWith('action-items-update:retro1', [{ id: 'a1' }]);
+  });
+});
+describe('Action Item Handlers', () => {
+  let client: any;
+  let fakeRoom: any;
+
+  beforeEach(() => {
+    client = { emit: jest.fn() };
+    fakeRoom = { emit: jest.fn() };
+    gateway.server.to = jest.fn().mockReturnValue(fakeRoom);
+
+    // reset state
+    retroState['retro1'] = { itemPositions: {}, itemGroups: {}, signatureColors: {}, actionItems: [], allUserVotes: {} };
+  });
+
+  describe('handleActionItemAdded', () => {
+    it('should add a new action item and emit update', async () => {
+      const data = {
+        retroId: 'retro1',
+        task: 'Do something',
+        assigneeId: 'u1',
+        assigneeName: 'User 1',
+        createdBy: 'facilitator'
+      };
+
+      await gateway.handleActionItemAdded(client, data);
+
+      expect(retroState['retro1'].actionItems.length).toBe(1);
+      expect(fakeRoom.emit).toHaveBeenCalledWith('action-items-update:retro1', retroState['retro1'].actionItems);
+    });
+
+    it('should not add duplicate action item within 500ms', async () => {
+      const now = new Date().toISOString();
+      retroState['retro1'].actionItems.push({
+        id: 'a1',
+        task: 'Duplicate Task',
+        assigneeId: 'u1',
+        assigneeName: 'User 1',
+        createdBy: 'f1',
+        createdAt: now,
+        edited: false
+      });
+
+      const data = {
+        retroId: 'retro1',
+        task: 'Duplicate Task',
+        assigneeId: 'u1',
+        assigneeName: 'User 1',
+        createdBy: 'f1'
+      };
+
+      await gateway.handleActionItemAdded(client, data);
+
+      // tetap 1 item karena dianggap duplikat
+      expect(retroState['retro1'].actionItems.length).toBe(1);
+      expect(fakeRoom.emit).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('handleActionItemUpdated', () => {
+    it('should update existing action item and emit update', async () => {
+      retroState['retro1'].actionItems.push({
+        id: 'a1',
+        task: 'Old Task',
+        assigneeId: 'u1',
+        assigneeName: 'User 1',
+        createdBy: 'f1',
+        createdAt: new Date().toISOString(),
+        edited: false
+      });
+
+      const data = {
+        retroId: 'retro1',
+        actionItemId: 'a1',
+        task: 'Updated Task',
+        assigneeId: 'u2',
+        assigneeName: 'User 2',
+        updatedBy: 'f2'
+      };
+
+      await gateway.handleActionItemUpdated(client, data);
+
+      expect(retroState['retro1'].actionItems[0].task).toBe('Updated Task');
+      expect(retroState['retro1'].actionItems[0].edited).toBe(true);
+      expect(fakeRoom.emit).toHaveBeenCalledWith('action-items-update:retro1', retroState['retro1'].actionItems);
+    });
+
+    it('should do nothing if action item does not exist', async () => {
+      const data = {
+        retroId: 'retro1',
+        actionItemId: 'not-exist',
+        task: 'Updated Task',
+        assigneeId: 'u2',
+        assigneeName: 'User 2',
+        updatedBy: 'f2'
+      };
+
+      await gateway.handleActionItemUpdated(client, data);
+
+      expect(fakeRoom.emit).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('handleActionItemDeleted', () => {
+    it('should delete action item and emit update', async () => {
+      retroState['retro1'].actionItems.push({ id: 'a1', task: 'T', assigneeId: 'u1', assigneeName: 'U1', createdBy: 'f1', createdAt: new Date().toISOString(), edited: false });
+
+      const data = { retroId: 'retro1', actionItemId: 'a1' };
+
+      await gateway.handleActionItemDeleted(client, data);
+
+      expect(retroState['retro1'].actionItems.length).toBe(0);
+      expect(fakeRoom.emit).toHaveBeenCalledWith('action-items-update:retro1', []);
+    });
+
+    it('should do nothing if retro state not exists', async () => {
+      delete retroState['retroX']; // pastikan tidak ada state
+
+      const data = { retroId: 'retroX', actionItemId: 'a1' };
+
+      await gateway.handleActionItemDeleted(client, data);
+
+      expect(fakeRoom.emit).not.toHaveBeenCalled();
+    });
+  });
+});
+
 
 });

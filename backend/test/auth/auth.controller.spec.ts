@@ -3,6 +3,7 @@ import { AuthController } from '../../src/controllers/auth.controller';
 import { UsersService } from '../../src/services/user.service';
 import { JwtService } from '@nestjs/jwt';
 import { Request, Response } from 'express';
+import { NotFoundException } from '@nestjs/common/exceptions/not-found.exception';
 
 describe('AuthController', () => {
   let controller: AuthController;
@@ -99,20 +100,46 @@ describe('AuthController', () => {
     });
   });
 
-  describe('getCurrentUser', () => {
-    it('should return decoded JWT payload', async () => {
-      const req = {
-        user: { sub: '123', name: 'John', email: 'john@example.com', imageUrl: 'img.jpg' },
-      } as unknown as Request;
+  it('should return the current user if found', async () => {
+    // mock user data
+    const mockUser = {
+      id: '123',
+      email: 'test@example.com',
+      name: 'John Doe',
+      imageUrl: 'http://example.com/image.png',
+    };
 
-      const result = await controller.getCurrentUser(req);
-      expect(result).toEqual({
-        id: '123',
-        name: 'John',
-        email: 'john@example.com',
-        imageUrl: 'img.jpg',
-      });
+    mockUsersService.findByEmail.mockResolvedValue(mockUser);
+
+    // fake request with jwt payload
+    const req = {
+      user: { email: 'test@example.com' },
+    } as any;
+
+    const result = await controller.getCurrentUser(req);
+
+    expect(usersService.findByEmail).toHaveBeenCalledWith('test@example.com');
+    expect(result).toEqual({
+      id: '123',
+      email: 'test@example.com',
+      name: 'John Doe',
+      imageUrl: 'http://example.com/image.png',
     });
+  });
+
+  it('should throw NotFoundException if user is not found', async () => {
+    mockUsersService.findByEmail.mockResolvedValue(null);
+
+    const req = {
+      user: { email: 'notfound@example.com' },
+    } as any;
+
+    await expect(controller.getCurrentUser(req)).rejects.toThrow(
+      NotFoundException,
+    );
+    expect(usersService.findByEmail).toHaveBeenCalledWith(
+      'notfound@example.com',
+    );
   });
 
   describe('logout', () => {

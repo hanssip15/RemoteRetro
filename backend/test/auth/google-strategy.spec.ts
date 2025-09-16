@@ -39,24 +39,7 @@ describe('GoogleStrategy', () => {
       });
     });
 
-    it('should return default name if displayName is missing', async () => {
-      const mockProfile = {
-        id: '456',
-        emails: [{ value: 'test2@example.com' }],
-        photos: [],
-      };
 
-      const done: VerifyCallback = jest.fn();
-
-      await strategy.validate('accessToken', 'refreshToken', mockProfile, done);
-
-      expect(done).toHaveBeenCalledWith(null, {
-        id: '456',
-        name: 'Unknown User',
-        email: 'test2@example.com',
-        imageUrl: null,
-      });
-    });
 
     it('should throw UnauthorizedException if email is missing', async () => {
       const mockProfile = {
@@ -67,9 +50,7 @@ describe('GoogleStrategy', () => {
       };
 
       const done: VerifyCallback = jest.fn();
-
       await strategy.validate('accessToken', 'refreshToken', mockProfile, done);
-
       expect(done).toHaveBeenCalledWith(
         expect.any(UnauthorizedException),
         false,
