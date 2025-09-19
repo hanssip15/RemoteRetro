@@ -10,7 +10,6 @@ interface UseRetroSocketOptions {
   onItemDeleted?: (itemId: string) => void;
   onItemsUpdate?: (items: any[]) => void;
   onParticipantUpdate?: (participants: Participant) => void;
-  onParticipantAdded?: (participant: Participant) => void;
   onRetroStarted?: () => void;
   onPhaseChange?: (phase: 'prime-directive' | 'ideation' | 'grouping' | 'labelling' | 'voting' | 'final' | 'ActionItems') => void;
   onItemPositionUpdate?: (data: { itemId: string; position: { x: number; y: number }; userId: string }) => void;
@@ -30,7 +29,6 @@ export const useRetroSocket = ({
   onItemDeleted,
   onItemsUpdate,
   onParticipantUpdate,
-  onParticipantAdded,
   onRetroStarted,
   onPhaseChange,
   onItemPositionUpdate,
@@ -51,7 +49,6 @@ export const useRetroSocket = ({
     onItemDeleted,
     onItemsUpdate,
     onParticipantUpdate,
-    onParticipantAdded,
     onRetroStarted,
     onPhaseChange,
     onItemPositionUpdate,
@@ -121,9 +118,6 @@ export const useRetroSocket = ({
       callbacks.onItemDeleted?.(itemId);
     };
 
-    const handleParticipantAdded = (participant: Participant) => {
-      callbacks.onParticipantAdded?.(participant);
-    };
 
      const handleParticipantUpdate = (participant: Participant) => {
       callbacks.onParticipantUpdate?.(participant);
@@ -168,7 +162,6 @@ export const useRetroSocket = ({
       socketRef.current.on(`item-updated:${retroId}`, handleItemUpdated);
       socketRef.current.on(`item-deleted:${retroId}`, handleItemDeleted);
       socketRef.current.on(`participants-update:${retroId}`, handleParticipantUpdate);
-      socketRef.current.on(`participants-added:${retroId}`, handleParticipantAdded);
       socketRef.current.on(`phase-change:${retroId}`, handlePhaseChange);
       socketRef.current.on(`item-position-update:${retroId}`, handleItemPositionUpdate);
       socketRef.current.on(`grouping-update:${retroId}`, handleGroupingUpdate);
@@ -186,7 +179,6 @@ export const useRetroSocket = ({
         socketRef.current.off(`item-updated:${retroId}`, handleItemUpdated);
         socketRef.current.off(`item-deleted:${retroId}`, handleItemDeleted);
         socketRef.current.off(`participants-update:${retroId}`, handleParticipantUpdate);
-        socketRef.current.off(`participants-added:${retroId}`, handleParticipantAdded);
         socketRef.current.off(`phase-change:${retroId}`, handlePhaseChange);
         socketRef.current.off(`item-position-update:${retroId}`, handleItemPositionUpdate);
         socketRef.current.off(`grouping-update:${retroId}`, handleGroupingUpdate);

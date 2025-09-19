@@ -99,7 +99,7 @@ function ensureRetroState(retroId: string) {
 })
   export class ParticipantGateway implements OnGatewayConnection, OnGatewayDisconnect {
     
-     // Utility: deep copy before emit so later mutations don't change what's already emitted
+  // Utility: deep copy before emit so later mutations don't change what's already emitted
   private safeEmit(socket: Socket | Server, event: string, payload: any) {
     const copy = JSON.parse(JSON.stringify(payload));
     if ((socket as any).emit) {
@@ -222,25 +222,27 @@ function ensureRetroState(retroId: string) {
 
     broadcastItemAdded(retroId: string, item: any) {
       this.server.to(`retro:${retroId}`).emit(`item-added:${retroId}`, item);
-      
       // Log room members for debugging
       this.server.in(`retro:${retroId}`).fetchSockets().then(sockets => {
       });
     }
-
     broadcastItemUpdated(retroId: string, item: any) {  
       this.server.to(`retro:${retroId}`).emit(`item-updated:${retroId}`, item);
     }
-
     broadcastItemDeleted(retroId: string, itemId: string) {
       this.server.to(`retro:${retroId}`).emit(`item-deleted:${retroId}`,itemId);
     }
 
-
     // Broadcast action items for a retro
-    broadcastActionItemsUpdate(retroId: string, actionItems: any[]) {
-      this.server.to(`retro:${retroId}`).emit(`action-items-update:${retroId}`, actionItems);
+    broadcastActionItemsUpdate(retroId: string) {
+      this.server.to(`retro:${retroId}`).emit(`action-items-update:${retroId}`);
     }
+
+    broadcastActionItemAdd(retroId: string, action: any) {
+      this.server.to(`retro:${retroId}`).emit( `action-items-add:${retroId}`,
+      action, // sekarang bawa data
+  );
+}
 
 
 
@@ -467,127 +469,6 @@ handleRequestUserVotes(
       });
       
     }
-
-    // Handle action item added
-// helper method (letakkan di dalam class gateway Anda)
-private async emitActionItemsUpdate(retroId: string, items: any[]) {
-  const room = this.server.to(`retro:${retroId}`) as any;
-
-  if (typeof (this as any).broadcastActionItemsUpdate === 'function') {
-    try {
-      // coba gunakan broadcastActionItemsUpdate jika tersedia
-      await (this as any).broadcastActionItemsUpdate(retroId, items);
-      return;
-    } catch (err) {
-      // fallback ke safeEmit jika gagal
-      console.warn('broadcastActionItemsUpdate failed, falling back to safeEmit', err);
-    }
-  }
-
-  // default fallback
-  this.safeEmit(room, 'action-items:update', items);
-}
-
-// Handle action item added
-@SubscribeMessage('action-item-added')
-async handleActionItemAdded(client: Socket, data: {
-  retroId: string;
-  task: string;
-  assigneeId: string;
-  assigneeName: string;
-  createdBy: string;
-}) {
-  if (!data?.retroId) return;
-
-  const mutex = getRetroMutex(data.retroId);
-  await mutex.runExclusive(async () => {
-    // Ensure state exists
-    ensureRetroState(data.retroId);
-    const now = Date.now();
-    const recentDuplicate = retroState[data.retroId].actionItems.find(item =>
-      item.task === data.task &&
-      item.assigneeId === data.assigneeId &&
-      (now - new Date(item.createdAt).getTime()) < 500
-    );
-
-    if (recentDuplicate) {
-      return;
-    }
-
-    // Create new action item
-    const newActionItem = {
-      id: `action_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      task: data.task,
-      assigneeId: data.assigneeId,
-      assigneeName: data.assigneeName,
-      createdBy: data.createdBy,
-      createdAt: new Date().toISOString(),
-      edited: false
-    };
-
-    retroState[data.retroId].actionItems.push(newActionItem);
-
-    // use centralized emitter
-    await this.emitActionItemsUpdate(data.retroId, retroState[data.retroId].actionItems);
-  });
-}
-
-// Handle action item updated
-@SubscribeMessage('action-item-updated')
-async handleActionItemUpdated(client: Socket, data: {
-  retroId: string;
-  actionItemId: string;
-  task: string;
-  assigneeId: string;
-  assigneeName: string;
-  updatedBy: string;
-}) {
-  if (!data?.retroId) return;
-
-  const mutex = getRetroMutex(data.retroId);
-  await mutex.runExclusive(async () => {
-    ensureRetroState(data.retroId);
-
-    const actionItemIndex = retroState[data.retroId].actionItems.findIndex(
-      item => item.id === data.actionItemId
-    );
-
-    if (actionItemIndex !== -1) {
-      retroState[data.retroId].actionItems[actionItemIndex] = {
-        ...retroState[data.retroId].actionItems[actionItemIndex],
-        task: data.task,
-        assigneeId: data.assigneeId,
-        assigneeName: data.assigneeName,
-        edited: true
-      };
-
-      // use centralized emitter
-      await this.emitActionItemsUpdate(data.retroId, retroState[data.retroId].actionItems);
-    }
-  });
-}
-
-// Handle action item deleted
-@SubscribeMessage('action-item-deleted')
-async handleActionItemDeleted(client: Socket, data: {
-  retroId: string;
-  actionItemId: string;
-}) {
-  if (!data?.retroId) return;
-
-  const mutex = getRetroMutex(data.retroId);
-  await mutex.runExclusive(async () => {
-    if (!retroState[data.retroId]) return;
-
-    retroState[data.retroId].actionItems = retroState[data.retroId].actionItems.filter(
-      item => item.id !== data.actionItemId
-    );
-
-    const items = retroState[data.retroId]?.actionItems ?? [];
-    // use centralized emitter
-    await this.emitActionItemsUpdate(data.retroId, items);
-  });
-}
 
 
   }

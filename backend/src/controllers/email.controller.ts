@@ -13,7 +13,7 @@ class ActionItemDto {
   @ApiProperty({ description: 'Name of the person assigned to the task', example: 'John Doe' })
   @IsString()
   @IsNotEmpty()
-  assigneeName: string;
+  assign_to: string;
 }
 
 export class SendActionItemsEmailDto {

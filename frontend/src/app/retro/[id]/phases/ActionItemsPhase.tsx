@@ -34,14 +34,14 @@ export default function ActionItemsPhase({
   setEditingActionIdx,
   setEditActionInput,
   setEditActionAssignee,
-  handleAddActionItemWebSocket,
+  handleAddActionItem,
   handleEditActionItem,
   handleSaveEditActionItem,
   handleDeleteActionItem,
   broadcastPhaseChange,
   labellingItems,
-  handleInputTextChange,   // ✅ sama seperti Ideation
-  handleKeyDown,           // ✅ sama seperti Ideation
+  handleInputTextChange,   
+  handleKeyDown,           
 }: any) {
   const [allParticipants, setAllParticipants] = useState<Participant[]>([]);
   useEffect(() => {
@@ -188,74 +188,77 @@ export default function ActionItemsPhase({
             <div ref={actionItemsContainerRef} className="flex-1 overflow-y-auto max-h-[calc(85vh-280px)] p-4">
               <div className="flex flex-col gap-2">
                 {actionItems.length === 0 && <span className="text-gray-400 text-sm">No action items yet.</span>}
-                {actionItems.map((item: any, idx: number) => (
+                {actionItems.map((item: any) => (
                   <div 
-                    key={item.id || idx} 
-                    ref={(el) => {
-                      actionItemRefs.current[idx] = el;
-                    }}
+                    key={item.id} 
                     className="bg-gray-50 border rounded px-3 py-2 text-sm flex items-start justify-between gap-2"
                   >
-                    {editingActionIdx === idx ? (
-                      <div className="flex-1 flex flex-col gap-1">
-                        <div className="flex gap-2">
-                          <select
-                            className="w-32 px-2 py-1 rounded-md border text-sm"
-                            value={editActionAssignee}
-                            onChange={e => setEditActionAssignee(e.target.value)}
-                          >
-                            {allParticipants.map((p: any) => (
-                              <option key={p.user.id} value={p.user.id}>{p.user.name}</option>
-                            ))}
-                          </select>
-                          <input
-                            type="text"
-                            className="border rounded px-2 py-1 flex-1 text-sm"
-                            value={editActionInput}
-                            onChange={e => setEditActionInput(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                const originalTask = (item.task || '').trim()
-                                const newTask = editActionInput.trim()
-                                const originalAssignee = item.assigneeId || item.assignee || ''
-                                const hasChanges = (newTask !== originalTask) || (editActionAssignee !== originalAssignee)
-                                if (hasChanges) {
-                                  handleSaveEditActionItem(idx)
-                                } else {
-                                  e.preventDefault()
+                    {editingActionIdx === item.id ?(
+                        <div className="flex-1 flex flex-col gap-1">
+                          <div className="flex gap-2">
+                            <select
+                              className="w-32 px-2 py-1 rounded-md border text-sm"
+                              value={editActionAssignee}
+                              onChange={e => setEditActionAssignee(e.target.value)}
+                            >
+                              {allParticipants.map((p: any) => (
+                                <option key={p.user.id} value={p.user.id}>{p.user.name}</option>
+                              ))}
+                            </select>
+                            <input
+                              type="text"
+                              className="border rounded px-2 py-1 flex-1 text-sm"
+                              value={editActionInput}
+                              onChange={e => setEditActionInput(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  const originalTask = item.action_item.trim()
+                                  const newTask = editActionInput.trim()
+                                  const originalAssignee = item.assign_to_id
+                                  const hasChanges = (newTask !== originalTask) || (editActionAssignee !== originalAssignee)
+                                  const notEmpty = newTask.trim() !== ''
+                                  if (hasChanges && notEmpty) {
+                                    handleSaveEditActionItem(item.id, newTask, editActionAssignee)
+                                  } else {
+                                    e.preventDefault()
+                                  }
                                 }
+                                if (e.key === "Escape") setEditingActionIdx(null)
+                              }}
+                            />
+                          </div>
+                          <div className="flex gap-2 mt-1">
+                            <Button
+                              size="sm"
+                              className="bg-black text-white hover:bg-black/90"
+                              onClick={() =>
+                                handleSaveEditActionItem(item.id, editActionInput.trim(), editActionAssignee)
                               }
-                              if (e.key === "Escape") setEditingActionIdx(null)
-                            }}
-                          />
+                              disabled={
+                                editActionInput.trim() === (item.action_item).trim() &&
+                                (editActionAssignee === (item.assign_to_id)) || editActionInput.trim() == ''
+                              }
+                            >
+                              Save
+                            </Button>
+                          </div>
                         </div>
-                        <div className="flex gap-2 mt-1">
-                          <Button size="sm" className="bg-black text-white hover:bg-black/90" onClick={() => handleSaveEditActionItem(idx)} disabled={
-                            editActionInput.trim() === (item.task || '').trim() &&
-                            (editActionAssignee === (item.assigneeId || item.assignee || ''))
-                          }>
-                            <Check className="h-3 w-3" />
-                          </Button>
-                          <Button size="sm" variant="outline" className="bg-white text-gray-900 hover:bg-gray-100" onClick={() => setEditingActionIdx(null)}>
-                            <X className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
+                      ) : (
                       <>
                         <div className="flex-1 flex flex-col min-w-0">
                           <span className="break-words">
-                            {item.task} <span className="text-gray-700">({item.assigneeName})</span>
-                            {item.edited && <span className="ml-2 text-xs text-gray-500 font-semibold">(edited)</span>}
+                            {item.action_item} <span className="text-gray-700">({item.assign_to})</span>
+                            {item.is_edited && <span className="ml-2 text-xs text-gray-500 font-semibold">(edited)</span>}
+                            {console.log(item.is_edited)}
                           </span>
                         </div>
                         <div className="flex gap-1 flex-shrink-0">
-                          {(isCurrentFacilitator || item.createdBy == user.id) && (
+                          {(isCurrentFacilitator || item.created_by == user.id) && (
                             <>
                               <button
                                 className="p-1 hover:bg-gray-200 rounded"
                                 title="Edit"
-                                onClick={() => handleEditActionItem(idx)}
+                                onClick={() => handleEditActionItem(item.id, item.action_item, item.assign_to_id)}
                                 type="button"
                               >
                                 <Pencil className="h-4 w-4 text-gray-600" />
@@ -264,8 +267,8 @@ export default function ActionItemsPhase({
                                 className="p-1 hover:bg-red-100 rounded"
                                 title="Delete"
                                 onClick={() => {
-                                  if (window.confirm(`Yakin ingin menghapus action item: \"${item.task}\"?`)) {
-                                    handleDeleteActionItem(idx);
+                                  if (window.confirm(`Yakin ingin menghapus action item: \"${item.action_item}\"?`)) {
+                                    handleDeleteActionItem(item.id);
                                   }
                                 }}
                                 type="button"
@@ -385,7 +388,7 @@ export default function ActionItemsPhase({
                     }}
                     className="bg-gray-50 border rounded px-2 md:px-3 py-1 md:py-2 text-xs md:text-sm flex items-start justify-between gap-1 md:gap-2"
                   >
-                  {editingActionIdx === idx ? (
+                  {editingActionIdx === item.id ? (
                     <div className="flex-1 flex flex-col gap-1">
                       <div className="flex gap-2">
                         <select
@@ -404,12 +407,13 @@ export default function ActionItemsPhase({
                           onChange={e => setEditActionInput(e.target.value)}
                           onKeyDown={(e) => {
                             if (e.key === "Enter") {
-                              const originalTask = (item.task || '').trim()
+                              const originalTask = (item.action_item).trim()
                               const newTask = editActionInput.trim()
-                              const originalAssignee = item.assigneeId || item.assignee || ''
+                              const originalAssignee = item.assign_to_id
                               const hasChanges = (newTask !== originalTask) || (editActionAssignee !== originalAssignee)
-                              if (hasChanges) {
-                                handleSaveEditActionItem(idx)
+                              const notEmpty = newTask.trim() !== ''
+                              if (hasChanges && notEmpty) {
+                                    handleSaveEditActionItem(item.id, newTask, editActionAssignee)
                               } else {
                                 e.preventDefault()
                               }
@@ -419,9 +423,9 @@ export default function ActionItemsPhase({
                         />
                       </div>
                       <div className="flex gap-2 mt-1">
-                        <Button size="sm" className="bg-black text-white hover:bg-black/90" onClick={() => handleSaveEditActionItem(idx)} disabled={
-                          editActionInput.trim() === (item.task || '').trim() &&
-                          (editActionAssignee === (item.assigneeId || item.assignee || ''))
+                        <Button size="sm" className="bg-black text-white hover:bg-black/90" onClick={() => handleSaveEditActionItem(item.id, editActionInput.trim(), editActionAssignee)} disabled={
+                          editActionInput.trim() === (item.action_item).trim() &&
+                          (editActionAssignee === (item.assign_to_id)) || editActionInput.trim() == ''
                         }>
                           <Check className="h-3 w-3" />
                         </Button>
@@ -434,17 +438,17 @@ export default function ActionItemsPhase({
                     <>
                       <div className="flex-1 flex flex-col min-w-0">
                         <span className="break-words">
-                          {item.task} <span className="text-gray-700">({item.assigneeName})</span>
-                          {item.edited && <span className="ml-2 text-xs text-gray-500 font-semibold">(edited)</span>}
+                          {item.action_item} <span className="text-gray-700">({item.assign_to})</span>
+                          {item.is_edited && <span className="ml-2 text-xs text-gray-500 font-semibold">(edited)</span>}
                         </span>
                       </div>
                       <div className="flex gap-1 flex-shrink-0">
-                        {(isCurrentFacilitator || item.createdBy == user.id) && (
+                        {(isCurrentFacilitator || item.created_by == user.id) && (
                           <>
                             <button
                               className="p-1 hover:bg-gray-200 rounded"
                               title="Edit"
-                              onClick={() => handleEditActionItem(idx)}
+                              onClick={() => handleEditActionItem(item.id, item.action_item, item.assign_to_id)}
                               type="button"
                             >
                               <Pencil className="h-4 w-4 text-gray-600" />
@@ -453,8 +457,8 @@ export default function ActionItemsPhase({
                               className="p-1 hover:bg-red-100 rounded"
                               title="Delete"
                               onClick={() => {
-                                if (window.confirm(`Yakin ingin menghapus action item: \"${item.task}\"?`)) {
-                                  handleDeleteActionItem(idx);
+                                if (window.confirm(`Yakin ingin menghapus action item: \"${item.action_item}\"?`)) {
+                                  handleDeleteActionItem(item.id);
                                 }
                               }}
                               type="button"
@@ -520,14 +524,14 @@ export default function ActionItemsPhase({
                 onKeyDown={e => {
                   if (e.key === 'Enter' && actionInput.trim() && actionAssignee) {
                     e.preventDefault();
-                    handleAddActionItemWebSocket();
+                    handleAddActionItem();
                   } else if (handleKeyDown) {
                     handleKeyDown(e);
                   }
                 }}
               />
               <Button
-                onClick={handleAddActionItemWebSocket}
+                onClick={handleAddActionItem}
                 disabled={!actionInput.trim() || !actionAssignee}
                 className="px-4 py-1"
                 type="submit"
@@ -553,23 +557,14 @@ export default function ActionItemsPhase({
                   title="Are you sure you want to distribute this retrospective's action items? This will close the retro."
                   onConfirm={async () => {
                     try {
-                      const bulkData = actionItems.map((item: any) => ({
-                        action_item: item.task,
-                        assign_to: item.assigneeName,
-                      }));
-                      if (bulkData.length > 0) {
-                        await api.createBulkActions(retro.id, bulkData);
-                      }
-
                       const participantEmails = allParticipants.map((p: any) => p.user.email).filter(Boolean);
-                      
                       await apiService.updateRetroStatus(retro.id, "completed")
                       await apiService.updateRetroPhase(retro.id, 'final'); 
                       await api.sendActionItemsEmail({
                         retroTitle: retro.title,
                         actionItems: actionItems.map((item: any) => ({
-                          task: item.task,
-                          assigneeName: item.assigneeName,
+                          task: item.action_item,
+                          assign_to: item.assign_to,
                         })),
                         participantEmails,
                       });
