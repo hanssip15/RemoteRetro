@@ -6,10 +6,12 @@ import { Action } from '../entities/action.entity';
 import { ActionService } from '../services/action.service';
 import { ActionController } from '../controllers/action.controller';
 import { RetroModule } from './retro.module'; // Import RetroModule to resolve circular dependency
+import { UsersService } from 'src/services/user.service';
+import { User } from 'src/entities/user.entity';
 @Module({
-  imports: [TypeOrmModule.forFeature([ Retro, Action]), 
+  imports: [TypeOrmModule.forFeature([ Retro, Action, User]), 
     forwardRef(() => RetroModule)], // Use forwardRef to handle circular dependency
   controllers: [ActionController],
-  providers: [ActionService, ParticipantGateway],
+  providers: [ActionService, ParticipantGateway, UsersService],
 })
 export class ActionModule {}

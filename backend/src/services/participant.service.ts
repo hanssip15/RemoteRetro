@@ -112,6 +112,14 @@ async updateRoleFacilitator(retroId: string, participantId: number): Promise<Par
   });
 }
 
+async findParticipantByID(id: number): Promise<Participant | null> {
+    return this.participantRepository.findOne({
+      where: { id },
+      relations: ['user'],
+    });
+  }
+
+
   async findParticipantByUserIdAndRetroId(userId: string, retroId: string): Promise<Participant | null> {
     return this.participantRepository.findOne({
       where: { userId, retroId },

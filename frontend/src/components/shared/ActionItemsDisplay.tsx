@@ -114,8 +114,8 @@ export default function ActionItemsDisplay({
             <>
               <div className="flex-1 flex flex-col min-w-0">
                 <span className="break-words">
-                  {item.task} <span className="text-gray-700">({item.assigneeName})</span>
-                  {item.edited && <span className="ml-2 text-xs text-gray-500 font-semibold">(edited)</span>}
+                  {item.action_item} <span className="text-gray-700">({item.assign_to})</span>
+                  {item.is_edited && <span className="ml-2 text-xs text-gray-500 font-semibold">(edited)</span>}
                 </span>
               </div>
               {isEditable && (isCurrentFacilitator || item.createdBy == user?.id) && (
@@ -132,7 +132,7 @@ export default function ActionItemsDisplay({
                     className="p-1 hover:bg-red-100 rounded"
                     title="Delete"
                     onClick={() => {
-                      if (window.confirm(`Yakin ingin menghapus action item: \"${item.task}\"?`)) {
+                      if (window.confirm(`Yakin ingin menghapus action item: \"${item.action_item}\"?`)) {
                         onDelete?.(idx);
                       }
                     }}

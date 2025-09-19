@@ -3,7 +3,7 @@ import * as nodemailer from 'nodemailer';
 
 export interface ActionItem {
   task: string;
-  assigneeName: string;
+  assign_to: string;
 }
 
 export interface EmailData {
@@ -63,7 +63,7 @@ export class EmailService {
         <tr style="border-bottom: 1px solid #e5e7eb;">
           <td style="padding: 12px 16px; text-align: center;">${index + 1}</td>
           <td style="padding: 12px 16px;">${item.task}</td>
-          <td style="padding: 12px 16px; text-align: center;">${item.assigneeName}</td>
+          <td style="padding: 12px 16px; text-align: center;">${item.assign_to}</td>
         </tr>
       `)
       .join('');

@@ -102,13 +102,16 @@ export default function FinalPhase({
         </div>
 
         {/* Panel kanan - Mobile: Labelling Items (Sidebar), Desktop: Action Items */}
+        
         {(!isSidebarCollapsed || window.innerWidth >= 768) && (
           <div className={`bg-white flex flex-col h-full overflow-hidden min-h-0 md:w-[400px] transition-all duration-300 ${
             isSidebarCollapsed ? 'w-full' : 'w-1/2'
           }`}>
             {/* Mobile: Labelling Items (Sidebar) */}
             <div className="md:hidden">
+              
               {!isSidebarCollapsed && (
+                
                 <>
                   <div className="flex items-center justify-between p-4 border-b">
                     <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -130,6 +133,7 @@ export default function FinalPhase({
             </div>
 
             {/* Desktop: Action Items */}
+            
             <div className="hidden md:block">
               <div className="flex items-center gap-2 mb-2 sticky top-0 z-10 bg-white">
                 <span className="text-2xl">🚀</span>

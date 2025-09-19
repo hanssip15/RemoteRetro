@@ -36,7 +36,6 @@ export default function IdeationPhase(props: any) {
 
   useEnterToCloseModal(showModal, () => setShowModal(false));
 
-  // Detect category where item added; the card will auto-scroll itself via prop
   useEffect(() => {
     const getCounts = (arr: any[]) => ({
       format_1: arr.filter((i: any) => i.category === 'format_1').length,

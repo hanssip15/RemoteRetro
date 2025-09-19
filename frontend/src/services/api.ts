@@ -90,20 +90,20 @@ export interface GroupsData {
   group_items: GroupItemEntity[];
 }
 
+
 export interface ActionItemData {
-    id?: string;
-    assignee?: string;
-    assigneeId?: string;
-    assigneeName?: string;
-    task: string;
-    edited?: boolean;
-    createdBy?: string;
-    createdAt?: string;
+      id: string;
+      retro_id:string;
+      action_item:string;
+      assign_to:string;
+      is_edited:boolean;
+      created_by:string;
+      created_at:Date;
 }
 
 export interface finalActionItemData {
   retroId : string;
-  assigneeName : string;
+  assign_to : string;
 
 }
 
@@ -122,9 +122,14 @@ export interface CreateGroup {
 export interface CreateActionData {
   action_item: string;
   assign_to: string;
+  created_by: string;
+  assign_to_id : string;
 }
 
-
+export interface UpdateActionData {
+  action_item?: string;
+  assign_to_id?: string;
+}
 
 class ApiService {
   async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
@@ -278,12 +283,28 @@ class ApiService {
 
   // ================== ACTION-ITEM ================== // 
   // Membuat action item lebih dari 1
-  async createBulkActions(retro_id: string, data: CreateActionData[]): Promise<any> {
-    return this.request<any>(`/action-item/v1/retros/${retro_id}/create-bulk`, {
+
+  async createAction(retro_id: string, data: CreateActionData): Promise<any> {
+    return this.request<any>(`/action-item/v1/retros/${retro_id}/create`, {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
+
+  // Mengubah action item pada suatu retro
+  async updateAction(item_id:number, data: UpdateActionData): Promise<any> {
+    return this.request<any>(`/action-item/v1/action-items/${item_id}/edit`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteAction( item_id:number): Promise<any> {
+    return this.request<any>(`/action-item/v1/action-items/${item_id}/delete`, {
+      method: 'DELETE',
+    });
+  }
+
   // Mendapatkan action item dari suatu retro
   async getAction(retro_id:string ): Promise<any> {
     return this.request<ActionItemData[]>(`/action-item/v1/retros/${retro_id}`);
@@ -320,9 +341,9 @@ class ApiService {
   // Mengirim email kepada setiap partsipant
   async sendActionItemsEmail(data: {
     retroTitle: string;
-    actionItems: Array<{ task: string; assigneeName: string }>;
+    actionItems: Array<{ task: string; assign_to: string }>;
     participantEmails: string[];
-  }): Promise<any> {
+  }): Promise<any> {  
     return this.request<any>('/email/v1/items/send-action-items', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -342,7 +363,7 @@ export const fetchProtectedData = async () => {
   return await res.json();
 };
 
-export const apiService = new ApiService();
+  export const apiService = new ApiService();
 
 let cachedUser: any = null;
 

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from "react"
+import { useEffect, useState, useCallback, useRef, } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { apiService, Retro, RetroItem, Participant, GroupsData, ActionItemData , api , User} from "@/services/api"
 
@@ -77,7 +77,6 @@ export default function RetroPage() {
   const [actionItems, setActionItems] = useState<ActionItemData[]>([])
   const [typingParticipants, setTypingParticipants] = useState<string[]>([]);
   const typingTimeouts = useRef<{ [userId: string]: NodeJS.Timeout }>({});
-  const [isLoadingFromDatabase, setIsLoadingFromDatabase] = useState(false);
 
   // State untuk tracking item yang sedang di-drag oleh user lain
   const [draggingByOthers, setDraggingByOthers] = useState<{ [itemId: string]: string }>({});
@@ -338,38 +337,29 @@ function computeGroupsAndColors(
   // Fungsi untuk menyimpan data grup ke database (kirim satu per satu)
   const saveGroupData = useCallback(async () => {
     const dataToSave = convertGroupsToDatabaseFormat();
-    
     // Jika tidak ada grup yang perlu disimpan, return early
     if (!dataToSave.groups || dataToSave.groups.length === 0) {
       return;
     }
-
-    
     // 1. Buat semua group dulu di backend
     const createdGroups = [];
     for (const group of dataToSave.groups) {
       try {
         const createdGroup = await apiService.createGroup(retroId) as any;
-        
         // Insert semua item ke group
         for (const itemId of group.itemIds) {
           await apiService.insertItem(createdGroup.id, itemId);
         }
-        
         createdGroups.push({ ...createdGroup, items: group.itemIds });
       } catch (error) {
         console.error('❌ Failed to create group:', group, error);
         throw error; // Re-throw error to stop the process
       }
     }
-
     return createdGroups;
   }, [convertGroupsToDatabaseFormat, retroId]);
-
-  // Fungsi untuk mendapatkan data grup yang sudah dikelompokkan
   const getGroupedItems = useCallback((): GroupedItem[] => {
     const groupsMap = new Map<string, { items: RetroItem[], color: string }>();
-    
     items.forEach(item => {
       const signature = itemGroups[item.id];
       if (signature) {
@@ -391,8 +381,6 @@ function computeGroupsAndColors(
         groupsMap.get('ungrouped')!.items.push(item);
       }
     });
-
-
     return Array.from(groupsMap.entries()).map(([signature, data], index) => ({
       groupId: signature,
       groupName: signature === 'ungrouped' ? 'Ungrouped Items' : `Group ${index + 1}`,
@@ -478,11 +466,9 @@ function computeGroupsAndColors(
           newPos,
           signatureColors,
           usedColors,
-        );
-        
-        // Use debounced grouping update to prevent race conditions
+        );        
         debouncedGroupingUpdate(itemToGroup, newSignatureColors, newUsedColors);
-      }, 50); // Slightly longer delay to ensure DOM is updated
+      }, 50); 
       
       return newPos;
     });
@@ -499,7 +485,6 @@ function computeGroupsAndColors(
         signatureColors,
         usedColors,
       );
-      
       // Use debounced grouping update to prevent race conditions
       debouncedGroupingUpdate(itemToGroup, newSignatureColors, newUsedColors);
     }, 100);
@@ -514,8 +499,6 @@ function computeGroupsAndColors(
         source: 'drag-stop'
       });
     }
-
-    // Lepas status dragging pada client sendiri
     setDraggingByOthers(prev => {
       const next = { ...prev };
       delete next[id];
@@ -530,14 +513,17 @@ function computeGroupsAndColors(
     itemPositions?: { [itemId: string]: { x: number; y: number } };
     userId: string 
   }) => {
-    // Hanya update jika bukan dari user saat ini
-    if (data.userId !== user?.id) {
-      // Handle multiple item positions (for initialization)
-      if (data.itemPositions) {
-        setItemPositions(prev => ({ ...prev, ...data.itemPositions }));
-      }
-      // Handle single item position (for dragging)
-      else if (data.itemId && data.position) {
+    // Handle multiple item positions (initial layout broadcast)
+    // Selalu terapkan posisi inisial, termasuk dari user sendiri (source: 'init-layout')
+    // agar parent memiliki posisi lengkap dan bisa menghitung grouping otomatis.
+    if (data.itemPositions) {
+      setItemPositions(prev => ({ ...prev, ...data.itemPositions }));
+      return;
+    }
+
+    // Handle single item position (for dragging) - tetap abaikan update dari diri sendiri
+    if (data.itemId && data.position) {
+      if (data.userId !== user?.id) {
         setItemPositions(pos => ({ ...pos, [data.itemId!]: data.position! }));
         // Lock/unlock drag state based on source
         // @ts-ignore
@@ -593,7 +579,7 @@ function computeGroupsAndColors(
     }, [retro?.currentPhase, retro?.status]);
 
   useEffect(() => {
-  const phases = ['labelling', 'voting', 'ActionItems'];
+  const phases = ['labelling', 'voting', 'ActionItems','final'];
 
   if (phases.includes(phase)) {
     apiService.getGroup(retroId)
@@ -605,43 +591,37 @@ function computeGroupsAndColors(
         setLabellingItems([]);
       });
   }
+
+  if (phase == 'ActionItems' || phase == 'final')
+  {
+    apiService.getAction(retroId).then((action)=> 
+      setActionItems(action)
+    )
+  }
 }, [phase, retroId, items]);
 
 
   // Final Phase
-  useEffect(() => {
-    if (phase === 'final') {
-      const loadFinalPhaseData = async () => {
-        try {
-          setIsLoadingFromDatabase(true);
-          
-          // Load labelling items
-          const groups = await apiService.getGroup(retroId);
-          setLabellingItems(groups);
-          const final = await apiService.getAction(retroId);
-          const transformedActionItems = final.map((item: any) => ({
-            id: item.id,
-            task: item.action_item,
-            assigneeName: item.assign_to,
-            assigneeId: item.assign_to, // Using assign_to as assigneeId for consistency
-            createdBy: item.createdBy,
-            createdAt: item.createdAt,
-            edited: item.edited || false
-          }));
-          setActionItems(transformedActionItems);          
-        } catch (error) {
-          console.error('❌ Error loading final phase data:', error);
-          setLabellingItems([]);
-          setActionItems([]);
-        } finally {
-          setIsLoadingFromDatabase(false);
-        }
-      };
+  // useEffect(() => {
+  //   if (phase === 'final') {
+  //     const loadFinalPhaseData = async () => {
+  //       try {
+  //         setIsLoadingFromDatabase(true);
+  //         const groups = await apiService.getGroup(retroId);
+
+  //       } catch (error) {
+  //         console.error('❌ Error loading final phase data:', error);
+  //         setLabellingItems([]);
+  //         setActionItems([]);
+  //       } finally {
+  //         setIsLoadingFromDatabase(false);
+  //       }
+  //     };
       
-      // Add a small delay to ensure phase change is complete
-      setTimeout(loadFinalPhaseData, 100);
-    }
-  }, [phase, retroId]);
+  //     // Add a small delay to ensure phase change is complete
+  //     setTimeout(loadFinalPhaseData, 100);
+  //   }
+  // }, [phase, retroId]);
 
   // Handler Change Phase
   const handlePhaseChange = useCallback((newPhase: 'prime-directive' | 'ideation' | 'grouping' | 'labelling' | 'voting' | 'final' | 'ActionItems') => {
@@ -810,7 +790,6 @@ const handleItemAdded = useCallback((newItem: RetroItem) => {
   }, [items.length]);
   
  // Handler Item Updated
- // TODO: Handle Item Updated kok ada 2 ? 
   const handleItemUpdated = useCallback((updatedItem: RetroItem) => {
     setItems(prev => prev.map(item => {
       if (item.id === updatedItem.id) {
@@ -913,27 +892,20 @@ const handleItemAdded = useCallback((newItem: RetroItem) => {
     );
   }, []);
 
-  // ! ------------------------ Action Items ------------------------ //
+  // ! ------------------------ Action Items ------------------------ //  
+  const handleActionItemsUpdate = useCallback(async () => {
+  try {
+    const data = await apiService.getAction(retroId);
+    setActionItems(data);
+  } catch (e) {
+    console.error('❌ Error updating participants:', e);
+  }
+}, [retroId]);
 
 
-
-  // Handler untuk menerima action items update dari WebSocket
-  const handleActionItemsUpdate = useCallback((actionItems: any[]) => {
-    // Don't update action items from WebSocket during final phase
-    // or when loading from database
-    if (phase !== 'final' && !isLoadingFromDatabase) {
-      setActionItems(actionItems);
-    }
-  }, [phase, isLoadingFromDatabase]);
 
   // Handler untuk menerima retro state yang berisi action items
-  const handleRetroState = useCallback((state: any) => {
-    // Don't update action items from WebSocket during final phase
-    // or when loading from database
-    if (state.actionItems && phase !== 'final' && !isLoadingFromDatabase) {
-      setActionItems(state.actionItems);
-    }
-  }, [phase, isLoadingFromDatabase]);
+
 
 
 
@@ -954,8 +926,9 @@ const handleItemAdded = useCallback((newItem: RetroItem) => {
     onVoteUpdate: handleVoteUpdate,
     onVoteSubmission: handleVoteSubmission,
     onActionItemsUpdate: handleActionItemsUpdate,
-    onRetroState: handleRetroState,
   });
+
+
 
   // ! ------------------------ Grouping - Socket ------------------------ //
   // Debounced grouping update function - now with access to socket and isConnected
@@ -1184,7 +1157,6 @@ const handleItemAdded = useCallback((newItem: RetroItem) => {
   const [editActionAssignee, setEditActionAssignee] = useState('');
 
   useEffect(() => {
-    // Hanya set actionAssignee jika belum ada nilai dan ada participants
     if (participants.length > 0 && !actionAssignee) {
       setActionAssignee(participants[0].user.id);
     }
@@ -1199,70 +1171,49 @@ const handleItemAdded = useCallback((newItem: RetroItem) => {
       fetchAllParticipants();
     }, [retroId, participants]);
 
-    const handleAddActionItemWebSocket = () => {
+    const handleAddActionItem = () => {
     if (!actionInput.trim() || !actionAssignee || !user?.id) {
       return;
     }
-    // Cari nama assignee
     const assignee = allParticipants.find((p: any) => p.user.id === actionAssignee);
-    const assigneeName = assignee?.user.name || 'Unknown';
-    // Kirim ke WebSocket
-    if (socket && isConnected) {
-      socket.emit('action-item-added', {
-        retroId: retro?.id,
-        task: actionInput,
-        assigneeId: actionAssignee,
-        assigneeName,
-        createdBy: user.id
-      });
-    } else {
+    if (!assignee){
+      return;
     }
+    const assigneeName = assignee.user.name;
+    apiService.createAction(retroId,
+      {
+        created_by : user.id,
+        action_item : actionInput,
+        assign_to : assigneeName,
+        assign_to_id : actionAssignee
+      }
+    )
+
+
+
     setActionInput('');
   };
   
 
-  const handleEditActionItem = (idx: number) => {
-    const item = actionItems[idx];
-    setEditingActionIdx(idx);
-    setEditActionInput(item.task);
-    setEditActionAssignee(item.assigneeId || '');
-
+  const handleEditActionItem = (id: number,action_item:string,assign_to_id:string) => {
+    setEditingActionIdx(id);
+    setEditActionInput(action_item);
+    setEditActionAssignee(assign_to_id);
   };
 
 
 
-  const handleSaveEditActionItem = (idx: number) => {
-    if (!editActionInput.trim() || !editActionAssignee || !user?.id) return;
-    const item = actionItems[idx];
-    const assignee = allParticipants.find(p => p.user.id === editActionAssignee);
-    const assigneeName = assignee?.user.name || '';
-    
-    // Send to WebSocket
-    if (socket && isConnected) {
-      socket.emit('action-item-updated', {
-        retroId,
-        actionItemId: item.id || `temp_${idx}`,
-        task: editActionInput,
-        assigneeId: editActionAssignee,
-        assigneeName,
-        updatedBy: user.id
-      });
-    }
-    
-    // Clear editing state
-    setEditingActionIdx(null);
+  const handleSaveEditActionItem = (id: number, action_item?:string, assign_to_id? : string) => {
+    apiService.updateAction(id,{
+      action_item,assign_to_id
+    })
     setEditActionInput('');
     setEditActionAssignee('');
+    setEditingActionIdx(null);
   };
 
-  const handleDeleteActionItem = (idx: number) => {
-    const item = actionItems[idx];
-    if (socket && isConnected) {
-      socket.emit('action-item-deleted', {
-        retroId,
-        actionItemId: item.id || `temp_${idx}`
-      });
-    }
+  const handleDeleteActionItem = (id: number) => {
+    apiService.deleteAction(id)
   };
 
   if (loading) {
@@ -1476,8 +1427,7 @@ const handleItemAdded = useCallback((newItem: RetroItem) => {
         actionAssignee={actionAssignee}
         setActionInput={setActionInput}
         setActionAssignee={setActionAssignee}
-        handleAddActionItemWebSocket={handleAddActionItemWebSocket}
-        setActionItems={setActionItems}
+        handleAddActionItem={handleAddActionItem}
         isCurrentFacilitator={isCurrentFacilitator}
         setPhase={setPhase}
         broadcastPhaseChange={broadcastPhaseChange}
